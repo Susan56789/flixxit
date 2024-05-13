@@ -94,7 +94,8 @@ app.post('/api/movies', async (req, res) => {
     description: req.body.description,
     genre: req.body.genre,
     rating: req.body.rating,
-    year: req.body.year
+    year: req.body.year,
+    imageUrl: req.body.imageUrl 
   };
 
   try {
@@ -106,6 +107,7 @@ app.post('/api/movies', async (req, res) => {
     res.json({ message: err });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
