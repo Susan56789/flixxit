@@ -35,7 +35,7 @@ const Header = ({ loggedIn, handleLogout }) => {
             {!loggedIn ? (
               <div>
                 <Link className="btn btn-primary me-2" to="/login">Login</Link>
-                <Link className="btn btn-success" to="/signup">Sign up</Link>
+                <Link className="btn btn-success" to="/register">Sign up</Link>
               </div>
             ) : (
               <button className="btn btn-danger" onClick={handleLogout}>Logout</button>

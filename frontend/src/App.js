@@ -1,7 +1,7 @@
 // frontend/src/App.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import Routes from './Routes';
+import Routers from './Routers';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -47,7 +47,7 @@ function App() {
   };
 
   return (
-    <Routes
+    <Routers
       loggedIn={loggedIn}
       handleLogout={handleLogout}
       handleLogin={handleLogin}

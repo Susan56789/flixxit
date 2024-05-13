@@ -12,15 +12,9 @@ const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister }) => {
             <div className="App">
                 <Header loggedIn={loggedIn} handleLogout={handleLogout} />
                 <Routes>
-                    {/* <Route path="/" element={!loggedIn ? (
-                        <div>
-                            <LoginForm handleLogin={handleLogin} />
-                            <RegisterForm handleRegister={handleRegister} />
-                        </div>
-                    ) : (
-                        <HomePage />
-                    )} /> */}
-                    <Route path='/' element={<HomePage />} />
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/login" element={<LoginForm handleLogin={handleLogin} />} />
+                    <Route path="/register" element={<RegisterForm handleRegister={handleRegister} />} />
                     <Route path="/movies/:id" element={<MovieDetailPage />} />
                 </Routes>
             </div>
