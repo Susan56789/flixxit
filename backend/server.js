@@ -81,6 +81,7 @@ app.get('/api/movies', async (req, res) => {
     const movies = database.collection('movies');
     const moviesList = await movies.find().toArray();
     res.json(moviesList);
+    console.log(moviesList)
   } catch (err) {
     res.json({ message: err });
   }
