@@ -1,0 +1,15 @@
+* {
+    font-family: 'Poppins', sans-serif;
+
+}
+
+
+div {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+
+a:hover {
+    color: red;
+}
