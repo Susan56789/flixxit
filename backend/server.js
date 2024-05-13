@@ -17,16 +17,18 @@ async function run() {
   try {
     // Connect the client to the server
     await client.connect();
+    console.log("Connected to the database");
 
     // Establish and verify connection
     const database = client.db('sample_mflix');
     const movies = database.collection('movies');
-
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    const users = database.collection('users');
+    console.log("Collections initialized");
+  } catch (err) {
+    console.error("Error connecting to the database:", err);
   }
 }
+
 run().catch(console.dir);
 
 app.use(bodyParser.json());
@@ -81,7 +83,6 @@ app.get('/api/movies', async (req, res) => {
     const movies = database.collection('movies');
     const moviesList = await movies.find().toArray();
     res.json(moviesList);
-    console.log(moviesList)
   } catch (err) {
     res.json({ message: err });
   }
