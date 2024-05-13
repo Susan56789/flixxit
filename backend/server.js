@@ -1,36 +1,38 @@
-// backend/server.js
 const express = require('express');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { MongoClient } = require("mongodb");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/flixxit', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+// Connection URI
+const uri = "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
 
-// Mongoose Schema
-const movieSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  genre: String,
-  rating: Number,
-  year: Number
-});
+// Create a new MongoClient
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-const Movie = mongoose.model('Movie', movieSchema);
+async function run() {
+  try {
+    // Connect the client to the server
+    await client.connect();
 
-const userSchema = new mongoose.Schema({
-  username: String,
-  email: String,
-  password: String
-});
+    // Establish and verify connection
+    const database = client.db('sample_mflix');
+    const movies = database.collection('movies');
 
-const User = mongoose.model('User', userSchema);
+    // Query for a movie that has the title 'Back to the Future'
+    const query = { title: 'Back to the Future' };
+    const movie = await movies.findOne(query);
+
+    console.log(movie);
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+run().catch(console.dir);
 
 app.use(bodyParser.json());
 
@@ -39,13 +41,15 @@ app.use(bodyParser.json());
 app.post('/api/register', async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    const user = new User({
+    const user = {
       username: req.body.username,
       email: req.body.email,
       password: hashedPassword
-    });
-    const savedUser = await user.save();
-    res.json({ userId: savedUser._id });
+    };
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const result = await users.insertOne(user);
+    res.json({ userId: result.insertedId });
   } catch (err) {
     res.status(400).json({ message: err });
   }
@@ -53,7 +57,9 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const user = await users.findOne({ email: req.body.email });
     if (!user) {
       return res.status(400).json({ message: 'User not found' });
     }
@@ -71,25 +77,29 @@ app.post('/api/login', async (req, res) => {
 // Movies
 app.get('/api/movies', async (req, res) => {
   try {
-    const movies = await Movie.find();
-    res.json(movies);
+    const database = client.db('sample_mflix');
+    const movies = database.collection('movies');
+    const moviesList = await movies.find().toArray();
+    res.json(moviesList);
   } catch (err) {
     res.json({ message: err });
   }
 });
 
 app.post('/api/movies', async (req, res) => {
-  const movie = new Movie({
+  const movie = {
     title: req.body.title,
     description: req.body.description,
     genre: req.body.genre,
     rating: req.body.rating,
     year: req.body.year
-  });
+  };
 
   try {
-    const savedMovie = await movie.save();
-    res.json(savedMovie);
+    const database = client.db('sample_mflix');
+    const movies = database.collection('movies');
+    const result = await movies.insertOne(movie);
+    res.json(result.ops[0]);
   } catch (err) {
     res.json({ message: err });
   }
