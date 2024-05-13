@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 const uri = "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
 
 // Create a new MongoClient
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(uri);
 
 async function run() {
   try {
@@ -22,11 +22,6 @@ async function run() {
     const database = client.db('sample_mflix');
     const movies = database.collection('movies');
 
-    // Query for a movie that has the title 'Back to the Future'
-    const query = { title: 'Back to the Future' };
-    const movie = await movies.findOne(query);
-
-    console.log(movie);
   } finally {
     // Ensures that the client will close when you finish/error
     await client.close();
@@ -35,6 +30,11 @@ async function run() {
 run().catch(console.dir);
 
 app.use(bodyParser.json());
+
+// Default landing page
+app.get('/', (req, res) => {
+  res.send('Welcome to Flixxit Backend!');
+});
 
 // Routes
 // Authentication
