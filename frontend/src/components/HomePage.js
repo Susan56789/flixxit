@@ -1,4 +1,3 @@
-// frontend/src/components/HomePage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MovieList from './MovieList';
@@ -35,21 +34,23 @@ const HomePage = () => {
     }, []);
 
     return (
-        <div className="container mt-3">
-            <section>
-                <h2>New Arrivals</h2>
-                <MovieList movies={newArrivals} />
-            </section>
+        <div>
+            <div className="container mt-3">
+                <section>
+                    <h2>New Arrivals</h2>
+                    <MovieList movies={newArrivals} type="newArrivals" />
+                </section>
 
-            <section>
-                <h2>Most Popular</h2>
-                <MovieList movies={mostPopular} />
-            </section>
+                <section>
+                    <h2>Most Popular</h2>
+                    <MovieList movies={mostPopular} type="mostPopular" />
+                </section>
 
-            <section>
-                <h2>Recommended</h2>
-                <MovieList movies={recommended} />
-            </section>
+                <section>
+                    <h2>Recommended</h2>
+                    <MovieList movies={recommended} type="recommended" />
+                </section>
+            </div>
         </div>
     );
 }
