@@ -126,7 +126,18 @@ app.get('/api/movies/:id', async (req, res) => {
 });
 
 
-
+// Genre endpoint
+app.get('/api/genres', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const movies = database.collection('movies');
+    const genres = await movies.distinct("genre");
+    res.json(genres);
+  } catch (err) {
+    console.error("Error fetching genres:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 app.listen(PORT, () => {

@@ -35,6 +35,7 @@ const HomePage = () => {
 
     return (
         <div>
+
             <div className="container mt-3">
                 <section>
                     <h2>New Arrivals</h2>

@@ -19,11 +19,20 @@ const Header = ({ loggedIn, handleLogout }) => {
             </li>
 
             <li className="nav-item">
-              <Link className="nav-link active" aria-current="page" to="/">About Us</Link>
+              <Link className="nav-link active" aria-current="page" to="/about-us">About Us</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link active" aria-current="page" to="/categories">Category</Link>
             </li>
           </ul>
-          <form className="me-2 mb-2 mb-lg-0">
-            <input type="text" className="form-control form-control-sm" placeholder="Search" />
+          <form className="d-flex" role="search">
+            <input className="form-control me-2"
+              type="search"
+              placeholder="Search..."
+              aria-label="Search" />
+            <button className="btn btn-subtle" type="submit">
+              <i className="fa-solid fa-magnifying-glass fa-lg"></i>
+            </button>
           </form>
           <div className="d-flex align-items-center flex-column flex-lg-row">
 
@@ -33,7 +42,17 @@ const Header = ({ loggedIn, handleLogout }) => {
 
               </div>
             ) : (
-              <button className="btn btn-danger" onClick={handleLogout}>Logout</button>
+              <div>
+                <ul className="navbar-nav me-auto mb-0">
+                  <li className="nav-item">
+                    <Link className="nav-link active" aria-current="page" to="/watchlist">WatchList</Link>
+                  </li>
+                  <li className="nav-item">
+                    <Link className="nav-link active" aria-current="page" to="/profile">My Profile</Link>
+                  </li>
+                </ul>
+                <button className="btn btn-danger" onClick={handleLogout}>Logout</button>
+              </div>
             )}
           </div>
         </div>

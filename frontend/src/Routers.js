@@ -5,6 +5,10 @@ import HomePage from './components/HomePage';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import MovieDetailPage from './components/MovieDetailPage';
+import AboutUs from './components/AboutUs';
+import MovieCategories from './components/MovieCategories';
+import WatchList from './components/WatchList';
+import UserProfile from './components/UserProfile';
 
 const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister }) => {
     return (
@@ -16,6 +20,10 @@ const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister }) => {
                     <Route path="/login" element={<LoginForm handleLogin={handleLogin} />} />
                     <Route path="/register" element={<RegisterForm handleRegister={handleRegister} />} />
                     <Route path="/movies/:id" element={<MovieDetailPage />} />
+                    <Route path="/about-us" element={<AboutUs />} />
+                    <Route path="/categories" element={<MovieCategories />} />
+                    <Route path="/watchlist" element={<WatchList />} />
+                    <Route path="/profile" element={<UserProfile />} />
                 </Routes>
             </div>
         </Router>
