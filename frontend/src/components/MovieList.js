@@ -22,15 +22,26 @@ const MovieList = ({ movies, type }) => {
           <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
             <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card h-100">
-                <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
-                <div className="card-body d-flex flex-column justify-content-between">
-                  <h5 className="card-title mb-0">{movie.title}</h5>
-                  <p className="card-text mb-3" style={{ minHeight: '50px' }}>{movie.description.substring(0, 50)}...</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <i className="fas fa-star text-warning"></i> {movie.rating}
-                    </div>
+                <div className="card-header d-flex align-items-center">
+
+                  <div className="ms-3">
+                    <h6 className="mb-0 fs-sm">{movie.title}</h6>
+                    <span className="text-muted fs-sm">{movie.year}</span>
                   </div>
+                  <div className="dropstart ms-auto">
+
+
+                  </div>
+                </div>
+                <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
+                <div className="card-body">
+                  {/* <p className="card-text">
+                    {movie.description.substring(0, 50)}...
+                  </p> */}
+                </div>
+                <div className="card-footer d-flex">
+                  <button className="btn btn-subtle" type="button"><i className="fas fa-heart fa-lg"></i></button>
+                  <button className="btn btn-subtle" type="button"><i className="fas fa-share fa-lg"></i></button>
                 </div>
               </div>
             </Link>

@@ -1,15 +1,62 @@
 * {
     font-family: 'Poppins', sans-serif;
+    background: #000 !important;
+    color: #FFF !important;
 
 }
 
+.text-muted.fs-sm {
+    color: aqua !important;
+}
 
 div {
     max-width: 100%;
     margin: 0 auto;
 }
 
+input::placeholder {
+    color: #fff !important;
+}
+
+button.navbar-toggler {
+
+    color: #fff !important;
+}
+
+span.navbar-toggler-icon {
+    background: red !important;
+    color: #fff !important;
+}
 
 a:hover {
-    color: red;
+    color: red !important;
+}
+
+/* Styling input placeholders */
+::-webkit-input-placeholder {
+    /* Chrome/Opera/Safari */
+    color: #fff;
+}
+
+::-moz-placeholder {
+    /* Firefox 19+ */
+    color: #fff;
+}
+
+:-ms-input-placeholder {
+    /* IE 10+ */
+    color: #fff;
+}
+
+:-moz-placeholder {
+    /* Firefox 18- */
+    color: #fff;
+}
+
+/* Styling checkbox tick */
+.form-check-input::before {
+
+    display: inline-block;
+    font-size: 14px;
+    color: #fff;
 }

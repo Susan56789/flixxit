@@ -8,7 +8,7 @@ const HomePage = () => {
     const [recommended, setRecommended] = useState([]);
 
     useEffect(() => {
-        axios.get('/api/movies?sort=newest&limit=5')
+        axios.get('/api/movies?sort=newest&limit=4')
             .then(res => {
                 setNewArrivals(res.data);
             })
@@ -16,7 +16,7 @@ const HomePage = () => {
                 console.log(err);
             });
 
-        axios.get('/api/movies?sort=rating&limit=5')
+        axios.get('/api/movies?sort=rating&limit=4')
             .then(res => {
                 setMostPopular(res.data);
             })
@@ -24,7 +24,7 @@ const HomePage = () => {
                 console.log(err);
             });
 
-        axios.get('/api/movies?sort=year&limit=5')
+        axios.get('/api/movies?sort=year&limit=4')
             .then(res => {
                 setRecommended(res.data);
             })
