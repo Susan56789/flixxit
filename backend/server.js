@@ -139,6 +139,21 @@ app.get('/api/genres', async (req, res) => {
   }
 });
 
+//Movie Search
+app.get('/api/movies/search', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const movies = database.collection('movies');
+    const searchQuery = req.query.query;
+    const searchResult = await movies.find({ title: { $regex: searchQuery, $options: 'i' } }).toArray();
+    res.json(searchResult);
+  } catch (err) {
+    console.error("Error searching movies:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

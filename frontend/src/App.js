@@ -1,4 +1,3 @@
-// frontend/src/App.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import Routers from './Routers';
@@ -7,6 +6,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [token, setToken] = useState('');
+  const [searchResult, setSearchResult] = useState([]);
 
   const handleAddMovie = (newMovie) => {
     axios.post('/api/movies', newMovie)
@@ -46,12 +46,23 @@ function App() {
     setToken('');
   };
 
+  const handleSearch = async (query) => {
+    try {
+      const response = await axios.get(`/api/movies/search?query=${query}`);
+      setSearchResult(response.data);
+    } catch (error) {
+      console.error('Search failed:', error);
+    }
+  };
+
   return (
     <Routers
       loggedIn={loggedIn}
       handleLogout={handleLogout}
       handleLogin={handleLogin}
       handleRegister={handleRegister}
+      handleSearch={handleSearch}
+      searchResult={searchResult}
     />
   );
 }
