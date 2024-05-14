@@ -95,7 +95,7 @@ app.post('/api/movies', async (req, res) => {
     genre: req.body.genre,
     rating: req.body.rating,
     year: req.body.year,
-    imageUrl: req.body.imageUrl 
+    imageUrl: req.body.imageUrl
   };
 
   try {
@@ -107,6 +107,26 @@ app.post('/api/movies', async (req, res) => {
     res.json({ message: err });
   }
 });
+
+
+// Movie detail
+app.get('/api/movies/:id', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const movies = database.collection('movies');
+    const ObjectId = require('mongodb').ObjectId;
+    const movie = await movies.findOne({ _id: new ObjectId(req.params.id) });
+    if (!movie) {
+      return res.status(404).json({ message: 'Movie not found' });
+    }
+    res.json(movie);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+
+
 
 
 app.listen(PORT, () => {

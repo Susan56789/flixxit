@@ -1,39 +1,45 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom'; // Import useParams hook
 
-const MovieDetailPage = ({ match }) => {
+const MovieDetailPage = () => {
     const [movie, setMovie] = useState(null);
+    const [error, setError] = useState(null);
+
+    // Use useParams hook to get the movie ID from the URL
+    const { id } = useParams();
 
     useEffect(() => {
-        const fetchMovie = async () => {
+        const fetchMovieDetail = async () => {
             try {
-                const response = await axios.get(`/api/movies/${match.params.id}`);
+                const response = await axios.get(`/api/movies/${id}`);
                 setMovie(response.data);
             } catch (error) {
-                console.error('Error fetching movie:', error);
+                setError(error);
             }
         };
 
-        fetchMovie();
-    }, [match.params.id]);
+        fetchMovieDetail();
+    }, [id]); // Make sure to include id in the dependency array
+
+    if (error) {
+        return <div>Error fetching movie details: {error.message}</div>;
+    }
+
+    if (!movie) {
+        return <div>Loading...</div>;
+    }
 
     return (
-        <div className="container mt-3">
-            {movie ? (
-                <div>
-                    <h2>{movie.title}</h2>
-                    <p><strong>Description:</strong> {movie.description}</p>
-                    <p><strong>Genre:</strong> {movie.genre}</p>
-                    <p><strong>Rating:</strong> {movie.rating}</p>
-                    <p><strong>Year:</strong> {movie.year}</p>
-                    {/* You can add more details here */}
-                </div>
-            ) : (
-                <p>Loading...</p>
-            )}
+        <div>
+            <h2>{movie.title}</h2>
+            <p>Description: {movie.description}</p>
+            <p>Genre: {movie.genre}</p>
+            <p>Rating: {movie.rating}</p>
+            <p>Year: {movie.year}</p>
+            <img src={movie.imageUrl} alt={movie.title} />
         </div>
     );
-}
+};
 
 export default MovieDetailPage;

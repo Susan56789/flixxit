@@ -10,7 +10,7 @@ const Header = ({ loggedIn, handleLogout }) => {
           <span className="navbar-toggler-icon"></span>
         </button>
         <Link className="navbar-brand" to="/">
-          Flixxit
+          <img src='/logo.png' alt='Flixxit' width="36" />
         </Link>
         <div className="collapse navbar-collapse" id="navbarExample">
           <ul className="navbar-nav me-auto mb-0">
@@ -35,7 +35,7 @@ const Header = ({ loggedIn, handleLogout }) => {
             {!loggedIn ? (
               <div>
                 <Link className="btn btn-primary me-2" to="/login">Login</Link>
-                <Link className="btn btn-success" to="/register">Sign up</Link>
+                {/* <Link className="btn btn-success" to="/register">Sign up</Link> */}
               </div>
             ) : (
               <button className="btn btn-danger" onClick={handleLogout}>Logout</button>

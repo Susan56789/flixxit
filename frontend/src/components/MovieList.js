@@ -20,7 +20,7 @@ const MovieList = ({ movies, type }) => {
       {Array.isArray(movies) && movies.length > 0 ? (
         movies.map((movie, index) => (
           <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
-            <Link to={`/movie/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card h-100">
                 <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
                 <div className="card-body d-flex flex-column justify-content-between">
