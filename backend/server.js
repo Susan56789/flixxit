@@ -42,20 +42,43 @@ app.get('/', (req, res) => {
 // Authentication
 app.post('/api/register', async (req, res) => {
   try {
+    // Check if email already exists
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const existingEmail = await users.findOne({ email: req.body.email });
+    if (existingEmail) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Check if username already exists
+    const existingUsername = await users.findOne({ username: req.body.username });
+    if (existingUsername) {
+      alert('Username already exists')
+      return res.status(400).json({ message: 'Username already exists' });
+
+    }
+
+    // Check if password is at least 8 characters long
+    if (req.body.password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    // Hash the password
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = {
       username: req.body.username,
       email: req.body.email,
       password: hashedPassword
     };
-    const database = client.db('sample_mflix');
-    const users = database.collection('users');
+
+    // Insert the user into the database
     const result = await users.insertOne(user);
     res.json({ userId: result.insertedId });
   } catch (err) {
     res.status(400).json({ message: err });
   }
 });
+
 
 app.post('/api/login', async (req, res) => {
   try {
