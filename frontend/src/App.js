@@ -1,3 +1,4 @@
+// App.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import Routers from './Routers';
@@ -6,7 +7,6 @@ function App() {
   const [user, setUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [token, setToken] = useState('');
-  const [searchResult, setSearchResult] = useState([]);
 
   const handleAddMovie = (newMovie) => {
     axios.post('/api/movies', newMovie)
@@ -35,8 +35,10 @@ function App() {
       const token = response.data;
       setToken(token);
       setLoggedIn(true);
+      return true;
     } catch (error) {
       console.error('Login failed:', error);
+      return false;
     }
   };
 
@@ -48,13 +50,13 @@ function App() {
 
   const handleSearch = async (query) => {
     try {
-      const response = await axios.get(`/api/movies/search?query=${query.toLowerCase()}`);
-      setSearchResult(response.data);
+      const response = await axios.get(`/api/movies/search?query=${query}`);
+      return response.data;
     } catch (error) {
       console.error('Search failed:', error);
+      return [];
     }
   };
-
 
   return (
     <Routers
@@ -63,7 +65,6 @@ function App() {
       handleLogin={handleLogin}
       handleRegister={handleRegister}
       handleSearch={handleSearch}
-      searchResult={searchResult}
     />
   );
 }

@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 
 const LoginForm = ({ handleLogin }) => {
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    handleLogin(email, password);
+    const loggedIn = await handleLogin(email, password);
+    if (loggedIn) {
+      navigate('/profile');; // Redirect to UserProfile page
+    }
   };
 
   return (
