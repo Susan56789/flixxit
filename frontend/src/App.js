@@ -48,12 +48,13 @@ function App() {
 
   const handleSearch = async (query) => {
     try {
-      const response = await axios.get(`/api/movies/search?query=${query}`);
+      const response = await axios.get(`/api/movies/search?query=${query.toLowerCase()}`);
       setSearchResult(response.data);
     } catch (error) {
       console.error('Search failed:', error);
     }
   };
+
 
   return (
     <Routers

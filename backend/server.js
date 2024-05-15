@@ -141,17 +141,18 @@ app.get('/api/genres', async (req, res) => {
 
 // Movies search
 app.get('/api/movies/search', async (req, res) => {
+  const query = req.query.query.toLowerCase();
   try {
-    const query = req.query.query;
     const database = client.db('sample_mflix');
     const movies = database.collection('movies');
-    const searchResult = await movies.find({ title: { $regex: query, $options: 'i' } }).toArray();
-    res.json(searchResult);
+    const moviesList = await movies.find({ title: { $regex: query, $options: 'i' } }).toArray();
+    res.json(moviesList);
   } catch (err) {
-    console.error("Error searching movies:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Search failed:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 

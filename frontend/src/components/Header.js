@@ -96,3 +96,4 @@ const Header = ({ loggedIn, handleLogout, handleSearch }) => {
 };
 
 export default Header;
+
