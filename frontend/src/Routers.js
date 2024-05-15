@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
@@ -24,7 +24,7 @@ const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister, handleSe
                     <Route path="/about-us" element={<AboutUs />} />
                     <Route path="/categories" element={<MovieCategories handleSearch={handleSearch} />} />
                     <Route path="/watchlist" element={<WatchList />} />
-                    <Route path="/profile" element={<UserProfile />} />
+                    <Route path="/profile/:id" element={<UserProfile />} />
                 </Routes>
             </div>
         </Router>

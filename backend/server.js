@@ -154,6 +154,39 @@ app.get('/api/movies/search', async (req, res) => {
 });
 
 
+//get user data
+const ObjectId = require('mongodb').ObjectId;
+
+app.get('/api/user/:id', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const user = await users.findOne({ _id: ObjectId(req.params.id) });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+
+app.get('/api/user', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const token = req.header('auth-token');
+    const user = await users.findOne({ _id: ObjectId(token) });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
 
 
 

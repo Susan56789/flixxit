@@ -1,12 +1,27 @@
 // App.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Routers from './Routers';
 
-function App() {
+const App = () => {
   const [user, setUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [token, setToken] = useState('');
+
+  useEffect(() => {
+    // Fetch user data
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get('/api/user');
+        setUser(response.data);
+        setLoggedIn(true);
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleAddMovie = (newMovie) => {
     axios.post('/api/movies', newMovie)
@@ -60,6 +75,7 @@ function App() {
 
   return (
     <Routers
+      user={user}
       loggedIn={loggedIn}
       handleLogout={handleLogout}
       handleLogin={handleLogin}
