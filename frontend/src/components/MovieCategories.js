@@ -4,72 +4,71 @@ import { Link } from 'react-router-dom';
 
 const MovieCategories = () => {
     const [genres, setGenres] = useState([]);
-    const [selectedGenre, setSelectedGenre] = useState('Action');
+    const [selectedGenre, setSelectedGenre] = useState('All');
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
-        const fetchGenres = async () => {
+        const fetchData = async () => {
             try {
-                const response = await axios.get('/api/genres');
-                setGenres(response.data);
+                const [genresResponse, moviesResponse] = await Promise.all([
+                    axios.get('/api/genres'),
+                    axios.get(selectedGenre === 'All' ? '/api/movies' : `/api/movies?genre=${selectedGenre}`),
+                ]);
+                setGenres(['All', ...genresResponse.data]);
+                setMovies(moviesResponse.data);
             } catch (error) {
                 console.error(error);
             }
         };
+        fetchData(); // Initial fetch
+    }, [selectedGenre]); // Refetch when selectedGenre changes
 
-        fetchGenres();
-    }, []);
-
-    useEffect(() => {
-        const fetchMoviesByGenre = async () => {
-            try {
-                const response = await axios.get(`/api/movies?genre=${selectedGenre}`);
-                setMovies(response.data);
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        fetchMoviesByGenre();
-    }, [selectedGenre]);
-
-    const handleGenreChange = (genre) => {
+    const handleGenreChange = async (event) => {
+        const genre = event.target.value;
         setSelectedGenre(genre);
+        try {
+            const moviesResponse = await axios.get(genre === 'All' ? '/api/movies' : `/api/movies?genre=${genre}`);
+            setMovies(moviesResponse.data);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (
         <div className="container mt-4">
-            <h2>Movie Categories</h2>
-            <ul className="nav nav-tabs">
-                {genres.map((genre) => (
-                    <li className="nav-item" key={genre}>
-                        <button
-                            className={`nav-link ${selectedGenre === genre ? 'active' : ''}`}
-                            onClick={() => handleGenreChange(genre)}
-                        >
-                            {genre}
-                        </button>
-                    </li>
-                ))}
-            </ul>
-            <div className="row mt-4">
-                <div className="col-md-12">
-                    <div className="row row-cols-1 row-cols-md-3 g-4">
-                        {movies.map((movie) => (
-                            <div key={movie._id} className="col">
-                                <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                                    <div className="card h-100">
-                                        <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
-                                        <div className="card-body">
-                                            <h5 className="card-title">{movie.title}</h5>
-                                            {/* <p className="card-text">{movie.description}</p> */}
-                                        </div>
-                                    </div>
-                                </Link>
-                            </div>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="mb-0">Movie Categories</h2>
+                <div>
+                    <label htmlFor="genre-select" className="form-label me-2">
+                        Select Genre:
+                    </label>
+                    <select
+                        id="genre-select"
+                        className="form-select d-inline-block"
+                        value={selectedGenre}
+                        onChange={handleGenreChange}
+                    >
+                        {genres.map((genre) => (
+                            <option key={genre} value={genre}>
+                                {genre}
+                            </option>
                         ))}
-                    </div>
+                    </select>
                 </div>
+            </div>
+            <div className="row row-cols-1 row-cols-md-3 g-4">
+                {movies.map((movie) => (
+                    <div key={movie._id} className="col">
+                        <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <div className="card h-100">
+                                <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
+                                <div className="card-body">
+                                    <h5 className="card-title">{movie.title}</h5>
+                                </div>
+                            </div>
+                        </Link>
+                    </div>
+                ))}
             </div>
         </div>
     );
