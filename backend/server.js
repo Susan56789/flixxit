@@ -283,7 +283,68 @@ app.post('/api/dislike', async (req, res) => {
 });
 
 
+// Watchlist endpoint
+app.get('/api/watchlist', async (req, res) => {
+  try {
+    const userId = req.user._id; // Assuming you have implemented authentication middleware to attach user to req object
 
+    const database = client.db('sample_mflix');
+    const watchlist = database.collection('watchlist');
+    const userWatchlist = await watchlist.find({ userId }).toArray();
+    const movieIds = userWatchlist.map(item => item.movieId);
+
+    const movies = database.collection('movies');
+    const userWatchlistMovies = await movies.find({ _id: { $in: movieIds } }).toArray();
+
+    res.json(userWatchlistMovies);
+  } catch (err) {
+    console.error("Error fetching user's watchlist:", err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add to watchlist endpoint
+app.post('/api/watchlist', async (req, res) => {
+  try {
+    const { movieId } = req.body;
+    const userId = req.user._id; // Assuming you have implemented authentication middleware to attach user to req object
+
+    const database = client.db('sample_mflix');
+    const watchlist = database.collection('watchlist');
+
+    const existingItem = await watchlist.findOne({ userId, movieId });
+    if (existingItem) {
+      return res.status(400).json({ message: 'Movie already in watchlist' });
+    }
+
+    const result = await watchlist.insertOne({ userId, movieId });
+    res.json({ message: 'Movie added to watchlist' });
+  } catch (err) {
+    console.error('Error adding to watchlist:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Remove from watchlist endpoint
+app.delete('/api/watchlist/:movieId', async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { movieId } = req.params;
+
+    const database = client.db('sample_mflix');
+    const watchlist = database.collection('watchlist');
+
+    const result = await watchlist.deleteOne({ userId, movieId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Movie not found in watchlist' });
+    }
+
+    res.json({ message: 'Movie removed from watchlist' });
+  } catch (err) {
+    console.error('Error removing from watchlist:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 
