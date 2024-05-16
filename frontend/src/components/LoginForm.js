@@ -1,21 +1,16 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = ({ handleLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    const response = await handleLogin(email, password);
-    if (response && response.user) {
-      navigate(`/profile/${response.user._id}`);
-    } else {
-      // Handle login failure
-      console.log('Login failed');
+    const user = await handleLogin(email, password);
+    if (user) {
+      navigate(`/profile/`); // Redirect to UserProfile page with user ID
     }
   };
 
@@ -34,15 +29,24 @@ const LoginForm = ({ handleLogin }) => {
             <form onSubmit={handleSubmit}>
               <div className="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                 <p className="lead fw-normal mb-0 me-3">Sign in with</p>
-                <button type="button" className="btn btn-primary btn-floating mx-1">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-floating mx-1"
+                >
                   <i className="fab fa-facebook-f"></i>
                 </button>
 
-                <button type="button" className="btn btn-primary btn-floating mx-1">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-floating mx-1"
+                >
                   <i className="fab fa-twitter"></i>
                 </button>
 
-                <button type="button" className="btn btn-primary btn-floating mx-1">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-floating mx-1"
+                >
                   <i className="fab fa-linkedin-in"></i>
                 </button>
               </div>
@@ -62,7 +66,9 @@ const LoginForm = ({ handleLogin }) => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-                <label className="form-label" htmlFor="email">Email address</label>
+                <label className="form-label" htmlFor="email">
+                  Email address
+                </label>
               </div>
 
               {/* Password input */}
@@ -76,33 +82,50 @@ const LoginForm = ({ handleLogin }) => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <label className="form-label" htmlFor="password">Password</label>
+                <label className="form-label" htmlFor="password">
+                  Password
+                </label>
               </div>
 
               <div className="d-flex justify-content-between align-items-center">
                 {/* Checkbox */}
                 <div className="form-check mb-0">
-                  <input className="form-check-input me-2" type="checkbox" value="" id="rememberMe" />
+                  <input
+                    className="form-check-input me-2"
+                    type="checkbox"
+                    value=""
+                    id="rememberMe"
+                  />
                   <label className="form-check-label" htmlFor="rememberMe">
                     Remember me
                   </label>
                 </div>
-                <a href="#!" className="text-body">Forgot password?</a>
+                <a href="#!" className="text-body">
+                  Forgot password?
+                </a>
               </div>
 
               <div className="text-center text-lg-start mt-4 pt-2">
-                <button type="submit" className="btn btn-primary btn-lg" style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-lg"
+                  style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
+                >
                   Login
                 </button>
-                <p className="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="/register" className="link-danger">Register</a></p>
+                <p className="small fw-bold mt-2 pt-1 mb-0">
+                  Don't have an account?{" "}
+                  <a href="/register" className="link-danger">
+                    Register
+                  </a>
+                </p>
               </div>
-
             </form>
           </div>
         </div>
       </div>
     </section>
   );
-}
+};
 
 export default LoginForm;

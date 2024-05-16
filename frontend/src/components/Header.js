@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 const Header = ({ loggedIn, handleLogout, handleSearch }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (searchQuery.trim() !== '') {
+    if (searchQuery.trim() !== "") {
       handleSearch(searchQuery);
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
+
+  useEffect(() => {
+    const getUser = () => {
+      let userData = localStorage.getItem("flixxItUser")
+        ? JSON.parse(localStorage.getItem("flixxItUser"))
+        : null;
+      setUser(userData);
+    };
+
+    getUser();
+  });
 
   return (
     <div className="container">
@@ -37,19 +49,27 @@ const Header = ({ loggedIn, handleLogout, handleSearch }) => {
                 </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link active" aria-current="page" href="/about-us">
+                <a
+                  className="nav-link active"
+                  aria-current="page"
+                  href="/about-us"
+                >
                   About Us
                 </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link active" aria-current="page" href="/categories">
+                <a
+                  className="nav-link active"
+                  aria-current="page"
+                  href="/categories"
+                >
                   Category
                 </a>
               </li>
             </ul>
 
             <div className="d-flex align-items-center flex-column flex-lg-row">
-              {!loggedIn ? (
+              {!user ? (
                 <div>
                   <a className="btn btn-primary me-2" href="/login">
                     Login
@@ -59,26 +79,39 @@ const Header = ({ loggedIn, handleLogout, handleSearch }) => {
                 <div>
                   <ul className="navbar-nav me-auto mb-0">
                     <li className="nav-item">
-                      <a className="nav-link active" aria-current="page" href="/watchlist">
+                      <a
+                        className="nav-link active"
+                        aria-current="page"
+                        href="/watchlist"
+                      >
                         WatchList
                       </a>
                     </li>
                     <li className="nav-item">
-                      <a className="nav-link active" aria-current="page" href="/profile">
+                      <a
+                        className="nav-link active"
+                        aria-current="page"
+                        href="/profile"
+                      >
                         My Profile
                       </a>
                     </li>
+                    <li className="nav-item">
+                      <button className="btn btn-danger" onClick={handleLogout}>
+                        Logout
+                      </button>
+                    </li>
                   </ul>
-                  <button className="btn btn-danger" onClick={handleLogout}>
-                    Logout
-                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
       </nav>
-      <form className="d-flex justify-content-center mt-3" onSubmit={handleSubmit}>
+      <form
+        className="d-flex justify-content-center my-3"
+        onSubmit={handleSubmit}
+      >
         <input
           className="form-control form-control-sm me-2 rounded-pill"
           type="search"
@@ -96,4 +129,3 @@ const Header = ({ loggedIn, handleLogout, handleSearch }) => {
 };
 
 export default Header;
-
