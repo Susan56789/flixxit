@@ -11,15 +11,22 @@ const App = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUserId = localStorage.getItem('userId');
+    if (storedToken && storedUserId) {
+      setToken(storedToken);
+      setUserId(storedUserId);
+      setLoggedIn(true);
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         if (userId && token && loggedIn) {
           const response = await axios.get(`/api/user/${userId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+            headers: { Authorization: `Bearer ${token}` },
           });
-          console.log("User Data:", response.data);
           setUser(response.data);
         }
       } catch (error) {
@@ -27,7 +34,6 @@ const App = () => {
         handleLogout(); // Reset user state if user data fetching fails
       }
     };
-
     fetchData();
   }, [userId, token, loggedIn]);
 
@@ -35,12 +41,10 @@ const App = () => {
     try {
       const response = await axios.post('/api/login', { email, password });
       const { token, user } = response.data || {};
-
       if (!token || !user) {
         console.error('Token or user object not found in the response');
         return null;
       }
-
       setToken(token);
       localStorage.setItem('token', token);
       localStorage.setItem('userId', user._id);
@@ -86,6 +90,28 @@ const App = () => {
     }
   };
 
+  const handleLike = async (movieId) => {
+    try {
+      const response = await axios.post('/api/movies/like', { userId, movieId });
+      console.log('Like successful:', response.data);
+      // Handle successful like
+    } catch (error) {
+      console.error('Like failed:', error);
+      // Handle error
+    }
+  };
+
+  const handleDislike = async (movieId) => {
+    try {
+      const response = await axios.post('/api/movies/dislike', { userId, movieId });
+      console.log('Dislike successful:', response.data);
+      // Handle successful dislike
+    } catch (error) {
+      console.error('Dislike failed:', error);
+      // Handle error
+    }
+  };
+
   return (
     <Routers
       user={user}
@@ -94,9 +120,11 @@ const App = () => {
       handleLogin={handleLogin}
       handleRegister={handleRegister}
       handleSearch={handleSearch}
-      userId={userId} // Pass userId to Routers
+      userId={userId}
+      handleLike={handleLike}
+      handleDislike={handleDislike}
     />
   );
-}
+};
 
 export default App;

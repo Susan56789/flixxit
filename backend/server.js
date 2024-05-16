@@ -216,6 +216,71 @@ app.get('/api/user', async (req, res) => {
 });
 
 
+// Subscribers
+app.post('/api/subscribe', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const subscribers = database.collection('subscribers');
+    const { userId, movieId } = req.body;
+
+    // Check if the user has already subscribed to the movie
+    const existingSubscription = await subscribers.findOne({ userId, movieId });
+    if (existingSubscription) {
+      return res.status(400).json({ message: 'You have already subscribed to this movie' });
+    }
+
+    // Create a new subscription
+    const subscription = { userId, movieId };
+    const result = await subscribers.insertOne(subscription);
+    res.json(result.ops[0]);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+// Likes
+app.post('/api/like', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const likes = database.collection('likes');
+    const { userId, movieId } = req.body;
+
+    // Check if the user has already liked the movie
+    const existingLike = await likes.findOne({ userId, movieId });
+    if (existingLike) {
+      return res.status(400).json({ message: 'You have already liked this movie' });
+    }
+
+    // Create a new like
+    const like = { userId, movieId };
+    const result = await likes.insertOne(like);
+    res.json(result.ops[0]);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+// Dislikes
+app.post('/api/dislike', async (req, res) => {
+  try {
+    const database = client.db('sample_mflix');
+    const dislikes = database.collection('dislikes');
+    const { userId, movieId } = req.body;
+
+    // Check if the user has already disliked the movie
+    const existingDislike = await dislikes.findOne({ userId, movieId });
+    if (existingDislike) {
+      return res.status(400).json({ message: 'You have already disliked this movie' });
+    }
+
+    // Create a new dislike
+    const dislike = { userId, movieId };
+    const result = await dislikes.insertOne(dislike);
+    res.json(result.ops[0]);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
 
 
 

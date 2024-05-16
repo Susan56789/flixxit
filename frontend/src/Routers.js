@@ -10,7 +10,7 @@ import MovieCategories from './components/MovieCategories';
 import WatchList from './components/WatchList';
 import UserProfile from './components/UserProfile';
 
-const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister, handleSearch, userId }) => {
+const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister, handleSearch, userId, handleLike, handleDislike }) => {
     return (
         <div className="App">
             <Header loggedIn={loggedIn} handleLogout={handleLogout} handleSearch={handleSearch} />
@@ -18,7 +18,10 @@ const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister, handleSe
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginForm handleLogin={handleLogin} />} />
                 <Route path="/register" element={<RegisterForm handleRegister={handleRegister} />} />
-                <Route path="/movies/:id" element={<MovieDetailPage />} />
+                <Route
+                    path="/movies/:id"
+                    element={<MovieDetailPage handleLike={handleLike} handleDislike={handleDislike} />}
+                />
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/categories" element={<MovieCategories handleSearch={handleSearch} />} />
                 <Route path="/watchlist" element={<WatchList />} />
