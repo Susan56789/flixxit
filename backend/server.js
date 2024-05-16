@@ -93,11 +93,15 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
     const token = jwt.sign({ _id: user._id }, 'secretkey');
-    res.header('auth-token', token).send(token);
+    res.json({ token, user }); // <-- Send both the token and the user object
+
   } catch (err) {
     res.status(400).json({ message: err });
   }
 });
+
+
+
 
 // Movies
 app.get('/api/movies', async (req, res) => {

@@ -9,29 +9,32 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(`/api/user/${id}`);
-        setUser(response.data);
+        if (id) {
+          const response = await axios.get(`/api/user/${id}`);
+          setUser(response.data);
+        }
       } catch (error) {
         console.error('Failed to fetch user:', error);
       }
     };
-
-    if (id) {
-      fetchUser();
-    }
+    fetchUser();
   }, [id]);
 
   return (
     <div className="container">
       <h2>User Profile</h2>
-      {user && (
+      {user ? (
         <div>
           <div className="mb-3">
-            <label htmlFor="username" className="form-label">Username:</label>
+            <label htmlFor="username" className="form-label">
+              Username:
+            </label>
             <input type="text" className="form-control" id="username" value={user.username} readOnly />
           </div>
           <div className="mb-3">
-            <label htmlFor="email" className="form-label">Email:</label>
+            <label htmlFor="email" className="form-label">
+              Email:
+            </label>
             <input type="email" className="form-control" id="email" value={user.email} readOnly />
           </div>
           <div className="mb-3">
@@ -43,10 +46,11 @@ const UserProfile = () => {
             {/* Here goes your subscription status or options */}
           </div>
         </div>
+      ) : (
+        <p>User not found!</p>
       )}
-      {!user && <p>User not found!</p>}
     </div>
   );
-}
+};
 
 export default UserProfile;

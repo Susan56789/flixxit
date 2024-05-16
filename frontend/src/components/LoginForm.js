@@ -4,13 +4,18 @@ import { useNavigate } from 'react-router-dom';
 const LoginForm = ({ handleLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitted(true);
     const user = await handleLogin(email, password);
     if (user) {
-      navigate(`/profile/${user._id}`); // Redirect to UserProfile page with user ID
+      navigate(`/profile/${user._id}`);
+    } else {
+      // Handle login failure
+      console.log('Login failed');
     }
   };
 
@@ -55,6 +60,7 @@ const LoginForm = ({ handleLogin }) => {
                   placeholder="Enter a valid email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
                 <label className="form-label" htmlFor="email">Email address</label>
               </div>
@@ -68,6 +74,7 @@ const LoginForm = ({ handleLogin }) => {
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <label className="form-label" htmlFor="password">Password</label>
               </div>
