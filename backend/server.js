@@ -92,13 +92,14 @@ app.post('/api/login', async (req, res) => {
     if (!validPassword) {
       return res.status(400).json({ message: 'Invalid password' });
     }
-    const token = jwt.sign({ _id: user._id }, 'secretkey');
+    const token = jwt.sign({ _id: user._id.toString() }, 'secretkey');
     res.json({ token, user }); // <-- Send both the token and the user object
 
   } catch (err) {
     res.status(400).json({ message: err });
   }
 });
+
 
 
 
@@ -203,7 +204,7 @@ app.get('/api/user', async (req, res) => {
   try {
     const database = client.db('sample_mflix');
     const users = database.collection('users');
-    const token = req.header('auth-token');
+    const token = req.header('Authorization').split(' ')[1]; // Extract token from Authorization header
     const user = await users.findOne({ _id: ObjectId(token) });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -213,6 +214,9 @@ app.get('/api/user', async (req, res) => {
     res.status(500).json({ message: err });
   }
 });
+
+
+
 
 
 

@@ -11,25 +11,48 @@ const App = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch user data
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(`/api/user/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setUser(response.data);
-        setLoggedIn(true);
+        if (userId && token && loggedIn) {
+          const response = await axios.get(`/api/user/${userId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          console.log("User Data:", response.data);
+          setUser(response.data);
+        }
       } catch (error) {
         console.error('Failed to fetch user:', error);
+        handleLogout(); // Reset user state if user data fetching fails
       }
     };
 
-    if (userId && token && loggedIn) {
-      fetchUser();
-    }
+    fetchData();
   }, [userId, token, loggedIn]);
+
+  const handleLogin = async (email, password) => {
+    try {
+      const response = await axios.post('/api/login', { email, password });
+      const { token, user } = response.data || {};
+
+      if (!token || !user) {
+        console.error('Token or user object not found in the response');
+        return null;
+      }
+
+      setToken(token);
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', user._id);
+      setLoggedIn(true);
+      setUserId(user._id);
+      navigate(`/profile/${user._id}`);
+      return user; // <-- Return user object
+    } catch (error) {
+      console.error('Login failed:', error);
+      return null;
+    }
+  };
 
   const handleRegister = async (username, email, password) => {
     try {
@@ -43,40 +66,13 @@ const App = () => {
     }
   };
 
-  const handleLogin = async (email, password) => {
-    try {
-      const response = await axios.post('/api/login', { email, password });
-      console.log('Login response:', response.data); // Log the entire response object
-
-      const { token, user } = response.data || {};
-
-      console.log('User object:', user);
-      console.log('Response object:', { token, user });
-
-      if (!token || !user) {
-        console.error('Token or user object not found in the response');
-        return false;
-      }
-
-      setToken(token);
-      setLoggedIn(true);
-      setUserId(user._id);
-      setUser(user); // <-- Update the user state with the received user object
-      navigate(`/profile/${user._id}`);
-      return true;
-    } catch (error) {
-      console.error('Login failed:', error);
-      return false;
-    }
-  };
-
-
   const handleLogout = () => {
-    navigate('/login')
     setLoggedIn(false);
     setUser(null);
     setToken('');
     setUserId('');
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
     navigate('/login');
   };
 
@@ -98,7 +94,7 @@ const App = () => {
       handleLogin={handleLogin}
       handleRegister={handleRegister}
       handleSearch={handleSearch}
-      userId={userId}
+      userId={userId} // Pass userId to Routers
     />
   );
 }

@@ -10,9 +10,9 @@ const LoginForm = ({ handleLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
-    const user = await handleLogin(email, password);
-    if (user) {
-      navigate(`/profile/${user._id}`);
+    const response = await handleLogin(email, password);
+    if (response && response.user) {
+      navigate(`/profile/${response.user._id}`);
     } else {
       // Handle login failure
       console.log('Login failed');

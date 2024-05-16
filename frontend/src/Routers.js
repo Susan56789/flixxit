@@ -22,6 +22,7 @@ const Routers = ({ loggedIn, handleLogout, handleLogin, handleRegister, handleSe
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/categories" element={<MovieCategories handleSearch={handleSearch} />} />
                 <Route path="/watchlist" element={<WatchList />} />
+                {/* Pass userId as a prop to UserProfile */}
                 <Route path="/profile/:id" element={<UserProfile userId={userId} />} />
             </Routes>
         </div>
