@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import HomePage from "./components/HomePage";
 import LoginForm from "./components/LoginForm";
@@ -10,6 +10,9 @@ import MovieCategories from "./components/MovieCategories";
 import WatchList from "./components/WatchList";
 import UserProfile from "./components/UserProfile";
 import SearchResults from "./components/SearchResults";
+import AdminDashboard from './components/Admin/AdminDashboard';
+import AdminLogin from "./components/Admin/AdminLogin";
+
 
 const AllRouters = ({
   loggedIn,
@@ -58,6 +61,10 @@ const AllRouters = ({
         />
         <Route path="/watchlist" element={<WatchList />} />
         <Route path="/profile" element={<UserProfile />} />
+
+        <Route path="/admin/login" element={<AdminLogin />} />
+        {/* Use AdminRoute for AdminDashboard */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </div>
   );

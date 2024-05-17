@@ -46,7 +46,7 @@ const App = () => {
       const userId = response.data.userId;
       // Set the user data in localStorage or a state management library
       localStorage.setItem("userId", userId);
-      navigate(`login`);
+      navigate(`/login`);
     } catch (error) {
       console.error("Registration failed:", error.response.data.message);
       // Handle registration error, e.g., display an error message

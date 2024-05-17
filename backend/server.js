@@ -190,9 +190,6 @@ app.get("/api/movies/search", async (req, res) => {
 });
 
 
-
-
-
 //get user data
 app.get("/api/user/:id", async (req, res) => {
   try {
@@ -395,6 +392,38 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+// Admin login endpoint
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if the provided email exists in the database
+    const database = client.db("sample_mflix");
+    const admins = database.collection("admins");
+    const admin = await admins.findOne({ email });
+    if (!admin) {
+      return res.status(400).json({ message: "Admin not found" });
+    }
+
+    // Compare the provided password with the hashed password stored in the database
+    const passwordMatch = await bcrypt.compare(password, admin.password);
+    if (!passwordMatch) {
+      return res.status(400).json({ message: "Invalid password" });
+    }
+
+    // Generate a JWT token for authentication
+    const token = jwt.sign({ _id: admin._id }, "adminsecretkey", { expiresIn: "1h" });
+
+    // Return the token to the client
+    res.json({ token });
+  } catch (err) {
+    console.error("Error logging in admin:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 
 app.listen(PORT, () => {
