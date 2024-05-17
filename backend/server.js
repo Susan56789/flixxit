@@ -8,6 +8,8 @@ const { MongoClient } = require("mongodb");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const ObjectId = require("mongodb").ObjectId;
+
 // Connection URI
 const uri =
   "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
@@ -142,8 +144,6 @@ app.post("/api/movies", async (req, res) => {
 });
 
 // Movie detail
-const { ObjectId } = require('mongodb');
-
 app.get("/api/movies/:id", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
@@ -200,8 +200,6 @@ app.get("/api/movies/search", async (req, res) => {
 
 
 //get user data
-const ObjectId = require("mongodb").ObjectId;
-
 app.get("/api/user/:id", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
