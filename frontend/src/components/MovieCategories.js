@@ -17,11 +17,12 @@ const MovieCategories = () => {
                 setGenres(['All', ...genresResponse.data]);
                 setMovies(moviesResponse.data);
             } catch (error) {
-                console.error(error);
+                console.error('Error fetching data:', error);
             }
         };
         fetchData(); // Initial fetch
     }, [selectedGenre]); // Refetch when selectedGenre changes
+
 
     const handleGenreChange = async (event) => {
         const genre = event.target.value;

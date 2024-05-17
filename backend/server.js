@@ -148,21 +148,14 @@ app.get("/api/movies/:id", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const objectId = new ObjectId(req.params.id);
-    const movie = await movies.findOne({ _id: objectId });
+    const ObjectId = require("mongodb").ObjectId;
+    const movie = await movies.findOne({ _id: new ObjectId(req.params.id) });
     if (!movie) {
       return res.status(404).json({ message: "Movie not found" });
     }
-    res.json({
-      ...movie,
-      likes: movie.likesBy.length,
-      dislikes: movie.dislikesBy.length,
-    });
+    res.json(movie);
   } catch (err) {
-    if (err.name === 'BSONTypeError') {
-      return res.status(400).json({ message: 'Invalid movie ID' });
-    }
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err });
   }
 });
 
