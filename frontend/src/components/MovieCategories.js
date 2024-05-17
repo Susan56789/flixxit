@@ -11,8 +11,8 @@ const MovieCategories = () => {
         const fetchData = async () => {
             try {
                 const [genresResponse, moviesResponse] = await Promise.all([
-                    axios.get('/api/genres'),
-                    axios.get(selectedGenre === 'All' ? '/api/movies' : `/api/movies?genre=${selectedGenre}`),
+                    axios.get('https://flixxit-h9fa.onrender.com/api/genres'),
+                    axios.get(selectedGenre === 'All' ? 'https://flixxit-h9fa.onrender.com/api/movies' : `https://flixxit-h9fa.onrender.com/api/movies?genre=${selectedGenre}`),
                 ]);
                 setGenres(['All', ...genresResponse.data]);
                 setMovies(moviesResponse.data);
@@ -27,7 +27,7 @@ const MovieCategories = () => {
         const genre = event.target.value;
         setSelectedGenre(genre);
         try {
-            const moviesResponse = await axios.get(genre === 'All' ? '/api/movies' : `/api/movies?genre=${genre}`);
+            const moviesResponse = await axios.get(genre === 'All' ? 'https://flixxit-h9fa.onrender.com/api/movies' : `https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}`);
             setMovies(moviesResponse.data);
         } catch (error) {
             console.error(error);
@@ -59,7 +59,7 @@ const MovieCategories = () => {
             <div className="row row-cols-1 row-cols-md-3 g-4">
                 {Array.isArray(movies) && movies.map((movie) => (
                     <div key={movie._id} className="col">
-                        <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <Link to={`https://flixxit-h9fa.onrender.com/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                             <div className="card h-100">
                                 <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
                                 <div className="card-body">

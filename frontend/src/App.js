@@ -21,7 +21,7 @@ const App = () => {
         };
         // console.log("userData", userData);
 
-        const response = await axios.get(`/api/user/${userId}`, headers);
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/user/${userId}`, headers);
         // console.log("response", response.data);
         setUser(response.data);
         setLoggedIn(true);
@@ -46,7 +46,7 @@ const App = () => {
 
   const handleRegister = async (username, email, password) => {
     try {
-      const response = await axios.post("/api/register", {
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/register", {
         username,
         email,
         password,
@@ -61,7 +61,7 @@ const App = () => {
 
   const handleLogin = async (email, password) => {
     try {
-      const response = await axios.post("/api/login", { email, password });
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/login", { email, password });
       const data = response.data;
       setToken(token);
       setLoggedIn(true);
@@ -108,7 +108,7 @@ const App = () => {
 
   const handleLike = async (movieId, userId) => {
     try {
-      const response = await axios.post("/api/like", {
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/like", {
         userId,
         movieId,
       });
@@ -122,7 +122,7 @@ const App = () => {
 
   const handleDislike = async (movieId, userId) => {
     try {
-      const response = await axios.post("/api/dislike", {
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/dislike", {
         userId,
         movieId,
       });

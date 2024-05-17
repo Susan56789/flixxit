@@ -146,14 +146,17 @@ app.get("/api/movies/:id", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const ObjectId = require("mongodb").ObjectId;
     const movie = await movies.findOne({ _id: new ObjectId(req.params.id) });
     if (!movie) {
       return res.status(404).json({ message: "Movie not found" });
     }
-    res.json(movie);
+    res.json({
+      ...movie,
+      likes: movie.likesBy.length,
+      dislikes: movie.dislikesBy.length,
+    });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -250,6 +253,7 @@ app.post("/api/subscribe", async (req, res) => {
 app.post("/api/like", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
     const likes = database.collection("likes");
     const { userId, movieId } = req.body;
 
@@ -263,10 +267,17 @@ app.post("/api/like", async (req, res) => {
 
     // Create a new like
     const like = { userId, movieId };
-    const result = await likes.insertOne(like);
-    res.json(result.ops[0]);
+    await likes.insertOne(like);
+
+    // Update the movie document
+    const result = await movies.updateOne(
+      { _id: new ObjectId(movieId) },
+      { $addToSet: { likesBy: userId } }
+    );
+
+    res.json({ message: "Movie liked" });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -274,6 +285,7 @@ app.post("/api/like", async (req, res) => {
 app.post("/api/dislike", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
     const dislikes = database.collection("dislikes");
     const { userId, movieId } = req.body;
 
@@ -287,10 +299,20 @@ app.post("/api/dislike", async (req, res) => {
 
     // Create a new dislike
     const dislike = { userId, movieId };
-    const result = await dislikes.insertOne(dislike);
-    res.json(result.ops[0]);
+    await dislikes.insertOne(dislike);
+
+    // Update the movie document
+    const result = await movies.updateOne(
+      { _id: new ObjectId(movieId) },
+      {
+        $addToSet: { dislikesBy: userId },
+        $pull: { likesBy: userId },
+      }
+    );
+
+    res.json({ message: "Movie disliked" });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 });
 

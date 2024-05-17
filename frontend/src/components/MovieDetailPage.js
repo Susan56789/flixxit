@@ -23,15 +23,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   useEffect(() => {
     const fetchMovieDetail = async () => {
       try {
-        const response = await axios.get(`/api/movies/${id}`);
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         setMovie(response.data);
         setLikeStatus(
           user
             ? response.data.likesBy.includes(user._id)
               ? 1
               : response.data.dislikesBy.includes(user._id)
-              ? -1
-              : null
+                ? -1
+                : null
             : null
         );
         fetchRecommendedMovies(response.data.genre);
@@ -43,7 +43,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
 
     const fetchRecommendedMovies = async (genre) => {
       try {
-        const response = await axios.get(`/api/movies?genre=${genre}&limit=4`);
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}&limit=4`);
         setRecommendedMovies(response.data);
       } catch (error) {
         console.error(error);
@@ -54,7 +54,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       try {
         if (userId) {
           const response = await axios.get(
-            `/api/subscriptions/${userId}/${movieId}`
+            `https://flixxit-h9fa.onrender.com/api/subscriptions/${userId}/${movieId}`
           );
           setIsSubscribed(response.data.isSubscribed);
         }
@@ -90,7 +90,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       return;
     }
     try {
-      const response = await axios.post("/api/subscribe", {
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/subscribe", {
         userId: user._id,
         movieId: movie._id,
       });
@@ -194,9 +194,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                   width="100%"
                   height="315"
                   title={movie.title}
-                  src={`https://www.youtube.com/embed/${
-                    movie.videoUrl.split("v=")[1]
-                  }`}
+                  src={`https://www.youtube.com/embed/${movie.videoUrl.split("v=")[1]
+                    }`}
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; 
                                 gyroscope; picture-in-picture"
@@ -232,9 +231,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             </button>
             <button
               type="button"
-              className={`btn ${
-                likeStatus === 1 ? "btn-success" : "btn-outline-success"
-              }`}
+              className={`btn ${likeStatus === 1 ? "btn-success" : "btn-outline-success"
+                }`}
               onClick={handleLikeClick}
             >
               <FaThumbsUp className="mr-2" />
@@ -242,9 +240,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             </button>
             <button
               type="button"
-              className={`btn ${
-                likeStatus === -1 ? "btn-danger" : "btn-outline-danger"
-              }`}
+              className={`btn ${likeStatus === -1 ? "btn-danger" : "btn-outline-danger"
+                }`}
               onClick={handleDislikeClick}
             >
               <FaThumbsDown className="mr-2" />
