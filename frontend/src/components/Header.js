@@ -9,8 +9,7 @@ const Header = ({ loggedIn, handleLogout }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim() !== "") {
-      navigate("search-page", { state: { query: searchQuery } });
-      // setSearchQuery("");
+      navigate("/search-page", { state: { query: searchQuery } });
     }
   };
 
@@ -23,7 +22,7 @@ const Header = ({ loggedIn, handleLogout }) => {
     };
 
     getUser();
-  }, []); // Added empty dependency array to run the effect only once
+  }, []); // Run effect only once
 
   return (
     <div className="container">

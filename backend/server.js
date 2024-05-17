@@ -142,11 +142,14 @@ app.post("/api/movies", async (req, res) => {
 });
 
 // Movie detail
+const { ObjectId } = require('mongodb');
+
 app.get("/api/movies/:id", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const movie = await movies.findOne({ _id: new ObjectId(req.params.id) });
+    const objectId = new ObjectId(req.params.id);
+    const movie = await movies.findOne({ _id: objectId });
     if (!movie) {
       return res.status(404).json({ message: "Movie not found" });
     }
@@ -156,6 +159,9 @@ app.get("/api/movies/:id", async (req, res) => {
       dislikes: movie.dislikesBy.length,
     });
   } catch (err) {
+    if (err.name === 'BSONTypeError') {
+      return res.status(400).json({ message: 'Invalid movie ID' });
+    }
     res.status(500).json({ message: err.message });
   }
 });
@@ -189,6 +195,7 @@ app.get("/api/movies/search", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 
