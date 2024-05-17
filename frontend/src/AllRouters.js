@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
 import HomePage from "./components/HomePage";
 import LoginForm from "./components/LoginForm";
@@ -12,6 +12,8 @@ import UserProfile from "./components/UserProfile";
 import SearchResults from "./components/SearchResults";
 import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminLogin from "./components/Admin/AdminLogin";
+import PasswordReset from "./components/PasswordReset";
+
 
 
 const AllRouters = ({
@@ -61,6 +63,7 @@ const AllRouters = ({
         />
         <Route path="/watchlist" element={<WatchList />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/reset-password" element={<PasswordReset />} />
 
         <Route path="/admin/login" element={<AdminLogin />} />
         {/* Use AdminRoute for AdminDashboard */}

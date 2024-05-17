@@ -100,7 +100,7 @@ const LoginForm = ({ handleLogin }) => {
                     Remember me
                   </label>
                 </div>
-                <a href="#!" className="text-body">
+                <a href="/reset-password" className="text-body">
                   Forgot password?
                 </a>
               </div>

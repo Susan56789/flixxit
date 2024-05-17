@@ -20,6 +20,25 @@ const client = new MongoClient(uri);
 // Use CORS middleware
 app.use(cors());
 
+const authenticate = async (req, res, next) => {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
+
+  try {
+    const decoded = jwt.verify(token, 'secretkey');
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const user = await users.findOne({ _id: new ObjectId(decoded._id) });
+
+    if (!user) return res.status(400).json({ message: 'Invalid token.' });
+
+    req.user = user;
+    next();
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid token.' });
+  }
+};
+
 async function run() {
   try {
     // Connect the client to the server
@@ -110,6 +129,39 @@ app.post("/api/login", async (req, res) => {
     res.status(400).json({ message: err });
   }
 });
+
+// Change password endpoint
+app.post("/api/change-password", authenticate, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    // Check if the old password matches the current password
+    const database = client.db("sample_mflix");
+    const users = database.collection("users");
+    const user = await users.findOne({ _id: new ObjectId(userId) });
+
+    const validPassword = await bcrypt.compare(oldPassword, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ message: "Invalid old password" });
+    }
+
+    // Hash the new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password in the database
+    await users.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { password: hashedNewPassword } }
+    );
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Error changing password:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 // Movies
 app.get("/api/movies", async (req, res) => {
@@ -312,24 +364,6 @@ app.post("/api/dislike", async (req, res) => {
   }
 });
 
-const authenticate = async (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
-
-  try {
-    const decoded = jwt.verify(token, 'secretkey');
-    const database = client.db('sample_mflix');
-    const users = database.collection('users');
-    const user = await users.findOne({ _id: new ObjectId(decoded._id) });
-
-    if (!user) return res.status(400).json({ message: 'Invalid token.' });
-
-    req.user = user;
-    next();
-  } catch (err) {
-    res.status(400).json({ message: 'Invalid token.' });
-  }
-};
 
 // Watchlist endpoint
 app.get('/api/watchlist', authenticate, async (req, res) => {
