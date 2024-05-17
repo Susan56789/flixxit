@@ -117,8 +117,11 @@ const App = () => {
         movieId,
       });
       console.log("Like successful:", response.data);
+      // Assuming response.data.likes contains the updated like count
+      return response.data.likes;
     } catch (error) {
       console.error("Like failed:", error);
+      return null;
     }
   };
 
@@ -133,10 +136,14 @@ const App = () => {
         movieId,
       });
       console.log("Dislike successful:", response.data);
+      // Assuming response.data.dislikes contains the updated dislike count
+      return response.data.dislikes;
     } catch (error) {
       console.error("Dislike failed:", error);
+      return null;
     }
   };
+
 
   return (
     <AllRouters
