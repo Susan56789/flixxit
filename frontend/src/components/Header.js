@@ -21,7 +21,7 @@ const Header = ({ loggedIn, handleLogout, handleSearch }) => {
     };
 
     getUser();
-  });
+  }, []);
 
   return (
     <div className="container">
