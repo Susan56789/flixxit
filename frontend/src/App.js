@@ -44,10 +44,12 @@ const App = () => {
         password,
       });
       const userId = response.data.userId;
-      setLoggedIn(true);
-      navigate(`/profile/${userId}`);
+      // Set the user data in localStorage or a state management library
+      localStorage.setItem("userId", userId);
+      navigate(`login`);
     } catch (error) {
-      console.error("Registration failed:", error);
+      console.error("Registration failed:", error.response.data.message);
+      // Handle registration error, e.g., display an error message
     }
   };
 
