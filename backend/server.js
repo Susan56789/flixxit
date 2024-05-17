@@ -9,7 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connection URI
-const uri = "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
+const uri =
+  "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
 
 // Create a new MongoClient
 const client = new MongoClient(uri);
@@ -24,9 +25,9 @@ async function run() {
     console.log("Connected to the database");
 
     // Establish and verify connection
-    const database = client.db('sample_mflix');
-    const movies = database.collection('movies');
-    const users = database.collection('users');
+    const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
+    const users = database.collection("users");
     console.log("Collections initialized");
   } catch (err) {
     console.error("Error connecting to the database:", err);
@@ -38,33 +39,36 @@ run().catch(console.dir);
 app.use(bodyParser.json());
 
 // Default landing page
-app.get('/', (req, res) => {
-  res.send('Welcome to Flixxit Backend!');
+app.get("/", (req, res) => {
+  res.send("Welcome to Flixxit Backend!");
 });
 
 // Routes
 // Authentication
-app.post('/api/register', async (req, res) => {
+app.post("/api/register", async (req, res) => {
   try {
     // Check if email already exists
-    const database = client.db('sample_mflix');
-    const users = database.collection('users');
+    const database = client.db("sample_mflix");
+    const users = database.collection("users");
     const existingEmail = await users.findOne({ email: req.body.email });
     if (existingEmail) {
-      return res.status(400).json({ message: 'Email already exists' });
+      return res.status(400).json({ message: "Email already exists" });
     }
 
     // Check if username already exists
-    const existingUsername = await users.findOne({ username: req.body.username });
+    const existingUsername = await users.findOne({
+      username: req.body.username,
+    });
     if (existingUsername) {
-      alert('Username already exists')
-      return res.status(400).json({ message: 'Username already exists' });
-
+      alert("Username already exists");
+      return res.status(400).json({ message: "Username already exists" });
     }
 
     // Check if password is at least 8 characters long
     if (req.body.password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters long" });
     }
 
     // Hash the password
@@ -72,7 +76,7 @@ app.post('/api/register', async (req, res) => {
     const user = {
       username: req.body.username,
       email: req.body.email,
-      password: hashedPassword
+      password: hashedPassword,
     };
 
     // Insert the user into the database
@@ -83,36 +87,33 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-
-app.post('/api/login', async (req, res) => {
+app.post("/api/login", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const users = database.collection('users');
+    const database = client.db("sample_mflix");
+    const users = database.collection("users");
     const user = await users.findOne({ email: req.body.email });
     if (!user) {
-      return res.status(400).json({ message: 'User not found' });
+      return res.status(400).json({ message: "User not found" });
     }
-    const validPassword = await bcrypt.compare(req.body.password, user.password);
+    const validPassword = await bcrypt.compare(
+      req.body.password,
+      user.password
+    );
     if (!validPassword) {
-      return res.status(400).json({ message: 'Invalid password' });
+      return res.status(400).json({ message: "Invalid password" });
     }
-    const token = jwt.sign({ _id: user._id.toString() }, 'secretkey');
+    const token = jwt.sign({ _id: user._id.toString() }, "secretkey");
     res.json({ token, user }); // <-- Send both the token and the user object
-
   } catch (err) {
     res.status(400).json({ message: err });
   }
 });
 
-
-
-
-
 // Movies
-app.get('/api/movies', async (req, res) => {
+app.get("/api/movies", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const movies = database.collection('movies');
+    const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
     const moviesList = await movies.find().toArray();
     res.json(moviesList);
   } catch (err) {
@@ -120,19 +121,19 @@ app.get('/api/movies', async (req, res) => {
   }
 });
 
-app.post('/api/movies', async (req, res) => {
+app.post("/api/movies", async (req, res) => {
   const movie = {
     title: req.body.title,
     description: req.body.description,
     genre: req.body.genre,
     rating: req.body.rating,
     year: req.body.year,
-    imageUrl: req.body.imageUrl
+    imageUrl: req.body.imageUrl,
   };
 
   try {
-    const database = client.db('sample_mflix');
-    const movies = database.collection('movies');
+    const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
     const result = await movies.insertOne(movie);
     res.json(result.ops[0]);
   } catch (err) {
@@ -140,16 +141,15 @@ app.post('/api/movies', async (req, res) => {
   }
 });
 
-
 // Movie detail
-app.get('/api/movies/:id', async (req, res) => {
+app.get("/api/movies/:id", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const movies = database.collection('movies');
-    const ObjectId = require('mongodb').ObjectId;
+    const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
+    const ObjectId = require("mongodb").ObjectId;
     const movie = await movies.findOne({ _id: new ObjectId(req.params.id) });
     if (!movie) {
-      return res.status(404).json({ message: 'Movie not found' });
+      return res.status(404).json({ message: "Movie not found" });
     }
     res.json(movie);
   } catch (err) {
@@ -157,12 +157,11 @@ app.get('/api/movies/:id', async (req, res) => {
   }
 });
 
-
 // Genre endpoint
-app.get('/api/genres', async (req, res) => {
+app.get("/api/genres", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const movies = database.collection('movies');
+    const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
     const genres = await movies.distinct("genre");
     res.json(genres);
   } catch (err) {
@@ -172,46 +171,47 @@ app.get('/api/genres', async (req, res) => {
 });
 
 // Movies search
-app.get('/api/movies/search', async (req, res) => {
+app.get("/api/movies/search", async (req, res) => {
   const query = req.query.query.toLowerCase();
   try {
-    const database = client.db('sample_mflix');
-    const movies = database.collection('movies');
-    const moviesList = await movies.find({ title: { $regex: query, $options: 'i' } }).toArray();
+    const database = client.db("sample_mflix");
+    const movies = database.collection("movies");
+    const moviesList = await movies
+      .find({ title: { $regex: query, $options: "i" } })
+      .toArray();
     res.json(moviesList);
   } catch (err) {
-    console.error('Search failed:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Search failed:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
-
 
 //get user data
-const ObjectId = require('mongodb').ObjectId;
+const ObjectId = require("mongodb").ObjectId;
 
-app.get('/api/user/:id', async (req, res) => {
+app.get("/api/user/:id", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const users = database.collection('users');
+    const database = client.db("sample_mflix");
+    const users = database.collection("users");
     const user = await users.findOne({ _id: ObjectId(req.params.id) });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
+    console.log("user", user);
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: err });
   }
 });
 
-
-app.get('/api/user', async (req, res) => {
+app.get("/api/user", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const users = database.collection('users');
-    const token = req.header('Authorization').split(' ')[1]; // Extract token from Authorization header
+    const database = client.db("sample_mflix");
+    const users = database.collection("users");
+    const token = req.header("Authorization").split(" ")[1]; // Extract token from Authorization header
     const user = await users.findOne({ _id: ObjectId(token) });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
     res.json(user);
   } catch (err) {
@@ -219,18 +219,19 @@ app.get('/api/user', async (req, res) => {
   }
 });
 
-
 // Subscribers
-app.post('/api/subscribe', async (req, res) => {
+app.post("/api/subscribe", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const subscribers = database.collection('subscribers');
+    const database = client.db("sample_mflix");
+    const subscribers = database.collection("subscribers");
     const { userId, movieId } = req.body;
 
     // Check if the user has already subscribed to the movie
     const existingSubscription = await subscribers.findOne({ userId, movieId });
     if (existingSubscription) {
-      return res.status(400).json({ message: 'You have already subscribed to this movie' });
+      return res
+        .status(400)
+        .json({ message: "You have already subscribed to this movie" });
     }
 
     // Create a new subscription
@@ -243,16 +244,18 @@ app.post('/api/subscribe', async (req, res) => {
 });
 
 // Likes
-app.post('/api/like', async (req, res) => {
+app.post("/api/like", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const likes = database.collection('likes');
+    const database = client.db("sample_mflix");
+    const likes = database.collection("likes");
     const { userId, movieId } = req.body;
 
     // Check if the user has already liked the movie
     const existingLike = await likes.findOne({ userId, movieId });
     if (existingLike) {
-      return res.status(400).json({ message: 'You have already liked this movie' });
+      return res
+        .status(400)
+        .json({ message: "You have already liked this movie" });
     }
 
     // Create a new like
@@ -265,16 +268,18 @@ app.post('/api/like', async (req, res) => {
 });
 
 // Dislikes
-app.post('/api/dislike', async (req, res) => {
+app.post("/api/dislike", async (req, res) => {
   try {
-    const database = client.db('sample_mflix');
-    const dislikes = database.collection('dislikes');
+    const database = client.db("sample_mflix");
+    const dislikes = database.collection("dislikes");
     const { userId, movieId } = req.body;
 
     // Check if the user has already disliked the movie
     const existingDislike = await dislikes.findOne({ userId, movieId });
     if (existingDislike) {
-      return res.status(400).json({ message: 'You have already disliked this movie' });
+      return res
+        .status(400)
+        .json({ message: "You have already disliked this movie" });
     }
 
     // Create a new dislike
@@ -286,7 +291,6 @@ app.post('/api/dislike', async (req, res) => {
   }
 });
 
-
 // Watchlist endpoint
 app.get('/api/watchlist', authenticate, async (req, res) => {
   try {
@@ -294,15 +298,17 @@ app.get('/api/watchlist', authenticate, async (req, res) => {
 
     const watchlist = database.collection('watchlist');
     const userWatchlist = await watchlist.find({ userId }).toArray();
-    const movieIds = userWatchlist.map(item => item.movieId);
+    const movieIds = userWatchlist.map((item) => item.movieId);
 
-    const movies = database.collection('movies');
-    const userWatchlistMovies = await movies.find({ _id: { $in: movieIds } }).toArray();
+    const movies = database.collection("movies");
+    const userWatchlistMovies = await movies
+      .find({ _id: { $in: movieIds } })
+      .toArray();
 
     res.json(userWatchlistMovies);
   } catch (err) {
     console.error("Error fetching user's watchlist:", err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -316,14 +322,14 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
 
     const existingItem = await watchlist.findOne({ userId, movieId });
     if (existingItem) {
-      return res.status(400).json({ message: 'Movie already in watchlist' });
+      return res.status(400).json({ message: "Movie already in watchlist" });
     }
 
     const result = await watchlist.insertOne({ userId, movieId });
-    res.json({ message: 'Movie added to watchlist' });
+    res.json({ message: "Movie added to watchlist" });
   } catch (err) {
-    console.error('Error adding to watchlist:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error adding to watchlist:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -337,13 +343,13 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
 
     const result = await watchlist.deleteOne({ userId, movieId });
     if (result.deletedCount === 0) {
-      return res.status(404).json({ message: 'Movie not found in watchlist' });
+      return res.status(404).json({ message: "Movie not found in watchlist" });
     }
 
-    res.json({ message: 'Movie removed from watchlist' });
+    res.json({ message: "Movie removed from watchlist" });
   } catch (err) {
-    console.error('Error removing from watchlist:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error removing from watchlist:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
