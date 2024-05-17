@@ -291,6 +291,25 @@ app.post("/api/dislike", async (req, res) => {
   }
 });
 
+const authenticate = async (req, res, next) => {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
+
+  try {
+    const decoded = jwt.verify(token, 'secretkey');
+    const database = client.db('sample_mflix');
+    const users = database.collection('users');
+    const user = await users.findOne({ _id: new ObjectId(decoded._id) });
+
+    if (!user) return res.status(400).json({ message: 'Invalid token.' });
+
+    req.user = user;
+    next();
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid token.' });
+  }
+};
+
 // Watchlist endpoint
 app.get('/api/watchlist', authenticate, async (req, res) => {
   try {
