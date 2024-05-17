@@ -21,21 +21,27 @@ const MovieList = ({ movies, type }) => {
     try {
       const token = getUserToken();
       if (!token) {
-        // Redirect to login page or display a message to login
         console.log("Please log in to add movies to your watchlist.");
         return;
       }
 
       const response = await axios.post(
-        "/api/watchlist",
+        'https://flixxit-h9fa.onrender.com/api/watchlist',
         { movieId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        }
       );
+
       console.log(response.data.message);
     } catch (error) {
-      console.error("Error adding to watchlist:", error);
+      console.error("Error adding to watchlist:", error.response ? error.response.data : error.message);
     }
   };
+
 
   const shareMovie = (title, id) => {
     const movieUrl = `${window.location.origin}/movies/${id}`;
@@ -58,7 +64,6 @@ const MovieList = ({ movies, type }) => {
 
     // Open share options in a popup
     const popupOptions = "toolbar=0,status=0,width=626,height=436";
-
     window.open(facebookShareUrl, "Share on Facebook", popupOptions);
     window.open(twitterShareUrl, "Share on Twitter", popupOptions);
     window.open(instagramShareUrl, "Share on Instagram", popupOptions);

@@ -21,7 +21,7 @@ const Header = ({ loggedIn, handleLogout, handleSearch }) => {
     };
 
     getUser();
-  });
+  }, []); // Added empty dependency array to run the effect only once
 
   return (
     <div className="container">

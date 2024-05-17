@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const WatchlistPage = () => {
+const Watchlist = () => {
     const [watchlist, setWatchlist] = useState([]);
 
     useEffect(() => {
@@ -18,6 +18,7 @@ const WatchlistPage = () => {
                         Authorization: `Bearer ${token}`
                     }
                 });
+
                 setWatchlist(response.data);
             } catch (error) {
                 console.error('Error fetching watchlist:', error);
@@ -40,6 +41,7 @@ const WatchlistPage = () => {
                     Authorization: `Bearer ${token}`
                 }
             });
+
             console.log(response.data.message);
             setWatchlist(watchlist.filter(item => item._id !== movieId));
         } catch (error) {
@@ -79,4 +81,4 @@ const WatchlistPage = () => {
     );
 };
 
-export default WatchlistPage;
+export default Watchlist;

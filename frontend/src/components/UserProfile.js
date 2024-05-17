@@ -18,18 +18,6 @@ const UserProfile = () => {
     fetchUser();
   }, []);
 
-  // if (loading) {
-  //   return <div>Loading...</div>;
-  // }
-
-  // if (error) {
-  //   return <div>Error: {error}</div>; // Display the error message
-  // }
-
-  // if (!user) {
-  //   return <div>No user data found</div>;
-  // }
-
   return (
     <div className="container">
       {user && (
@@ -55,20 +43,12 @@ const UserProfile = () => {
                 </label>
                 <input
                   type="email"
-                  className="form-control  border-0 border-bottom"
+                  className="form-control border-0 border-bottom"
                   id="email"
                   value={user.email}
                   readOnly
                 />
               </div>
-            </div>
-            <div className="mb-3">
-              <h4>Recently Viewed Videos</h4>
-              {/* Here goes your list of recently viewed videos */}
-            </div>
-            <div className="mb-3">
-              <h4>Subscription Status</h4>
-              {/* Here goes your subscription status or options */}
             </div>
           </div>
           <div className="mb-3">
@@ -85,11 +65,23 @@ const UserProfile = () => {
           </div>
           <div className="mb-3">
             <h4>Recently Viewed Videos</h4>
-            {/* Here goes your list of recently viewed videos */}
+            {user.recentlyViewedVideos && user.recentlyViewedVideos.length > 0 ? (
+              <ul>
+                {user.recentlyViewedVideos.map((video, index) => (
+                  <li key={index}>{video.title}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No recently viewed videos</p>
+            )}
           </div>
           <div className="mb-3">
             <h4>Subscription Status</h4>
-            {/* Here goes your subscription status or options */}
+            {user.subscriptionStatus ? (
+              <p>{user.subscriptionStatus}</p>
+            ) : (
+              <p>No subscription information available</p>
+            )}
           </div>
         </>
       )}

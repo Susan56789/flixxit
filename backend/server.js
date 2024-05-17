@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -12,6 +13,9 @@ const uri = "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.ne
 
 // Create a new MongoClient
 const client = new MongoClient(uri);
+
+// Use CORS middleware
+app.use(cors());
 
 async function run() {
   try {
@@ -284,11 +288,10 @@ app.post('/api/dislike', async (req, res) => {
 
 
 // Watchlist endpoint
-app.get('/api/watchlist', async (req, res) => {
+app.get('/api/watchlist', authenticate, async (req, res) => {
   try {
-    const userId = req.user._id; // Assuming you have implemented authentication middleware to attach user to req object
+    const userId = req.user._id;
 
-    const database = client.db('sample_mflix');
     const watchlist = database.collection('watchlist');
     const userWatchlist = await watchlist.find({ userId }).toArray();
     const movieIds = userWatchlist.map(item => item.movieId);
@@ -304,12 +307,11 @@ app.get('/api/watchlist', async (req, res) => {
 });
 
 // Add to watchlist endpoint
-app.post('/api/watchlist', async (req, res) => {
+app.post('/api/watchlist', authenticate, async (req, res) => {
   try {
     const { movieId } = req.body;
-    const userId = req.user._id; // Assuming you have implemented authentication middleware to attach user to req object
+    const userId = req.user._id;
 
-    const database = client.db('sample_mflix');
     const watchlist = database.collection('watchlist');
 
     const existingItem = await watchlist.findOne({ userId, movieId });
@@ -326,12 +328,11 @@ app.post('/api/watchlist', async (req, res) => {
 });
 
 // Remove from watchlist endpoint
-app.delete('/api/watchlist/:movieId', async (req, res) => {
+app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
     const { movieId } = req.params;
 
-    const database = client.db('sample_mflix');
     const watchlist = database.collection('watchlist');
 
     const result = await watchlist.deleteOne({ userId, movieId });
@@ -345,7 +346,6 @@ app.delete('/api/watchlist/:movieId', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 
 app.listen(PORT, () => {

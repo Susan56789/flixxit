@@ -19,10 +19,10 @@ const App = () => {
         let headers = {
           Authorization: `Bearer ${token}`,
         };
-        console.log("userData", userData);
+        // console.log("userData", userData);
 
         const response = await axios.get(`/api/user/${userId}`, headers);
-        console.log("response", response.data);
+        // console.log("response", response.data);
         setUser(response.data);
         setLoggedIn(true);
       } catch (error) {
