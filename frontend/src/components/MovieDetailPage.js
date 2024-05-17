@@ -183,7 +183,11 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
                 </button>
               </div>
               <div className="modal-body">
-                <iframe
+                <iframe width="976" height="549" src="https://www.youtube.com/embed/RtRiphNG4TM"
+                  title="The Wake Up Call With Grauchi #153 Pulse REGGAE HITS MIXTAPE" frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
+               picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowFullcreen></iframe>
+                {/* <iframe
                   width="100%"
                   height="315"
                   title={movie.title}
@@ -193,7 +197,7 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; 
                                 gyroscope; picture-in-picture"
                   allowFullScreen
-                ></iframe>
+                ></iframe> */}
               </div>
             </div>
           </div>
