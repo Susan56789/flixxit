@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import { FaPlay, FaThumbsUp, FaThumbsDown } from "react-icons/fa";
-import { getUser } from "../utils/helpers";
 
-const MovieDetailPage = ({ handleLike, handleDislike }) => {
+const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
   const [movie, setMovie] = useState(null);
   const [error, setError] = useState(null);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
@@ -13,12 +12,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [likeStatus, setLikeStatus] = useState(null); // 1 for like, -1 for dislike
   const [showTrailer, setShowTrailer] = useState(false);
   const { id } = useParams();
-  const [user, setUser] = useState();
-
-  useEffect(() => {
-    const user = getUser();
-    setUser(user);
-  }, []);
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
@@ -64,7 +57,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     };
 
     fetchMovieDetail();
-  }, [id]);
+  }, [id, user]);
 
   const handleWatchClick = async () => {
     if (isSubscribed || !user) {

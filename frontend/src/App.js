@@ -38,15 +38,12 @@ const App = () => {
 
   const handleRegister = async (username, email, password) => {
     try {
-      const response = await axios.post(
-        "https://flixxit-h9fa.onrender.com/api/register",
-        {
-          username,
-          email,
-          password,
-        }
-      );
-      const userId = response.data.user._id;
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/register", {
+        username,
+        email,
+        password,
+      });
+      const userId = response.data.userId;
       setLoggedIn(true);
       navigate(`/profile/${userId}`);
     } catch (error) {
