@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const Header = ({ loggedIn, handleLogout, handleSearch }) => {
+const Header = ({ loggedIn, handleLogout }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim() !== "") {
-      handleSearch(searchQuery);
-      setSearchQuery("");
+      navigate("search-page", { state: { query: searchQuery } });
+      // setSearchQuery("");
     }
   };
 

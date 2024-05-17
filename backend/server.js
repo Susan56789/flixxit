@@ -172,17 +172,20 @@ app.get("/api/genres", async (req, res) => {
 
 // Movies search
 app.get("/api/movies/search", async (req, res) => {
-  const query = req.query.query.toLowerCase();
+  const query = req.query.query;
+  if (!query) {
+    return res.status(400).json({ message: "Query parameter is required" });
+  }
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
     const moviesList = await movies
       .find({ title: { $regex: query, $options: "i" } })
       .toArray();
-    res.json(moviesList);
+    res.status(200).json(moviesList);
   } catch (err) {
     console.error("Search failed:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: err });
   }
 });
 

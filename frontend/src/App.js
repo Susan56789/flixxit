@@ -95,7 +95,7 @@ const App = () => {
 
   const handleLike = async (movieId, userId) => {
     try {
-      const response = await axios.post("/api/movies/like", {
+      const response = await axios.post("/api/like", {
         userId,
         movieId,
       });
@@ -109,7 +109,7 @@ const App = () => {
 
   const handleDislike = async (movieId, userId) => {
     try {
-      const response = await axios.post("/api/movies/dislike", {
+      const response = await axios.post("/api/dislike", {
         userId,
         movieId,
       });

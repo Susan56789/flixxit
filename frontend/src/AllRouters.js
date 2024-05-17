@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
 import HomePage from "./components/HomePage";
 import LoginForm from "./components/LoginForm";
@@ -9,6 +9,7 @@ import AboutUs from "./components/AboutUs";
 import MovieCategories from "./components/MovieCategories";
 import WatchList from "./components/WatchList";
 import UserProfile from "./components/UserProfile";
+import SearchResults from "./components/SearchResults";
 
 const AllRouters = ({
   loggedIn,
@@ -16,6 +17,8 @@ const AllRouters = ({
   handleLogin,
   handleRegister,
   handleSearch,
+  handleLike,
+  handleDislike,
 }) => {
   return (
     <div className="App">
@@ -35,11 +38,23 @@ const AllRouters = ({
           path="/register"
           element={<RegisterForm handleRegister={handleRegister} />}
         />
-        <Route path="/movies/:id" element={<MovieDetailPage />} />
+        <Route
+          path="/movies/:id"
+          element={
+            <MovieDetailPage
+              handleLike={handleLike}
+              handleDislike={handleDislike}
+            />
+          }
+        />
         <Route path="/about-us" element={<AboutUs />} />
         <Route
           path="/categories"
           element={<MovieCategories handleSearch={handleSearch} />}
+        />
+        <Route
+          path="/search-page"
+          element={<SearchResults handleSearch={handleSearch} />}
         />
         <Route path="/watchlist" element={<WatchList />} />
         <Route path="/profile" element={<UserProfile />} />
