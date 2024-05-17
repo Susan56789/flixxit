@@ -85,13 +85,26 @@ const App = () => {
 
   const handleSearch = async (query) => {
     try {
-      const response = await axios.get(`/api/movies/search?query=${query}`);
+      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${query}`);
       return response.data;
     } catch (error) {
-      console.error("Search failed:", error);
-      return [];
+      if (error.response) {
+        // The request was made and the server responded with a status code that falls out of the range of 2xx
+        console.error("Server responded with error status:", error.response.status);
+        // You can handle different HTTP status codes here if needed
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("No response received from server:", error.request);
+        // You might want to display a user-friendly message here
+      } else {
+        // Something else happened in setting up the request that triggered an error
+        console.error("Error setting up request:", error.message);
+        // Handle other types of errors here
+      }
+      return []; // Return an empty array as default
     }
   };
+
 
   const handleLike = async (movieId, userId) => {
     try {
