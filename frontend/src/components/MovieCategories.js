@@ -48,7 +48,7 @@ const MovieCategories = () => {
                         value={selectedGenre}
                         onChange={handleGenreChange}
                     >
-                        {genres.map((genre) => (
+                        {Array.isArray(genres) && genres.map((genre) => (
                             <option key={genre} value={genre}>
                                 {genre}
                             </option>
@@ -57,7 +57,7 @@ const MovieCategories = () => {
                 </div>
             </div>
             <div className="row row-cols-1 row-cols-md-3 g-4">
-                {movies.map((movie) => (
+                {Array.isArray(movies) && movies.map((movie) => (
                     <div key={movie._id} className="col">
                         <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                             <div className="card h-100">
