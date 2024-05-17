@@ -59,7 +59,7 @@ const MovieCategories = () => {
             <div className="row row-cols-1 row-cols-md-3 g-4">
                 {Array.isArray(movies) && movies.map((movie) => (
                     <div key={movie._id} className="col">
-                        <Link to={`https://flixxit-h9fa.onrender.com/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                             <div className="card h-100">
                                 <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
                                 <div className="card-body">
