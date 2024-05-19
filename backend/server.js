@@ -227,13 +227,21 @@ app.get("/api/genres", async (req, res) => {
 // Movies search
 app.get("/api/movies/search", async (req, res) => {
   const query = req.query.query?.toString();
+  
   if (!query) {
     return res.status(400).json({ message: "Query parameter is required" });
   }
+
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const moviesList = await movies.find({ title: { $regex: query, $options: "i" } }).toArray();
+    const regexQuery = new RegExp(query, 'i');
+    const moviesList = await movies.find({ title: regexQuery }).toArray();
+
+    if (!moviesList.length) {
+      return res.status(404).json({ message: "No movies found matching the query" });
+    }
+
     res.status(200).json(moviesList);
   } catch (error) {
     console.error("Error processing search request:", error);
@@ -241,6 +249,10 @@ app.get("/api/movies/search", async (req, res) => {
   }
 });
 
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
 
 //get user data
 app.get("/api/user/:id", async (req, res) => {
