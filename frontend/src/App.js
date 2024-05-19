@@ -83,27 +83,28 @@ const App = () => {
 
   const handleSearch = async (query) => {
     try {
-      const response = await axios.get(
-        `https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodeURIComponent(query)}`
-      );
+      const encodedQuery = encodeURIComponent(query);
+      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
       return response.data;
     } catch (error) {
       if (error.response) {
+        // Server responded with an error status
         console.error("Server responded with error status:", error.response.status);
         console.error("Error response data:", error.response.data);
-        alert(
-          `Error: ${error.response.status} - ${error.response.data.message || "Internal Server Error"}`
-        );
+        alert(`Error: ${error.response.status} - ${error.response.data.message || "Internal Server Error"}`);
       } else if (error.request) {
+        // No response received from the server
         console.error("No response received from server:", error.request);
         alert("No response received from server. Please try again later.");
       } else {
+        // Error setting up request
         console.error("Error setting up request:", error.message);
         alert(`Error setting up request: ${error.message}`);
       }
       return []; // Return an empty array as a default
     }
   };
+  
 
   const handleLike = async (movieId) => {
     try {
