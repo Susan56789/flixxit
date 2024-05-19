@@ -8,6 +8,7 @@ const HomePage = () => {
     const [recommended, setRecommended] = useState([]);
 
     useEffect(() => {
+        // Fetch new arrivals (movies added in the last 30 days)
         axios.get('https://flixxit-h9fa.onrender.com/api/movies?sort=newest&limit=4')
             .then(res => {
                 setNewArrivals(res.data);
@@ -16,6 +17,7 @@ const HomePage = () => {
                 console.log(err);
             });
 
+        // Fetch most popular movies (based on rating)
         axios.get('https://flixxit-h9fa.onrender.com/api/movies?sort=rating&limit=4')
             .then(res => {
                 setMostPopular(res.data);
@@ -24,7 +26,8 @@ const HomePage = () => {
                 console.log(err);
             });
 
-        axios.get('https://flixxit-h9fa.onrender.com/api/movies?sort=year&limit=4')
+        // Fetch recommended movies (based on collaborative filtering or user preferences)
+        axios.get('https://flixxit-h9fa.onrender.com/api/movies?sort=recommended&limit=4')
             .then(res => {
                 setRecommended(res.data);
             })
@@ -35,7 +38,6 @@ const HomePage = () => {
 
     return (
         <div>
-
             <div className="container mt-3">
                 <section>
                     <h2>New Arrivals</h2>
