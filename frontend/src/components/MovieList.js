@@ -69,6 +69,9 @@ const MovieList = ({ movies, type }) => {
     window.open(instagramShareUrl, "Share on Instagram", popupOptions);
   };
 
+  // Sort movies by release date in descending order
+  const sortedMovies = movies.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate));
+
   return (
     <div
       className="row"
@@ -79,8 +82,8 @@ const MovieList = ({ movies, type }) => {
         marginBottom: "20px",
       }}
     >
-      {Array.isArray(movies) && movies.length > 0 ? (
-        movies.map((movie, index) => (
+      {Array.isArray(sortedMovies) && sortedMovies.length > 0 ? (
+        sortedMovies.slice(0, 4).map((movie, index) => ( // Display only the latest four movies
           <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
             <Link
               to={`/movies/${movie._id}`}
