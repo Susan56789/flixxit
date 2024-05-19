@@ -105,6 +105,7 @@ const App = () => {
     }
   };
   
+  
 
   const handleLike = async (movieId) => {
     try {
