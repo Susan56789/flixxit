@@ -226,26 +226,33 @@ app.get("/api/genres", async (req, res) => {
 
 // Movies search
 app.get("/api/movies/search", async (req, res) => {
-  try {
-    // Validate query parameter
-    const query = req.query.query?.toString().trim();
-    if (!query) {
-      return res.status(400).json({ success: false, message: "Query parameter is required" });
-    }
+  const query = req.query.query?.toString().trim();
 
-    // Perform movie search
+  // Validate the query parameter
+  if (!query) {
+    return res.status(400).json({ error: "Query parameter is required" });
+  }
+
+  try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const moviesList = await movies.find({ title: { $regex: query, $options: "i" } }).toArray();
 
-    // Return response
-    res.status(200).json({ success: true, data: moviesList });
+    // Construct the search query
+    const searchQuery = { title: { $regex: query, $options: "i" } };
+
+    // Find matching movies and limit the results
+    const moviesList = await movies
+      .find(searchQuery)
+      .limit(50) // Adjust the limit as needed
+      .toArray();
+
+    // Return the search results
+    res.status(200).json(moviesList);
   } catch (error) {
     console.error("Error processing search request:", error);
-    res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 //get user data
 app.get("/api/user/:id", async (req, res) => {
