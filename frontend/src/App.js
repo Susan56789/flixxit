@@ -90,7 +90,8 @@ const App = () => {
       if (error.response) {
         console.error("Server responded with error status:", error.response.status);
         console.error("Error response data:", error.response.data);
-        alert(`Error: ${error.response.status} - ${error.response.data.message || "Internal Server Error"}`);
+        const errorMessage = error.response.data.message || "Internal Server Error";
+        alert(`Error: ${error.response.status} - ${errorMessage}`);
       } else if (error.request) {
         console.error("No response received from server:", error.request);
         alert("No response received from server. Please try again later.");
