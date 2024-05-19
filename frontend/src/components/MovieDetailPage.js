@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import { FaPlay, FaThumbsUp, FaThumbsDown } from "react-icons/fa";
@@ -7,11 +7,12 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
   const [movie, setMovie] = useState(null);
   const [error, setError] = useState(null);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
-  const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [likeStatus, setLikeStatus] = useState(null); // 1 for like, -1 for dislike
-  const [showTrailer, setShowTrailer] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false); // New state
   const { id } = useParams();
+  const playerRef = useRef(null);
+  const playerId = `player-${id}`; // Generate a unique ID for the player
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
@@ -28,7 +29,6 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
             : null
         );
         fetchRecommendedMovies(response.data.genre);
-        checkSubscription(user ? user._id : null, response.data._id);
       } catch (error) {
         setError(error);
       }
@@ -37,20 +37,7 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
     const fetchRecommendedMovies = async (genre) => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}&limit=4`);
-        setRecommendedMovies(response.data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    const checkSubscription = async (userId, movieId) => {
-      try {
-        if (userId) {
-          const response = await axios.get(
-            `https://flixxit-h9fa.onrender.com/api/subscriptions/${userId}/${movieId}`
-          );
-          setIsSubscribed(response.data.isSubscribed);
-        }
+        setRecommendedMovies(response.data.slice(0, 4)); // Ensure only 4 movies
       } catch (error) {
         console.error(error);
       }
@@ -59,39 +46,62 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
     fetchMovieDetail();
   }, [id, user]);
 
-  const handleWatchClick = async () => {
-    if (isSubscribed || !user) {
-      setShowTrailer(true);
-      setTimeout(() => {
-        setShowTrailer(false);
-        if (!isSubscribed && user) {
-          setShowSubscribePrompt(true);
-        }
-      }, 5000);
-    } else {
-      setShowSubscribePrompt(true);
-    }
+  useEffect(() => {
+    const loadYouTubeAPI = () => {
+      if (!window.YT) {
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        window.onYouTubeIframeAPIReady = initializePlayer;
+      } else {
+        initializePlayer();
+      }
+    };
+
+    loadYouTubeAPI();
+  }, [movie]);
+
+  const extractVideoId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  const handleSubscribeCancel = () => {
-    setShowSubscribePrompt(false);
-  };
-
-  const handleSubscribe = async () => {
-    if (!user) {
-      alert("Please log in to subscribe.");
-      return;
-    }
-    try {
-      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/subscribe", {
-        userId: user._id,
-        movieId: movie._id,
+  const initializePlayer = () => {
+    const videoId = movie ? extractVideoId(movie.videoUrl) : null;
+    if (videoId) {
+      console.log("Initializing YouTube Player with video ID:", videoId);
+      const player = new window.YT.Player(playerId, {
+        height: "200",
+        width: "100%",
+        videoId: videoId,
+        events: {
+          onReady: onPlayerReady,
+        },
       });
-      console.log(response.data);
-      setIsSubscribed(true);
-      setShowSubscribePrompt(false);
-    } catch (err) {
-      console.error(err);
+      playerRef.current = player;
+    }
+  };
+
+  const onPlayerReady = (event) => {
+    console.log("Player is ready", event);
+    setIsPlayerReady(true); // Set player as ready
+    if (showPlayer) {
+      event.target.playVideo();
+    }
+  };
+
+  const handleWatchClick = () => {
+    console.log("Watch button clicked");
+    if (isPlayerReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
+      setShowPlayer(true);
+      console.log("Playing video");
+      playerRef.current.playVideo();
+    } else {
+      console.error("Player is not ready");
+      setShowPlayer(true); // Show player modal even if not ready, will show loading message
     }
   };
 
@@ -131,73 +141,16 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
 
   return (
     <div className="container mt-4">
-      {showSubscribePrompt && (
-        <div className="modal" style={{ display: "block" }}>
-          <div className="modal-dialog">
+      {showPlayer && (
+        <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block" }}>
+          <div className="modal-dialog modal-sm">
             <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Subscribe to Watch</h5>
-                <button
-                  type="button"
-                  className="close"
-                  onClick={handleSubscribeCancel}
-                >
-                  <span>&times;</span>
-                </button>
-              </div>
               <div className="modal-body">
-                <p>Please subscribe to our platform to watch the full movie.</p>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleSubscribeCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSubscribe}
-                >
-                  Subscribe
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {showTrailer && (
-        <div className="modal" style={{ display: "block" }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">{movie.title} Trailer</h5>
-                <button
-                  type="button"
-                  className="close"
-                  onClick={() => setShowTrailer(false)}
-                >
-                  <span>&times;</span>
-                </button>
-              </div>
-              <div className="modal-body">
-                <iframe width="976" height="549" src="https://www.youtube.com/embed/RtRiphNG4TM"
-                  title="The Wake Up Call With Grauchi #153 Pulse REGGAE HITS MIXTAPE" frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
-               picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowFullcreen></iframe>
-                {/* <iframe
-                  width="100%"
-                  height="315"
-                  title={movie.title}
-                  src={`https://www.youtube.com/embed/${movie.videoUrl.split("v=")[1]
-                    }`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; 
-                                gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe> */}
+                {!isPlayerReady ? (
+                  <p>Loading video...</p> // Loading indicator
+                ) : (
+                  <div id={playerId} />
+                )}
               </div>
             </div>
           </div>
@@ -222,6 +175,7 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
               type="button"
               className="btn btn-primary"
               onClick={handleWatchClick}
+              disabled={!isPlayerReady} // Disable button until player is ready
             >
               <FaPlay className="mr-2" />
               Watch
@@ -263,7 +217,7 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
                   className="card-img-top"
                 />
                 <div className="card-body">
-                  <h5 className="card-title">{recommendedMovie.title}</h5>
+                  <small className="card-title">{recommendedMovie.title}</small>
                 </div>
               </div>
             </Link>
