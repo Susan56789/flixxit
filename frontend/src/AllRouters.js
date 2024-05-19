@@ -13,8 +13,8 @@ import SearchResults from "./components/SearchResults";
 import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminLogin from "./components/Admin/AdminLogin";
 import PasswordReset from "./components/PasswordReset";
-
-
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 const AllRouters = ({
   loggedIn,
@@ -24,6 +24,7 @@ const AllRouters = ({
   handleSearch,
   handleLike,
   handleDislike,
+  isAdmin // Assuming you have an isAdmin prop to check admin status
 }) => {
   return (
     <div className="App">
@@ -61,13 +62,33 @@ const AllRouters = ({
           path="/search-page"
           element={<SearchResults handleSearch={handleSearch} />}
         />
-        <Route path="/watchlist" element={<WatchList />} />
-        <Route path="/profile" element={<UserProfile />} />
+        <Route
+          path="/watchlist"
+          element={
+            <ProtectedRoute loggedIn={loggedIn}>
+              <WatchList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute loggedIn={loggedIn}>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/reset-password" element={<PasswordReset />} />
 
         <Route path="/admin/login" element={<AdminLogin />} />
-        {/* Use AdminRoute for AdminDashboard */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminRoute isAdmin={isAdmin}>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </div>
   );
