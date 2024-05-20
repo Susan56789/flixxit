@@ -3,13 +3,15 @@ import axios from 'axios';
 
 const Watchlist = () => {
     const [watchlist, setWatchlist] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchWatchlist = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('flixxItToken'); // Correct token key
                 if (!token) {
-                    console.log('Please log in to view your watchlist.');
+                    setError('Please log in to view your watchlist.');
                     return;
                 }
 
@@ -21,7 +23,9 @@ const Watchlist = () => {
 
                 setWatchlist(response.data);
             } catch (error) {
-                console.error('Error fetching watchlist:', error);
+                setError('Error fetching watchlist. Please try again later.');
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -30,24 +34,26 @@ const Watchlist = () => {
 
     const removeFromWatchlist = async (movieId) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('flixxItToken'); // Correct token key
             if (!token) {
-                console.log('Please log in to remove movies from your watchlist.');
+                setError('Please log in to remove movies from your watchlist.');
                 return;
             }
 
-            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}`, {
+            await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log(response.data.message);
-            setWatchlist(watchlist.filter(item => item._id !== movieId));
+            setWatchlist(prevWatchlist => prevWatchlist.filter(item => item._id !== movieId));
         } catch (error) {
-            console.error('Error removing from watchlist:', error);
+            setError('Error removing from watchlist. Please try again later.');
         }
     };
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>{error}</div>;
 
     return (
         <div className="container">
@@ -62,9 +68,6 @@ const Watchlist = () => {
                                     <span className="text-muted fs-sm">{movie.year}</span>
                                 </div>
                                 <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
-                                <div className="card-body">
-                                    {/* <p className="card-text">{movie.description.substring(0, 50)}...</p> */}
-                                </div>
                                 <div className="card-footer">
                                     <button className="btn btn-subtle" onClick={() => removeFromWatchlist(movie._id)}>
                                         Remove

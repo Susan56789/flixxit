@@ -52,18 +52,6 @@ const UserProfile = () => {
             </div>
           </div>
           <div className="mb-3">
-            <label htmlFor="email" className="form-label">
-              Email:
-            </label>
-            <input
-              type="email"
-              className="form-control"
-              id="email"
-              value={user.email}
-              readOnly
-            />
-          </div>
-          <div className="mb-3">
             <h4>Recently Viewed Videos</h4>
             {user.recentlyViewedVideos && user.recentlyViewedVideos.length > 0 ? (
               <ul>

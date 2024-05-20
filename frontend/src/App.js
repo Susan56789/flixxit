@@ -1,21 +1,21 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AllRouters from "./AllRouters";
+import { AuthContext } from './AuthContext';
 
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(localStorage.getItem("flixxItToken") || "");
   const navigate = useNavigate();
+  const { login, logout, isLoggedIn, user } = useContext(AuthContext);
 
   const fetchUser = useCallback(async () => {
     try {
       const userData = JSON.parse(localStorage.getItem("flixxItUser"));
-      const token = localStorage.getItem("flixxItToken");
       if (!userData || !token) {
         return;
       }
+
       const headers = {
         Authorization: `Bearer ${token}`,
       };
@@ -25,16 +25,23 @@ const App = () => {
         { headers }
       );
 
-      setUser(response.data);
-      setLoggedIn(true);
+      login(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
     }
-  }, []);
+  }, [login, token]);
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("flixxItToken", token);
+    } else {
+      localStorage.removeItem("flixxItToken");
+    }
+  }, [token]);
 
   const handleRegister = async (username, email, password) => {
     try {
@@ -44,12 +51,11 @@ const App = () => {
         password,
       });
       const userId = response.data.userId;
-      // Set the user data in localStorage or a state management library
-      localStorage.setItem("userId", userId);
+      localStorage.setItem("flixxItUser", JSON.stringify({ id: userId }));
       navigate(`/login`);
     } catch (error) {
-      console.error("Registration failed:", error.response.data.message);
-      // Handle registration error, e.g., display an error message
+      console.error("Registration failed:", error.response?.data?.message || error.message);
+      alert("Registration failed: " + (error.response?.data?.message || "An error occurred"));
     }
   };
 
@@ -60,23 +66,20 @@ const App = () => {
         { email, password }
       );
       const data = response.data;
+      login(data.user);
       setToken(data.token);
-      setLoggedIn(true);
-      localStorage.setItem("flixxItToken", data.token);
       localStorage.setItem("flixxItUser", JSON.stringify(data.user));
-      fetchUser();
       return true;
     } catch (error) {
       console.error("Login failed:", error);
+      alert("Login failed: " + (error.response?.data?.message || "An error occurred"));
       return false;
     }
   };
 
   const handleLogout = () => {
-    setLoggedIn(false);
-    setUser(null);
+    logout();
     setToken("");
-    localStorage.removeItem("flixxItToken");
     localStorage.removeItem("flixxItUser");
     navigate("/login");
   };
@@ -87,35 +90,22 @@ const App = () => {
       const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
       return response.data;
     } catch (error) {
-      if (error.response) {
-        console.error("Server responded with error status:", error.response.status);
-        console.error("Error response data:", error.response.data);
-        const errorMessage = error.response.data.message || "Internal Server Error";
-        alert(`Error: ${error.response.status} - ${errorMessage}`);
-      } else if (error.request) {
-        console.error("No response received from server:", error.request);
-        alert("No response received from server. Please try again later.");
-      } else {
-        console.error("Error setting up request:", error.message);
-        alert(`Error setting up request: ${error.message}`);
-      }
+      console.error("Search failed:", error);
+      alert("Search failed: " + (error.response?.data?.message || "An error occurred"));
       return [];
     }
   };
-  
 
   const handleLike = async (movieId) => {
     try {
-      const userData = JSON.parse(localStorage.getItem("flixxItUser"));
-      if (!userData) {
+      if (!user) {
         throw new Error("User not logged in");
       }
       const response = await axios.post("https://flixxit-h9fa.onrender.com/api/like", {
-        userId: userData._id,
+        userId: user._id,
         movieId,
       });
       console.log("Like successful:", response.data);
-      // Assuming response.data.likes contains the updated like count
       return response.data.likes;
     } catch (error) {
       console.error("Like failed:", error);
@@ -125,16 +115,14 @@ const App = () => {
 
   const handleDislike = async (movieId) => {
     try {
-      const userData = JSON.parse(localStorage.getItem("flixxItUser"));
-      if (!userData) {
+      if (!user) {
         throw new Error("User not logged in");
       }
       const response = await axios.post("https://flixxit-h9fa.onrender.com/api/dislike", {
-        userId: userData._id,
+        userId: user._id,
         movieId,
       });
       console.log("Dislike successful:", response.data);
-      // Assuming response.data.dislikes contains the updated dislike count
       return response.data.dislikes;
     } catch (error) {
       console.error("Dislike failed:", error);
@@ -142,11 +130,9 @@ const App = () => {
     }
   };
 
-
   return (
     <AllRouters
-      user={user}
-      loggedIn={loggedIn}
+      isLoggedIn={isLoggedIn}
       handleLogout={handleLogout}
       handleLogin={handleLogin}
       handleRegister={handleRegister}
