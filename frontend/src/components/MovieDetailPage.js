@@ -1,15 +1,17 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import { FaPlay, FaThumbsUp, FaThumbsDown } from "react-icons/fa";
+import { AuthContext } from "../AuthContext";
 
-const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
+const MovieDetailPage = ({ handleLike, handleDislike }) => {
+  const { user } = useContext(AuthContext);
   const [movie, setMovie] = useState(null);
   const [error, setError] = useState(null);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
   const [likeStatus, setLikeStatus] = useState(null); // 1 for like, -1 for dislike
   const [showPlayer, setShowPlayer] = useState(false);
-  const [isPlayerReady, setIsPlayerReady] = useState(false); // New state
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const { id } = useParams();
   const playerRef = useRef(null);
   const playerId = `player-${id}`; // Generate a unique ID for the player
@@ -18,17 +20,18 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
     const fetchMovieDetail = async () => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
-        setMovie(response.data);
+        const movieData = response.data;
+        setMovie(movieData);
         setLikeStatus(
           user
-            ? response.data.likesBy.includes(user._id)
+            ? movieData.likesBy?.includes(user._id)
               ? 1
-              : response.data.dislikesBy.includes(user._id)
+              : movieData.dislikesBy?.includes(user._id)
                 ? -1
                 : null
             : null
         );
-        fetchRecommendedMovies(response.data.genre);
+        fetchRecommendedMovies(movieData.genre);
       } catch (error) {
         setError(error);
       }
@@ -70,14 +73,13 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
   const extractVideoId = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    return match && match[2].length === 11 ? match[2] : null;
   };
 
   const initializePlayer = () => {
     if (window.YT && window.YT.Player) {
       const videoId = movie ? extractVideoId(movie.videoUrl) : null;
       if (videoId) {
-        console.log("Initializing YouTube Player with video ID:", videoId);
         const player = new window.YT.Player(playerId, {
           height: "200",
           width: "100%",
@@ -92,7 +94,6 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
   };
 
   const onPlayerReady = (event) => {
-    console.log("Player is ready", event);
     setIsPlayerReady(true); // Set player as ready
     if (showPlayer) {
       event.target.playVideo();
@@ -100,13 +101,10 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
   };
 
   const handleWatchClick = () => {
-    console.log("Watch button clicked");
     if (isPlayerReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
       setShowPlayer(true);
-      console.log("Playing video");
       playerRef.current.playVideo();
     } else {
-      console.error("Player is not ready");
       setShowPlayer(true); // Show player modal even if not ready, will show loading message
     }
   };
@@ -117,10 +115,14 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
       return;
     }
     try {
-      await handleLike(movie._id, user._id);
-      setLikeStatus(1);
+      const updatedMovie = await handleLike(movie._id, user._id);
+      if (updatedMovie) {
+        setMovie(updatedMovie);
+        setLikeStatus(1);
+      }
     } catch (err) {
       console.error(err);
+      // Handle error, display error message, etc.
     }
   };
 
@@ -130,8 +132,11 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
       return;
     }
     try {
-      await handleDislike(movie._id, user._id);
-      setLikeStatus(-1);
+      const updatedMovie = await handleDislike(movie._id, user._id);
+      if (updatedMovie) {
+        setMovie(updatedMovie);
+        setLikeStatus(-1);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -153,7 +158,7 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
             <div className="modal-content">
               <div className="modal-body">
                 {!isPlayerReady ? (
-                  <p>Loading video...</p> // Loading indicator
+                  <p>Loading video...</p>
                 ) : (
                   <div id={playerId} />
                 )}
@@ -190,21 +195,21 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
             )}
             <button
               type="button"
-              className={`btn ${likeStatus === 1 ? "btn-success" : "btn-outline-success"
+              className={`btn ${likeStatus === 1 ? "btn-danger" : "btn-outline-danger"
                 }`}
               onClick={handleLikeClick}
             >
               <FaThumbsUp className="mr-2" />
-              Like ({movie.likes})
+              Like ({movie.likes || 0})
             </button>
             <button
               type="button"
-              className={`btn ${likeStatus === -1 ? "btn-danger" : "btn-outline-danger"
+              className={`btn ${likeStatus === -1 ? "btn-primary" : "btn-outline-primary"
                 }`}
               onClick={handleDislikeClick}
             >
               <FaThumbsDown className="mr-2" />
-              Dislike ({movie.dislikes})
+              Dislike ({movie.dislikes || 0})
             </button>
           </div>
         </div>

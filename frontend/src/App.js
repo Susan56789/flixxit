@@ -3,12 +3,14 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AllRouters from "./AllRouters";
 import { AuthContext } from './AuthContext';
+import { getUser } from "./utils/helpers";
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem("flixxItToken") || "");
   const navigate = useNavigate();
   const [error, setError] = useState(null)
   const { login, logout, isLoggedIn, user } = useContext(AuthContext);
+
 
   const fetchUser = useCallback(async () => {
     try {
@@ -100,20 +102,17 @@ const App = () => {
     }
   };
 
-  const handleLike = async (movieId) => {
+  const handleLike = async (movieId, userId) => {
     try {
-      if (!user) {
-        throw new Error("User not logged in");
-      }
       const response = await axios.post("https://flixxit-h9fa.onrender.com/api/like", {
-        userId: user._id,
-        movieId,
+        movieId: movieId,
+        userId: userId
       });
       console.log("Like successful:", response.data);
-      return response.data.likes;
+      return response.data;
     } catch (error) {
       console.error("Like failed:", error);
-      return null;
+      throw error; // Re-throw the error to handle it in the calling function
     }
   };
 

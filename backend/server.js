@@ -364,6 +364,35 @@ app.post("/api/dislike", async (req, res) => {
   }
 });
 
+//GET LIKES COUNT
+
+app.get("/api/movies/:id/likes", async (req, res) => {
+  try {
+    const database = client.db("sample_mflix");
+    const likes = database.collection("likes");
+    const { id } = req.params;
+
+    const likeCount = await likes.countDocuments({ movieId: id });
+    res.json({ likes: likeCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+//GET DISLIKES COUNT
+
+app.get("/api/movies/:id/dislikes", async (req, res) => {
+  try {
+    const database = client.db("sample_mflix");
+    const dislikes = database.collection("dislikes");
+    const { id } = req.params;
+
+    const dislikeCount = await dislikes.countDocuments({ movieId: id });
+    res.json({ dislikes: dislikeCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // Watchlist endpoint
 app.get('/api/watchlist', authenticate, async (req, res) => {

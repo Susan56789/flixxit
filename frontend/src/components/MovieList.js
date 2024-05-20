@@ -21,7 +21,7 @@ const MovieList = ({ movies, type }) => {
     try {
       const token = getUserToken();
       if (!token) {
-        console.log("Please log in to add movies to your watchlist.");
+        alert("Please log in to add movies to your watchlist.");
         return;
       }
 
@@ -36,12 +36,19 @@ const MovieList = ({ movies, type }) => {
         }
       );
 
-      console.log(response.data.message);
-      // Assuming the response is successful, you can perform additional UI updates if needed, like showing a success message or updating the state.
+      if (response.status === 201) {
+        alert(response.data.message); // Success message
+      } else if (response.status === 409) {
+        alert("This movie is already in your watchlist."); // Duplicate entry alert
+      } else {
+        alert("Failed to add movie to watchlist. Please try again later."); // Generic failure alert
+      }
     } catch (error) {
       console.error("Error adding to watchlist:", error.response ? error.response.data : error.message);
+      alert("Failed to add movie to watchlist. Please try again later."); // Alert for other errors
     }
   };
+
 
   const shareMovie = (title, id) => {
     // Implementation for sharing movie omitted for brevity
