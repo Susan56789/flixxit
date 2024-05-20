@@ -22,6 +22,20 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
+
+        // Fetch likes count
+        const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
+        const likesCount = likesResponse.data.likes;
+
+        // Fetch dislikes count
+        const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
+        const dislikesCount = dislikesResponse.data.dislikes;
+
+        // Set likes and dislikes count
+        movieData.likes = likesCount;
+        movieData.dislikes = dislikesCount;
+
+        // Set like status based on user and movie data
         setLikeStatus(
           user
             ? movieData.likesBy?.includes(user._id)
@@ -31,6 +45,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                 : null
             : null
         );
+
         fetchRecommendedMovies(movieData.genre);
       } catch (error) {
         setError(error);
