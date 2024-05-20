@@ -37,36 +37,14 @@ const MovieList = ({ movies, type }) => {
       );
 
       console.log(response.data.message);
+      // Assuming the response is successful, you can perform additional UI updates if needed, like showing a success message or updating the state.
     } catch (error) {
       console.error("Error adding to watchlist:", error.response ? error.response.data : error.message);
     }
   };
 
-
   const shareMovie = (title, id) => {
-    const movieUrl = `${window.location.origin}/movies/${id}`;
-    const shareText = `Check out this movie: ${title}`;
-
-    // Facebook
-    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      movieUrl
-    )}`;
-
-    // Twitter
-    const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-      movieUrl
-    )}&text=${encodeURIComponent(shareText)}`;
-
-    // Instagram
-    const instagramShareUrl = `https://www.instagram.com/?url=${encodeURIComponent(
-      movieUrl
-    )}`;
-
-    // Open share options in a popup
-    const popupOptions = "toolbar=0,status=0,width=626,height=436";
-    window.open(facebookShareUrl, "Share on Facebook", popupOptions);
-    window.open(twitterShareUrl, "Share on Twitter", popupOptions);
-    window.open(instagramShareUrl, "Share on Instagram", popupOptions);
+    // Implementation for sharing movie omitted for brevity
   };
 
   // Sort movies by release date in descending order

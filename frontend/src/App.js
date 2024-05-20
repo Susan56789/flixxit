@@ -7,12 +7,14 @@ import { AuthContext } from './AuthContext';
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem("flixxItToken") || "");
   const navigate = useNavigate();
+  const [error, setError] = useState(null)
   const { login, logout, isLoggedIn, user } = useContext(AuthContext);
 
   const fetchUser = useCallback(async () => {
     try {
       const userData = JSON.parse(localStorage.getItem("flixxItUser"));
-      if (!userData || !token) {
+      if (!userData || !userData.id || !token) { // Check if userData or userData.id is undefined
+        setError('Error fetching user data. Please try logging in again.'); // Handle undefined user ID
         return;
       }
 
@@ -28,8 +30,10 @@ const App = () => {
       login(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
+      setError('Error fetching user data. Please try again later.');
     }
   }, [login, token]);
+
 
   useEffect(() => {
     fetchUser();

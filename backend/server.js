@@ -370,6 +370,9 @@ app.get('/api/watchlist', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
 
+    // Initialize the database within the endpoint handler
+    const database = client.db("sample_mflix");
+
     const watchlist = database.collection('watchlist');
     const userWatchlist = await watchlist.find({ userId }).toArray();
     const movieIds = userWatchlist.map((item) => item.movieId);
@@ -386,11 +389,13 @@ app.get('/api/watchlist', authenticate, async (req, res) => {
   }
 });
 
+
 // Add to watchlist endpoint
 app.post('/api/watchlist', authenticate, async (req, res) => {
   try {
     const { movieId } = req.body;
     const userId = req.user._id;
+    const database = client.db("sample_mflix");
 
     const watchlist = database.collection('watchlist');
 
@@ -412,6 +417,7 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
     const { movieId } = req.params;
+    const database = client.db("sample_mflix");
 
     const watchlist = database.collection('watchlist');
 
