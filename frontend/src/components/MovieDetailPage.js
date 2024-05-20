@@ -54,13 +54,17 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
         const firstScriptTag = document.getElementsByTagName("script")[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        window.onYouTubeIframeAPIReady = initializePlayer;
+        window.onYouTubeIframeAPIReady = () => {
+          initializePlayer();
+        };
       } else {
         initializePlayer();
       }
     };
 
-    loadYouTubeAPI();
+    if (movie && movie.videoUrl) {
+      loadYouTubeAPI();
+    }
   }, [movie]);
 
   const extractVideoId = (url) => {
@@ -70,18 +74,20 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
   };
 
   const initializePlayer = () => {
-    const videoId = movie ? extractVideoId(movie.videoUrl) : null;
-    if (videoId) {
-      console.log("Initializing YouTube Player with video ID:", videoId);
-      const player = new window.YT.Player(playerId, {
-        height: "200",
-        width: "100%",
-        videoId: videoId,
-        events: {
-          onReady: onPlayerReady,
-        },
-      });
-      playerRef.current = player;
+    if (window.YT && window.YT.Player) {
+      const videoId = movie ? extractVideoId(movie.videoUrl) : null;
+      if (videoId) {
+        console.log("Initializing YouTube Player with video ID:", videoId);
+        const player = new window.YT.Player(playerId, {
+          height: "200",
+          width: "100%",
+          videoId: videoId,
+          events: {
+            onReady: onPlayerReady,
+          },
+        });
+        playerRef.current = player;
+      }
     }
   };
 
@@ -171,15 +177,17 @@ const MovieDetailPage = ({ user, handleLike, handleDislike }) => {
           <p>Rating: {movie.rating}</p>
           <p>Year: {movie.year}</p>
           <div className="btn-group" role="group">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleWatchClick}
-              disabled={!isPlayerReady} // Disable button until player is ready
-            >
-              <FaPlay className="mr-2" />
-              Watch
-            </button>
+            {movie.videoUrl && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleWatchClick}
+                disabled={!isPlayerReady && !showPlayer} // Disable button until player is ready
+              >
+                <FaPlay className="mr-2" />
+                Watch
+              </button>
+            )}
             <button
               type="button"
               className={`btn ${likeStatus === 1 ? "btn-success" : "btn-outline-success"
