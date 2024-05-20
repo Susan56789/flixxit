@@ -423,15 +423,19 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
 
     const result = await watchlist.deleteOne({ userId, movieId });
     if (result.deletedCount === 0) {
+      // If no document was deleted, return 404 with appropriate message
       return res.status(404).json({ message: "Movie not found in watchlist" });
     }
 
+    // If deletion was successful, return success message
     res.json({ message: "Movie removed from watchlist" });
   } catch (err) {
+    // If an error occurs during deletion, return 500 with error message
     console.error("Error removing from watchlist:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error while removing from watchlist" });
   }
 });
+
 
 
 // Admin login endpoint
