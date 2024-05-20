@@ -500,11 +500,16 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
     const { movieId } = req.params;
+
+    // Get database connection
     const database = client.db("sample_mflix");
 
-    const watchlist = database.collection('watchlist');
+    // Find and remove movie from watchlist
+    const result = await database.collection('watchlist').deleteOne({
+      userId: new ObjectId(userId),
+      movieId: new ObjectId(movieId)
+    });
 
-    const result = await watchlist.deleteOne({ userId, movieId });
     if (result.deletedCount === 0) {
       // If no document was deleted, return 404 with appropriate message
       return res.status(404).json({ message: "Movie not found in watchlist" });

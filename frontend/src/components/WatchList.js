@@ -51,7 +51,6 @@ const Watchlist = () => {
     const removeFromWatchlist = async (movieId) => {
         try {
             const token = getUserToken();
-
             if (!token) {
                 setError('Please log in to remove movies from your watchlist.');
                 return;
@@ -63,8 +62,15 @@ const Watchlist = () => {
                 }
             });
 
-            setWatchlist(prevWatchlist => prevWatchlist.filter(item => item.movieId.toString() !== movieId.toString()));
-            setMovies(prevMovies => prevMovies.filter(movie => movie._id.toString() !== movieId.toString()));
+            setWatchlist((prevWatchlist) => {
+                if (!prevWatchlist) return [];
+                return prevWatchlist.filter((item) => item.movieId && item.movieId.toString() !== movieId.toString());
+            });
+
+            setMovies((prevMovies) => {
+                if (!prevMovies) return [];
+                return prevMovies.filter((movie) => movie._id && movie._id.toString() !== movieId.toString());
+            });
         } catch (error) {
             setError('Error removing from watchlist. Please try again later.');
         }
