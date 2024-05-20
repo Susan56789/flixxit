@@ -368,16 +368,18 @@ app.post("/api/dislike", async (req, res) => {
 // Watchlist endpoint
 app.get('/api/watchlist', authenticate, async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user._id; // Extract user ID from authenticated user
 
     // Initialize the database within the endpoint handler
     const database = client.db("sample_mflix");
 
     const watchlist = database.collection('watchlist');
+    // Find user's watchlist based on userId
     const userWatchlist = await watchlist.find({ userId }).toArray();
     const movieIds = userWatchlist.map((item) => item.movieId);
 
     const movies = database.collection("movies");
+    // Find movies in user's watchlist based on movieIds
     const userWatchlistMovies = await movies
       .find({ _id: { $in: movieIds } })
       .toArray();

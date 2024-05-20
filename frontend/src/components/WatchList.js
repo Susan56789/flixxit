@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getUser } from '../utils/helpers';
 
 const Watchlist = () => {
     // State variables to manage watchlist data, loading state, and error handling
@@ -14,14 +15,16 @@ const Watchlist = () => {
             try {
                 // Retrieve JWT token from localStorage
                 const token = localStorage.getItem('flixxItToken');
-                if (!token) {
-                    // If token doesn't exist, set error message
+                const user = getUser();
+                const userId = user ? user._id : null;
+                if (!token || !userId) {
+                    // If token or user ID doesn't exist, set error message
                     setError('Please log in to view your watchlist.');
                     return;
                 }
 
                 // Send GET request to backend API to fetch watchlist data
-                const response = await axios.get('https://flixxit-h9fa.onrender.com/api/watchlist', {
+                const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/watchlist?userID=${userId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
