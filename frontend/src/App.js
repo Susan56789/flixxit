@@ -87,6 +87,7 @@ const App = () => {
     logout();
     setToken("");
     localStorage.removeItem("flixxItUser");
+    localStorage.removeItem("flixxItToken");
     navigate("/login");
   };
 

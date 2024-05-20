@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getUserToken } from "../utils/helpers";
 
 const Header = ({ loggedIn, handleLogout }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
+  const [logIn, setLoggedIn] = useState(false);
   const navigate = useNavigate();
+
+  const token = getUserToken()
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -23,6 +27,17 @@ const Header = ({ loggedIn, handleLogout }) => {
 
     getUser();
   }, []); // Run effect only once
+
+  useEffect(() => {
+    if (token) {
+      setLoggedIn(true)
+    } else {
+      setLoggedIn(false)
+    }
+
+  }, [token]); // Run effect only once
+
+
 
   return (
     <div className="container">
@@ -70,7 +85,7 @@ const Header = ({ loggedIn, handleLogout }) => {
             </ul>
 
             <div className="d-flex align-items-center flex-column flex-lg-row">
-              {!user ? (
+              {!logIn ? (
                 <div>
                   <a className="btn btn-primary me-2" href="/login">
                     Login

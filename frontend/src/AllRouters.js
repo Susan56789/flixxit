@@ -17,12 +17,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import { AuthContext } from './AuthContext';
 
-const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, isAdmin, handleLogin }) => {
+const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, isAdmin, handleLogin, handleLogout }) => {
   const { isLoggedIn, user, logout } = useContext(AuthContext);
 
   return (
     <div className="App">
-      <Header isLoggedIn={isLoggedIn} handleLogout={logout} handleSearch={handleSearch} />
+      <Header isLoggedIn={isLoggedIn} handleLogout={handleLogout} handleSearch={handleSearch} />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginForm handleLogin={handleLogin} />} />

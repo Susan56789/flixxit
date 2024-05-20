@@ -442,16 +442,21 @@ app.delete("/api/movies/:id/dislikes/:userId", async (req, res) => {
 
 
 // Watchlist endpoint
-app.get('/api/watchlist', authenticate, async (req, res) => {
+app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
   try {
-    const userId = req.user._id; // Extract user ID from authenticated user
+    const userId = req.params.userId; // Extract user ID from request parameters
+
+    // Ensure userId is a valid ObjectId
+    if (!ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
 
     // Initialize the database within the endpoint handler
     const database = client.db("sample_mflix");
 
     const watchlist = database.collection('watchlist');
     // Find user's watchlist based on userId
-    const userWatchlist = await watchlist.find({ userId }).toArray();
+    const userWatchlist = await watchlist.find({ userId: new ObjectId(userId) }).toArray();
     const movieIds = userWatchlist.map((item) => item.movieId);
 
     const movies = database.collection("movies");
