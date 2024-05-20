@@ -394,6 +394,53 @@ app.get("/api/movies/:id/dislikes", async (req, res) => {
   }
 });
 
+// UNDO LIKE
+app.delete("/api/movies/:id/likes/:userId", async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const database = client.db("sample_mflix");
+    const likes = database.collection("likes");
+
+    // Delete the like entry associated with the user and movie
+    const result = await likes.deleteOne({ movieId: id, userId: userId });
+
+    if (result.deletedCount === 1) {
+      // If like entry was successfully deleted
+      res.json({ success: true, message: "Like undone successfully" });
+    } else {
+      // If no like entry was found to delete
+      res.status(404).json({ success: false, message: "No like found to undo" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// UNDO DISLIKE
+app.delete("/api/movies/:id/dislikes/:userId", async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const database = client.db("sample_mflix");
+    const dislikes = database.collection("dislikes");
+
+    // Delete the dislike entry associated with the user and movie
+    const result = await dislikes.deleteOne({ movieId: id, userId: userId });
+
+    if (result.deletedCount === 1) {
+      // If dislike entry was successfully deleted
+      res.json({ success: true, message: "Dislike undone successfully" });
+    } else {
+      // If no dislike entry was found to delete
+      res.status(404).json({ success: false, message: "No dislike found to undo" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+
+
 // Watchlist endpoint
 app.get('/api/watchlist', authenticate, async (req, res) => {
   try {
