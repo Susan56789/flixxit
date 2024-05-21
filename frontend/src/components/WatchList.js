@@ -69,11 +69,16 @@ const Watchlist = () => {
             setWatchlist(prevWatchlist => prevWatchlist.filter(item => item.movieId !== movieId));
             setMovies(prevMovies => prevMovies.filter(movie => movie._id !== movieId));
         } catch (error) {
-            console.error('Error removing from watchlist:', error); // Add logging
-            setError('Error removing from watchlist. Please try again later.');
+            if (error.response && error.response.status === 404) {
+                // Handle the case where the movie is not found in the watchlist
+                console.log('Movie not found in watchlist');
+                // You can optionally show a user-friendly message or perform any other necessary actions
+            } else {
+                console.error('Error removing from watchlist:', error); // Add logging
+                setError('Error removing from watchlist. Please try again later.');
+            }
         }
     };
-
     if (loading) return <div>Loading...</div>;
     if (error) return <div>{error}</div>;
 
