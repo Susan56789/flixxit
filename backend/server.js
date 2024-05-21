@@ -167,10 +167,17 @@ app.get("/api/movies", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
+    const { genre } = req.query;
+
+    let query = {};
+    if (genre) {
+      query = { genre: genre };
+    }
 
     // Aggregate to get movies sorted by number of likes
     const moviesList = await movies
       .aggregate([
+        { $match: query },
         {
           $addFields: {
             likeCount: { $size: "$likesBy" } // Calculate the number of likes
@@ -187,7 +194,6 @@ app.get("/api/movies", async (req, res) => {
     res.json({ message: err });
   }
 });
-
 
 app.post("/api/movies", async (req, res) => {
   const movie = {

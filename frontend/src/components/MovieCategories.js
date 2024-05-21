@@ -63,7 +63,7 @@ const MovieCategories = () => {
             ) : error ? (
                 <p className="text-danger">{error}</p>
             ) : (
-                <div className="row row-cols-1 row-cols-md-3 g-4">
+                <div className="row row-cols-1 row-cols-md-4 g-4">
                     {movies.map((movie) => (
                         <div key={movie._id} className="col">
                             <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
