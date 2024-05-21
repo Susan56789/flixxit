@@ -106,7 +106,7 @@ const App = () => {
       console.error("Search failed:", error);
 
       const errorMessage = error.response?.data?.message || "An error occurred during the search. Please try again.";
-      alert("Search failed: " + errorMessage);
+      console.log("Search failed: " + errorMessage);
 
       return [];
     }

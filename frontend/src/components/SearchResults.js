@@ -14,10 +14,10 @@ const SearchResults = ({ handleSearch }) => {
       try {
         const data = await handleSearch(searchQuery);
         setResults(data);
-        setError(""); // Clear any previous errors
+        setError("");
       } catch (err) {
         console.error("Error during search:", err);
-        setResults([]); // Clear results if there was an error
+        setResults([]);
         setError("An error occurred while fetching search results. Please try again.");
       }
     };
@@ -28,23 +28,23 @@ const SearchResults = ({ handleSearch }) => {
   }, [query, handleSearch]);
 
   return (
-    <div className="container mt-3">
+    <div className="container mt-4">
       {query ? (
-        <section>
-          <h2>Search Results for "{query}"</h2>
+        <div className="mt-4">
+          <h2 className="mb-4">Search Results for "{query}"</h2>
           {error ? (
-            <p>{error}</p>
+            <div className="alert alert-danger">{error}</div>
           ) : results.length > 0 ? (
             <MovieList movies={results} />
           ) : (
-            <p>No results found for your search query.</p>
+            <p className="lead">No results found for your search query.</p>
           )}
-        </section>
+        </div>
       ) : (
-        <section>
-          <h2>No search query provided</h2>
-          <p>Please enter a search query to see results.</p>
-        </section>
+        <div className="mt-4">
+          <h2 className="mb-4">No search query provided</h2>
+          <p className="lead">Please enter a search query to see results.</p>
+        </div>
       )}
     </div>
   );

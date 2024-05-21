@@ -262,7 +262,6 @@ app.get("/api/movies/search", async (req, res) => {
 });
 
 
-
 //get user data
 app.get("/api/user/:id", async (req, res) => {
   try {
