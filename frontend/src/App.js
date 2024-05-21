@@ -92,6 +92,11 @@ const App = () => {
   };
 
   const handleSearch = async (query) => {
+    if (!query) {
+      alert("Search query cannot be empty.");
+      return [];
+    }
+
     try {
       // Encode the search query to make it URL-safe
       const encodedQuery = encodeURIComponent(query);
@@ -105,14 +110,15 @@ const App = () => {
       // Log the error to the console for debugging
       console.error("Search failed:", error);
 
-      // Check if the error has a response and a message, and alert the user accordingly
-      const errorMessage = error.response?.data?.message || "An error occurred";
-      alert("Search failed: " + errorMessage);
+      // Extract the error message from the response or use a default message
+      const errorMessage = error.response?.data?.message || "An error occurred during the search. Please try again.";
+      console.log("Search failed: " + errorMessage);
 
       // Return an empty array to signify that no results were found
       return [];
     }
   };
+
 
 
   const handleLike = async (movieId, userId) => {

@@ -224,11 +224,10 @@ app.get("/api/genres", async (req, res) => {
   }
 });
 
-// Movies search
+// Example movie search endpoint
 app.get("/api/movies/search", async (req, res) => {
   const query = req.query.query?.toString();
 
-  // Validate query parameter
   if (!query) {
     return res.status(400).json({ message: "Query parameter is required" });
   }
@@ -240,16 +239,19 @@ app.get("/api/movies/search", async (req, res) => {
     // Search for movies with titles matching the query (case-insensitive)
     const moviesList = await movies.find({ title: { $regex: query, $options: "i" } }).toArray();
 
-    // Send the found movies back to the client
-    res.status(200).json(moviesList);
+    // Check if moviesList contains the expected fields
+    if (moviesList.length > 0 && moviesList[0]._id) {
+      // Send the found movies back to the client
+      res.status(200).json(moviesList);
+    } else {
+      res.status(404).json({ message: "No movies found" });
+    }
   } catch (error) {
-    // Log the error for server-side debugging
     console.error("Error processing search request:", error);
-
-    // Send a 500 Internal Server Error response with the error message
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
+
 
 
 //get user data

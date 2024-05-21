@@ -10,12 +10,13 @@ const SearchResults = ({ handleSearch }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const searcher = async (query) => {
+    const searcher = async (searchQuery) => {
       try {
-        const data = await handleSearch(query);
+        const data = await handleSearch(searchQuery);
         setResults(data);
         setError(""); // Clear any previous errors
-      } catch (error) {
+      } catch (err) {
+        console.error("Error during search:", err);
         setResults([]); // Clear results if there was an error
         setError("An error occurred while fetching search results. Please try again.");
       }
@@ -26,29 +27,25 @@ const SearchResults = ({ handleSearch }) => {
     }
   }, [query, handleSearch]);
 
-  if (!query) {
-    return (
-      <div className="container mt-3">
+  return (
+    <div className="container mt-3">
+      {query ? (
+        <section>
+          <h2>Search Results for "{query}"</h2>
+          {error ? (
+            <p>{error}</p>
+          ) : results.length > 0 ? (
+            <MovieList movies={results} />
+          ) : (
+            <p>No results found for your search query.</p>
+          )}
+        </section>
+      ) : (
         <section>
           <h2>No search query provided</h2>
           <p>Please enter a search query to see results.</p>
         </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mt-3">
-      <section>
-        <h2>Search Results for "{query}"</h2>
-        {error ? (
-          <p>{error}</p>
-        ) : results.length > 0 ? (
-          <MovieList movies={results} />
-        ) : (
-          <p>No results found for your search query.</p>
-        )}
-      </section>
+      )}
     </div>
   );
 };
