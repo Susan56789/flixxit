@@ -168,10 +168,14 @@ app.get("/api/movies", async (req, res) => {
     const movies = database.collection("movies");
     const { genre } = req.query;
 
+    console.log("Received genre query:", genre);
+
     let query = {};
     if (genre) {
       query = { genres: genre }; // Assuming genres is an array field in your documents
     }
+
+    console.log("Query to be executed:", query);
 
     const moviesList = await movies.aggregate([
       { $match: query },
@@ -185,8 +189,11 @@ app.get("/api/movies", async (req, res) => {
       }
     ]).toArray();
 
+    console.log("Movies found:", moviesList.length);
+
     res.status(200).json(moviesList);
   } catch (err) {
+    console.error("Error fetching movies:", err);
     res.status(500).json({ message: err.message });
   }
 });

@@ -5,7 +5,7 @@ import { getUserToken } from "../utils/helpers";
 
 const MovieList = ({ movies, type }) => {
   // Debugging: Log the movies prop
-  console.log("MovieList movies prop:", movies);
+  // console.log("MovieList movies prop:", movies);
 
   const backgroundColor = () => {
     switch (type) {

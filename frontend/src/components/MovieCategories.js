@@ -10,40 +10,44 @@ const MovieCategories = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchGenresAndMovies = async () => {
+        const fetchGenres = async () => {
+            try {
+                const response = await axios.get('https://flixxit-h9fa.onrender.com/api/genres');
+                setGenres(response.data);
+            } catch (err) {
+                console.error('Error fetching genres:', err);
+                setError('Failed to load genres. Please try again later.');
+            }
+        };
+
+        fetchGenres();
+    }, []);
+
+    useEffect(() => {
+        const fetchMovies = async () => {
             setLoading(true);
             setError(null);
 
             try {
-                const [genresResponse, moviesResponse] = await Promise.all([
-                    axios.get('https://flixxit-h9fa.onrender.com/api/genres'),
+                const response = await axios.get(
                     selectedGenre
-                        ? axios.get(
-                            `https://flixxit-h9fa.onrender.com/api/movies?genre=${selectedGenre}`
-                        )
-                        : axios.get('https://flixxit-h9fa.onrender.com/api/movies'),
-                ]);
-
-                setGenres(genresResponse.data);
-                setMovies(moviesResponse.data);
+                        ? `https://flixxit-h9fa.onrender.com/api/movies?genre=${selectedGenre}`
+                        : 'https://flixxit-h9fa.onrender.com/api/movies'
+                );
+                setMovies(response.data);
             } catch (err) {
-                console.error('Error fetching data:', err);
-                setError('Failed to load data. Please try again later.');
+                console.error('Error fetching movies:', err);
+                setError('Failed to load movies. Please try again later.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchGenresAndMovies();
+        fetchMovies();
     }, [selectedGenre]);
 
     const handleGenreChange = (event) => {
         setSelectedGenre(event.target.value);
-    };
-
-    const getGenreName = (genreId) => {
-        const genre = genres.find((g) => g._id === genreId);
-        return genre ? genre.name : 'Unknown';
     };
 
     const genreOptions = useMemo(
@@ -100,7 +104,6 @@ const MovieCategories = () => {
                                     />
                                     <div className="card-body">
                                         <h5 className="card-title">{movie.title}</h5>
-                                        <p className="card-text">{getGenreName(movie.genre)}</p>
                                     </div>
                                 </div>
                             </Link>

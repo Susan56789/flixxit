@@ -116,8 +116,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     if (playerReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
       playerRef.current.playVideo();
     }
-    // Log "Watch Movie" event to console
-    console.log("User watched the movie:", movie.title);
   };
 
   const handleLikeClick = async () => {
@@ -130,8 +128,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       if (updatedMovie) {
         setMovie(updatedMovie);
         setLikeStatus(1);
-        // Log "Like Movie" event to console
-        console.log("User liked the movie:", movie.title);
       }
     } catch (err) {
       console.error(err);
@@ -148,8 +144,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       if (updatedMovie) {
         setMovie(updatedMovie);
         setLikeStatus(-1);
-        // Log "Dislike Movie" event to console
-        console.log("User disliked the movie:", movie.title);
       }
     } catch (err) {
       console.error(err);
