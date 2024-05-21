@@ -519,7 +519,7 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
 
 app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
-    const userId = req.user._id;
+    const { userId } = req.params;
     const { movieId } = req.params;
 
     // Ensure movieId is a valid ObjectId

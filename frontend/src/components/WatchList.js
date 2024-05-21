@@ -50,7 +50,7 @@ const Watchlist = () => {
         fetchWatchlist();
     }, []); // Empty dependency array ensures useEffect runs only on component mount
 
-    const removeFromWatchlist = async (movieId) => {
+    const removeFromWatchlist = async (movieId, userId) => {
         try {
             const token = getUserToken();
             if (!token) {
@@ -58,7 +58,7 @@ const Watchlist = () => {
                 return;
             }
 
-            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}`, {
+            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}&${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
