@@ -194,16 +194,15 @@ app.get("/api/movies", async (req, res) => {
     res.status(200).json(moviesList);
   } catch (err) {
     console.error("Error fetching movies:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "An error occurred while fetching movies. Please try again later." });
   }
 });
-
 
 app.post("/api/movies", async (req, res) => {
   const movie = {
     title: req.body.title,
     description: req.body.description,
-    genre: req.body.genre,
+    genres: req.body.genres, // Assuming the genres field should be an array
     rating: req.body.rating,
     year: req.body.year,
     imageUrl: req.body.imageUrl,
@@ -214,9 +213,11 @@ app.post("/api/movies", async (req, res) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
     const result = await movies.insertOne(movie);
-    res.json(result.ops[0]);
+
+    res.status(201).json({ ...movie, _id: result.insertedId });
   } catch (err) {
-    res.json({ message: err });
+    console.error("Error inserting movie:", err);
+    res.status(500).json({ message: "An error occurred while adding the movie. Please try again later." });
   }
 });
 
@@ -287,6 +288,24 @@ app.get("/api/genres", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// Get genre by name
+app.get("/api/genres/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+    const database = client.db("sample_mflix");
+    const genres = database.collection("genres");
+    const genre = await genres.findOne({ name: name });
+    if (!genre) {
+      return res.status(404).json({ message: "Genre not found" });
+    }
+    res.json(genre);
+  } catch (err) {
+    console.error("Error fetching genre:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 // Add a new genre
 app.post("/api/genres", async (req, res) => {

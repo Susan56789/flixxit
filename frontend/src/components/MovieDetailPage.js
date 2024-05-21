@@ -48,12 +48,17 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchRecommendedMovies = async (genre) => {
+    const fetchRecommendedMovies = async (genreId) => {
       try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}&limit=4`);
-        setRecommendedMovies(response.data.slice(0, 4));
+        // Fetch the genre document to get the genre name
+        const genreResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/genres/${genreId}`);
+        const genreName = genreResponse.data.name;
+
+        // Fetch movies based on the genre name
+        const moviesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genreName}&limit=4`);
+        setRecommendedMovies(moviesResponse.data.slice(0, 4));
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching recommended movies:", error);
       }
     };
 
@@ -222,7 +227,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         </div>
       </div>
       <hr />
-      <h3>Recommended Videos</h3>
+      <h3>Recommended Movies</h3>
       <div className="row">
         {recommendedMovies.map((recommendedMovie) => (
           <div key={recommendedMovie._id} className="col-md-3 mb-4">
