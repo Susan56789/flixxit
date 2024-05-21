@@ -16,7 +16,7 @@ const AdminLogin = () => {
                 // Redirect to admin dashboard upon successful login
                 navigate('/admin/dashboard');
             } else {
-                setError('Invalid email or password');
+                setError(response.data.message);
             }
         } catch (error) {
             setError('Failed to log in. Please try again.');
@@ -34,11 +34,25 @@ const AdminLogin = () => {
                             <form onSubmit={handleLogin}>
                                 <div className="mb-3">
                                     <label htmlFor="email" className="form-label">Email:</label>
-                                    <input type="email" id="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        className="form-control"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
                                 </div>
                                 <div className="mb-3">
                                     <label htmlFor="password" className="form-label">Password:</label>
-                                    <input type="password" id="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        className="form-control"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
                                 </div>
                                 <button type="submit" className="btn btn-primary">Login</button>
                             </form>

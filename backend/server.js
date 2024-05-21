@@ -637,41 +637,37 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
 });
 
 
-
-app.post("/api/admin/login", async (req, res) => {
+// Admin login
+app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    // Check if the provided email exists in the database
     const database = client.db("sample_mflix");
-    const admins = database.collection("admins");
-    const admin = await admins.findOne({ email });
+    const admins = database.collection("admins"); // Ensure the admin collection is referenced here
 
+    const admin = await admins.findOne({ email });
     if (!admin) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ success: false, message: 'Invalid email or password' });
     }
 
-    // Compare the provided password with the hashed password stored in the database
     const passwordMatch = await bcrypt.compare(password, admin.password);
     if (!passwordMatch) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ success: false, message: 'Invalid email or password' });
     }
 
-    // Generate a JWT token for authentication
-    const token = jwt.sign({ _id: admin._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-
-    // Return the token to the client
-    res.json({ token });
+    const token = jwt.sign({ _id: admin._id }, secretKey, { expiresIn: '1h' });
+    res.json({ success: true, token });
   } catch (err) {
-    console.error("Error logging in admin:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Error logging in admin:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+
 
 
 // Interacted movies endpoint
