@@ -4,6 +4,9 @@ import axios from "axios";
 import { getUserToken } from "../utils/helpers";
 
 const MovieList = ({ movies, type }) => {
+  // Debugging: Log the movies prop
+  console.log("MovieList movies prop:", movies);
+
   const backgroundColor = () => {
     switch (type) {
       case "newArrivals":
@@ -56,8 +59,8 @@ const MovieList = ({ movies, type }) => {
     }
   };
 
-  // Sort movies by release date in descending order
-  const sortedMovies = movies.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate));
+  // Ensure movies is an array before sorting
+  const sortedMovies = Array.isArray(movies) ? movies.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate)) : [];
 
   return (
     <div
@@ -69,9 +72,9 @@ const MovieList = ({ movies, type }) => {
         marginBottom: "20px",
       }}
     >
-      {Array.isArray(sortedMovies) && sortedMovies.length > 0 ? (
+      {sortedMovies.length > 0 ? (
         sortedMovies.slice(0, 4).map((movie, index) => ( // Display only the latest four movies
-          <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+          <div key={index} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4"> {/* Adjusted column classes for better responsiveness */}
             <Link
               to={`/movies/${movie._id}`}
               style={{ textDecoration: "none", color: "inherit" }}
@@ -90,7 +93,7 @@ const MovieList = ({ movies, type }) => {
                 />
               </div>
             </Link>
-            <div className="card-footer d-flex">
+            <div className="card-footer d-flex justify-content-between"> {/* Improved button alignment */}
               <button
                 className="btn btn-subtle me-2"
                 onClick={() => addToWatchlist(movie._id)}

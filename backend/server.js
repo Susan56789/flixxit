@@ -170,29 +170,27 @@ app.get("/api/movies", async (req, res) => {
 
     let query = {};
     if (genre) {
-      query = { genre: genre };
+      query = { genres: genre }; // Assuming genres is an array field in your documents
     }
 
-    // Aggregate to get movies sorted by number of likes
-    const moviesList = await movies
-      .aggregate([
-        { $match: query },
-        {
-          $addFields: {
-            likeCount: { $size: "$likesBy" } // Calculate the number of likes
-          }
-        },
-        {
-          $sort: { likeCount: -1 } // Sort by the number of likes in descending order
+    const moviesList = await movies.aggregate([
+      { $match: query },
+      {
+        $addFields: {
+          likeCount: { $size: { $ifNull: ["$likesBy", []] } } // Ensure likesBy defaults to an empty array if it's null or undefined
         }
-      ])
-      .toArray();
+      },
+      {
+        $sort: { likeCount: -1 } // Sort by the number of likes in descending order
+      }
+    ]).toArray();
 
-    res.json(moviesList);
+    res.status(200).json(moviesList);
   } catch (err) {
-    res.json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 });
+
 
 app.post("/api/movies", async (req, res) => {
   const movie = {
@@ -202,6 +200,7 @@ app.post("/api/movies", async (req, res) => {
     rating: req.body.rating,
     year: req.body.year,
     imageUrl: req.body.imageUrl,
+    videoUrl: req.body.videoUrl,
   };
 
   try {
