@@ -240,12 +240,14 @@ app.get("/api/movies/search", async (req, res) => {
     console.log(`Searching for movies with title or description matching: ${query}`);
 
     // Search for movies with titles or descriptions matching the query (case-insensitive)
-    const moviesList = await movies.find({
-      $or: [
-        { title: { $regex: query, $options: "i" } },
-        { description: { $regex: query, $options: "i" } }
-      ]
-    }).toArray();
+    const moviesList = await movies
+      .find({
+        $or: [
+          { title: { $regex: query, $options: "i" } },
+          { description: { $regex: query, $options: "i" } }
+        ]
+      })
+      .toArray();
 
     // Check if any movies were found
     if (moviesList.length === 0) {
@@ -254,13 +256,10 @@ app.get("/api/movies/search", async (req, res) => {
 
     res.status(200).json(moviesList);
   } catch (error) {
-    console.error("Error processing search request:", error.message);
-    console.error("Stack trace:", error.stack);
-
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    console.error("Error processing search request:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 
 
