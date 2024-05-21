@@ -117,49 +117,32 @@ const App = () => {
 
   const handleLike = async (movieId, userId) => {
     try {
-      const likeResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/likes/${movieId}/${userId}`);
-      const hasLiked = likeResponse.data.hasLiked;
-
-      if (hasLiked) {
-        // If the user has already liked the movie, perform undo action
-        const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/like/${movieId}/${userId}`);
-        console.log("Undo like successful:", response.data);
-      } else {
-        // If the user has not liked the movie, perform like action
-        const response = await axios.post("https://flixxit-h9fa.onrender.com/api/like", {
-          movieId: movieId,
-          userId: userId
-        });
-        console.log("Like successful:", response.data);
-      }
-      return true; // Return true to indicate success
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/like", {
+        movieId: movieId,
+        userId: userId
+      });
+      console.log("Like successful:", response.data);
+      return response.data;
     } catch (error) {
       console.error("Like failed:", error);
       throw error; // Re-throw the error to handle it in the calling function
     }
   };
 
-  const handleDislike = async (movieId, userId) => {
+  const handleDislike = async (movieId) => {
     try {
-      const dislikeResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/dislikes/${movieId}/${userId}`);
-      const hasDisliked = dislikeResponse.data.hasDisliked;
-
-      if (hasDisliked) {
-        // If the user has already disliked the movie, perform undo action
-        const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/dislike/${movieId}/${userId}`);
-        console.log("Undo dislike successful:", response.data);
-      } else {
-        // If the user has not disliked the movie, perform dislike action
-        const response = await axios.post("https://flixxit-h9fa.onrender.com/api/dislike", {
-          movieId: movieId,
-          userId: userId
-        });
-        console.log("Dislike successful:", response.data);
+      if (!user) {
+        throw new Error("User not logged in");
       }
-      return true; // Return true to indicate success
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/dislike", {
+        userId: user._id,
+        movieId,
+      });
+      console.log("Dislike successful:", response.data);
+      return response.data.dislikes;
     } catch (error) {
       console.error("Dislike failed:", error);
-      throw error; // Re-throw the error to handle it in the calling function
+      return null;
     }
   };
 
