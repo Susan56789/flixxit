@@ -4,7 +4,6 @@ import { getUser, getUserToken } from '../utils/helpers';
 
 const Watchlist = () => {
     const [watchlist, setWatchlist] = useState([]);
-    const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -21,7 +20,6 @@ const Watchlist = () => {
                     return;
                 }
 
-                // Fetch the watchlist data from the API
                 const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/watchlist/${userId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -29,28 +27,18 @@ const Watchlist = () => {
                 });
 
                 setWatchlist(response.data);
-
-                // Fetch the movie details based on the movieId values in the watchlist
-                const movieIds = response.data.map(item => item.movieId);
-                const moviesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`, {
-                    params: {
-                        ids: movieIds.join(',')
-                    }
-                });
-
-                setMovies(moviesResponse.data);
+                setLoading(false);
             } catch (error) {
-                console.error('Error fetching watchlist:', error); // Add logging
+                console.error('Error fetching watchlist:', error);
                 setError('Error fetching watchlist. Please try again later.');
-            } finally {
                 setLoading(false);
             }
         };
 
         fetchWatchlist();
-    }, []); // Empty dependency array ensures useEffect runs only on component mount
+    }, []);
 
-    const removeFromWatchlist = async (movieId, userId) => {
+    const removeFromWatchlist = async (movieId) => {
         try {
             const token = getUserToken();
             if (!token) {
@@ -58,31 +46,28 @@ const Watchlist = () => {
                 return;
             }
 
-            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}/${userId}`, {
+            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}/${watchlist.userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log(response.data); // Log response from server
-
-            setWatchlist(prevWatchlist => prevWatchlist.filter(item => item.movieId !== movieId));
-            setMovies(prevMovies => prevMovies.filter(movie => movie._id !== movieId));
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                // Handle the case where the movie is not found in the watchlist
-                console.log('Movie not found in watchlist');
-                // You can optionally show a user-friendly message or perform any other necessary actions
+            if (response.status === 200) {
+                setWatchlist(prevWatchlist => prevWatchlist.filter(item => item._id !== movieId));
             } else {
-                console.error('Error removing from watchlist:', error); // Add logging
                 setError('Error removing from watchlist. Please try again later.');
             }
+        } catch (error) {
+            console.error('Error removing from watchlist:', error);
+            setError('Error removing from watchlist. Please try again later.');
         }
     };
+
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div>{error}</div>;
 
-    if (movies.length === 0) {
+    if (watchlist.length === 0) {
         return <p>No movies found in your watchlist</p>;
     }
 
@@ -90,7 +75,7 @@ const Watchlist = () => {
         <div className="container">
             <h2 className="mt-4 mb-4">My Watchlist</h2>
             <div className="row">
-                {movies.map((movie) => (
+                {watchlist.map((movie) => (
                     <div key={movie._id} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
                         <div className="card h-100">
                             <div className="card-header">
@@ -101,11 +86,7 @@ const Watchlist = () => {
                             <div className="card-footer">
                                 <button
                                     className="btn btn-subtle"
-                                    onClick={() => {
-                                        const user = getUser();
-                                        const userId = user ? user._id : null;
-                                        removeFromWatchlist(movie._id, userId);
-                                    }}
+                                    onClick={() => removeFromWatchlist(movie._id)}
                                 >
                                     Remove
                                 </button>

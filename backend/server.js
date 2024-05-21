@@ -458,8 +458,6 @@ app.delete("/api/movies/:id/dislikes/:userId", async (req, res) => {
 });
 
 
-
-
 // Watchlist endpoint
 app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
   try {
@@ -476,12 +474,17 @@ app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
     const watchlist = database.collection('watchlist');
     // Find user's watchlist based on userId
     const userWatchlist = await watchlist.find({ userId: new ObjectId(userId) }).toArray();
+
+    if (!userWatchlist || userWatchlist.length === 0) {
+      return res.status(404).json({ message: "No watchlist found for the user" });
+    }
+
     const movieIds = userWatchlist.map((item) => item.movieId);
 
     const movies = database.collection("movies");
     // Find movies in user's watchlist based on movieIds
     const userWatchlistMovies = await movies
-      .find({ _id: { $in: movieIds } })
+      .find({ _id: { $in: movieIds.map(id => new ObjectId(id)) } })
       .toArray();
 
     res.json(userWatchlistMovies);
@@ -490,6 +493,7 @@ app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 // Add to watchlist endpoint
@@ -514,10 +518,10 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
   }
 });
 
-//remove movie from watchlist
-app.delete('/api/watchlist/:movieId/:userId', authenticate, async (req, res) => {
+// Remove from watchlist endpoint
+app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.user; // Extract userId from authenticated user
     const { movieId } = req.params;
 
     // Ensure movieId is a valid ObjectId
@@ -547,6 +551,7 @@ app.delete('/api/watchlist/:movieId/:userId', authenticate, async (req, res) => 
     res.status(500).json({ message: "Server error while removing from watchlist" });
   }
 });
+
 
 
 // Admin login endpoint
