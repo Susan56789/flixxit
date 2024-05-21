@@ -163,16 +163,34 @@ app.post("/api/change-password", authenticate, async (req, res) => {
 
 
 // Movies
+const { ObjectId } = require('mongodb');
+
+// Movies
 app.get("/api/movies", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const moviesList = await movies.find().toArray();
+
+    // Aggregate to get movies sorted by number of likes
+    const moviesList = await movies
+      .aggregate([
+        {
+          $addFields: {
+            likeCount: { $size: "$likesBy" } // Calculate the number of likes
+          }
+        },
+        {
+          $sort: { likeCount: -1 } // Sort by the number of likes in descending order
+        }
+      ])
+      .toArray();
+
     res.json(moviesList);
   } catch (err) {
     res.json({ message: err });
   }
 });
+
 
 app.post("/api/movies", async (req, res) => {
   const movie = {

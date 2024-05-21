@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 const UserProfile = () => {
   const [user, setUser] = useState({});
-  const [interactedMovies, setInteractedMovies] = useState([]);
+  const [latestMovies, setLatestMovies] = useState([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -12,11 +13,10 @@ const UserProfile = () => {
           ? JSON.parse(localStorage.getItem("flixxItUser"))
           : null;
         setUser(userData);
-        if (userData && userData.interactedMovies) {
-          // If user has interacted with movies, fetch details of those movies
-          const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/interacted?userId=${userData._id}`);
-          setInteractedMovies(response.data);
-        }
+
+        // Fetch the latest 4 movies as recommended videos
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?sort=newest&limit=4`);
+        setLatestMovies(response.data.slice(0, 3));
       } catch (error) {
         console.error("Failed to fetch user:", error);
       }
@@ -24,6 +24,11 @@ const UserProfile = () => {
 
     fetchUser();
   }, []);
+
+  const handleSubscribe = () => {
+    // Handle subscription logic here, e.g., redirect to subscription page
+    console.log("Redirecting to subscription page...");
+  };
 
   return (
     <div className="container">
@@ -59,25 +64,43 @@ const UserProfile = () => {
             </div>
           </div>
           <div className="mb-3">
-            <h4> Recommended Movies</h4>
-            {interactedMovies.length > 0 ? (
-              <ul>
-                {interactedMovies.map((movie) => (
-                  <li key={movie._id}>{movie.title}</li>
+            <h4>Recommended Movies</h4>
+            {latestMovies.length > 0 ? (
+              <div className="row">
+                {latestMovies.map((movie) => (
+                  <div key={movie._id} className="col-md-3 mb-4">
+                    <Link to={`/movies/${movie._id}`}>
+                      <div className="card">
+                        <img
+                          src={movie.imageUrl}
+                          alt={movie.title}
+                          className="img-fluid"
+                        />
+                      </div>
+                    </Link>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
               <p>No movies to show</p>
             )}
           </div>
           <div className="mb-3">
-            <h4>Subscription Status</h4>
             {user.subscriptionStatus ? (
-              <p>{user.subscriptionStatus}</p>
+              <h4>Subscription Status</h4>
             ) : (
-              <p>No subscription information available</p>
+              <>
+                <h4>No subscription information available</h4>
+                <button className="btn btn-primary" onClick={handleSubscribe}>
+                  Subscribe to Premium
+                </button>
+              </>
+            )}
+            {user.subscriptionStatus && (
+              <p>{user.subscriptionStatus}</p>
             )}
           </div>
+
         </>
       )}
     </div>
