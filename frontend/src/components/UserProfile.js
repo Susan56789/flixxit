@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 const UserProfile = () => {
   const [user, setUser] = useState({});
+  const [interactedMovies, setInteractedMovies] = useState([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -10,6 +12,11 @@ const UserProfile = () => {
           ? JSON.parse(localStorage.getItem("flixxItUser"))
           : null;
         setUser(userData);
+        if (userData && userData.interactedMovies) {
+          // If user has interacted with movies, fetch details of those movies
+          const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/interacted?userId=${userData._id}`);
+          setInteractedMovies(response.data);
+        }
       } catch (error) {
         console.error("Failed to fetch user:", error);
       }
@@ -52,15 +59,15 @@ const UserProfile = () => {
             </div>
           </div>
           <div className="mb-3">
-            <h4>Recently Viewed Videos</h4>
-            {user.recentlyViewedVideos && user.recentlyViewedVideos.length > 0 ? (
+            <h4> Recommended Movies</h4>
+            {interactedMovies.length > 0 ? (
               <ul>
-                {user.recentlyViewedVideos.map((video, index) => (
-                  <li key={index}>{video.title}</li>
+                {interactedMovies.map((movie) => (
+                  <li key={movie._id}>{movie.title}</li>
                 ))}
               </ul>
             ) : (
-              <p>No recently viewed videos</p>
+              <p>No movies to show</p>
             )}
           </div>
           <div className="mb-3">

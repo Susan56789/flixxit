@@ -585,6 +585,42 @@ app.post("/api/admin/login", async (req, res) => {
 });
 
 
+// Interacted movies endpoint
+app.get("/api/movies/interacted", authenticate, async (req, res) => {
+  try {
+    const userId = req.user._id; // Extract user ID from authenticated user
+    const database = client.db("sample_mflix");
+
+    const likes = database.collection("likes");
+    const dislikes = database.collection("dislikes");
+
+    // Find movies liked by the user
+    const likedMovies = await likes.find({ userId }).toArray();
+
+    // Find movies disliked by the user
+    const dislikedMovies = await dislikes.find({ userId }).toArray();
+
+    // Combine liked and disliked movies
+    const interactedMovies = [...likedMovies, ...dislikedMovies];
+
+    // Get movie IDs
+    const movieIds = interactedMovies.map((interaction) => interaction.movieId);
+
+    // Find details of interacted movies
+    const movies = database.collection("movies");
+    const interactedMoviesDetails = await movies
+      .find({ _id: { $in: movieIds.map((id) => new ObjectId(id)) } })
+      .toArray();
+
+    res.json(interactedMoviesDetails);
+  } catch (err) {
+    console.error("Error fetching interacted movies:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
