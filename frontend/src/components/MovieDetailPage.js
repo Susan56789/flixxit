@@ -16,48 +16,64 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const playerRef = useRef(null);
   const playerId = `player-${id}`;
 
+
+  const fetchMoviesFromAnyGenre = async () => {
+    try {
+      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`);
+      setRecommendedMovies(response.data.slice(0,4));
+    } catch (error) {
+      console.error("Error fetching movies from any genre:", error);
+      setRecommendedMovies([]); // Reset recommended movies array if fetching fails
+    }
+  };
+
   useEffect(() => {
     const fetchMovieDetail = async () => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
-
+  
         const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
         const likesCount = likesResponse.data.likes;
-
+  
         const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
         const dislikesCount = dislikesResponse.data.dislikes;
-
+  
         movieData.likes = likesCount;
         movieData.dislikes = dislikesCount;
-
+  
         setLikeStatus(
           user
             ? movieData.likesBy?.includes(user._id)
               ? 1
               : movieData.dislikesBy?.includes(user._id)
-                ? -1
-                : null
+              ? -1
+              : null
             : null
         );
-
-        fetchRecommendedMovies(movieData.genre);
+  
+        // Fetch recommended movies based on the genre of the current movie
+        fetchRecommendedMovies(movieData.genre.slice(0,4));
       } catch (error) {
         setError(error);
       }
     };
-
-    const fetchRecommendedMovies = async (genreName) => {
+  
+    const fetchRecommendedMovies = async (genre) => {
       try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genreName}&limit=4`);
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}`);
         setRecommendedMovies(response.data);
+
+        // If no recommended movies were found in the same genre, fetch movies from any genre
+        if (response.data.length === 0) {
+          fetchMoviesFromAnyGenre();
+        }
       } catch (error) {
         console.error("Error fetching recommended movies:", error);
         setRecommendedMovies([]); // Reset recommended movies array if fetching fails
       }
     };
-    
 
     fetchMovieDetail();
   }, [id, user]);
@@ -225,29 +241,35 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       </div>
       <hr />
       <h3>Recommended Movies</h3>
-      <div className="row">
-        {recommendedMovies.map((recommendedMovie) => (
-          <div key={recommendedMovie._id} className="col-md-3 mb-4">
-            <Link
-              to={`/movies/${recommendedMovie._id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div className="card">
-                <img
-                  src={recommendedMovie.imageUrl}
-                  alt={recommendedMovie.title}
-                  className="card-img-top"
-                />
-                <div className="card-body">
-                  <small className="card-title">{recommendedMovie.title}</small>
+      {recommendedMovies.length > 0 ? (
+        <div className="row">
+          {recommendedMovies.map((recommendedMovie) => (
+            <div key={recommendedMovie._id} className="col-md-3 mb-4">
+              <Link
+                to={`/movies/${recommendedMovie._id}`}
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <div className="card">
+                  <img
+                    src={recommendedMovie.imageUrl}
+                    alt={recommendedMovie.title}
+                    className="card-img-top"
+                  />
+                  <div className="card-body">
+                    <small className="card-title">{recommendedMovie.title}</small>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </div>
-        ))}
-      </div>
+              </Link>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>No recommended movies found.</p>
+      )}
     </div>
   );
+      
+  
 };
 
 export default MovieDetailPage;
