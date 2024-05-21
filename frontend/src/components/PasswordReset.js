@@ -10,12 +10,17 @@ const PasswordReset = () => {
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
+
         if (newPassword !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
+
         try {
-            const response = await axios.post('https://flixxit-h9fa.onrender.com/api/change-password', { email, newPassword });
+            const response = await axios.post('https://flixxit-h9fa.onrender.com/api/change-password', {
+                email,
+                newPassword,
+            });
             setMessage(response.data.message);
             setError('');
         } catch (error) {
@@ -35,18 +40,47 @@ const PasswordReset = () => {
                             {error && <p className="text-danger">{error}</p>}
                             <form onSubmit={handleChangePassword}>
                                 <div className="mb-3">
-                                    <label htmlFor="email" className="form-label">Email:</label>
-                                    <input type="email" id="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                                    <label htmlFor="email" className="form-label">
+                                        Email:
+                                    </label>
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        className="form-control"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="newPassword" className="form-label">New Password:</label>
-                                    <input type="password" id="newPassword" className="form-control" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                                    <label htmlFor="newPassword" className="form-label">
+                                        New Password:
+                                    </label>
+                                    <input
+                                        type="password"
+                                        id="newPassword"
+                                        className="form-control"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        required
+                                    />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="confirmPassword" className="form-label">Confirm Password:</label>
-                                    <input type="password" id="confirmPassword" className="form-control" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                                    <label htmlFor="confirmPassword" className="form-label">
+                                        Confirm Password:
+                                    </label>
+                                    <input
+                                        type="password"
+                                        id="confirmPassword"
+                                        className="form-control"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
                                 </div>
-                                <button type="submit" className="btn btn-primary">Change Password</button>
+                                <button type="submit" className="btn btn-primary">
+                                    Change Password
+                                </button>
                             </form>
                         </div>
                     </div>
