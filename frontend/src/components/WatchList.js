@@ -58,7 +58,7 @@ const Watchlist = () => {
                 return;
             }
 
-            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}&${userId}`, {
+            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -94,7 +94,14 @@ const Watchlist = () => {
                             </div>
                             <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
                             <div className="card-footer">
-                                <button className="btn btn-subtle" onClick={() => removeFromWatchlist(movie._id)}>
+                                <button
+                                    className="btn btn-subtle"
+                                    onClick={() => {
+                                        const user = getUser();
+                                        const userId = user ? user._id : null;
+                                        removeFromWatchlist(movie._id, userId);
+                                    }}
+                                >
                                     Remove
                                 </button>
                             </div>
