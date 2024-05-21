@@ -40,6 +40,7 @@ const Watchlist = () => {
 
                 setMovies(moviesResponse.data);
             } catch (error) {
+                console.error('Error fetching watchlist:', error); // Add logging
                 setError('Error fetching watchlist. Please try again later.');
             } finally {
                 setLoading(false);
@@ -57,15 +58,18 @@ const Watchlist = () => {
                 return;
             }
 
-            await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}`, {
+            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
+            console.log(response.data); // Log response from server
+
             setWatchlist(prevWatchlist => prevWatchlist.filter(item => item.movieId !== movieId));
             setMovies(prevMovies => prevMovies.filter(movie => movie._id !== movieId));
         } catch (error) {
+            console.error('Error removing from watchlist:', error); // Add logging
             setError('Error removing from watchlist. Please try again later.');
         }
     };

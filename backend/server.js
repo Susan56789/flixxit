@@ -515,6 +515,8 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
   }
 });
 
+//remove movie from watchlist
+
 app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
