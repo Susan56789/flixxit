@@ -48,19 +48,16 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchRecommendedMovies = async (genreId) => {
+    const fetchRecommendedMovies = async (genreName) => {
       try {
-        // Fetch the genre document to get the genre name
-        const genreResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/genres/${genreId}`);
-        const genreName = genreResponse.data.name;
-
-        // Fetch movies based on the genre name
-        const moviesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genreName}&limit=4`);
-        setRecommendedMovies(moviesResponse.data.slice(0, 4));
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genreName}&limit=4`);
+        setRecommendedMovies(response.data);
       } catch (error) {
         console.error("Error fetching recommended movies:", error);
+        setRecommendedMovies([]); // Reset recommended movies array if fetching fails
       }
     };
+    
 
     fetchMovieDetail();
   }, [id, user]);

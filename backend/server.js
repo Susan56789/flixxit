@@ -307,6 +307,7 @@ app.get("/api/genres/:name", async (req, res) => {
 });
 
 
+
 // Add a new genre
 app.post("/api/genres", async (req, res) => {
   try {
