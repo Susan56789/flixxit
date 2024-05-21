@@ -46,9 +46,9 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
         <Route path="/reset-password" element={<PasswordReset />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={
-          <AdminRoute isAdmin={isAdmin}>
-            <AdminDashboard />
-          </AdminRoute>
+          // <AdminRoute isAdmin={isAdmin}>
+          <AdminDashboard />
+          // </AdminRoute>
         } />
       </Routes>
     </div>

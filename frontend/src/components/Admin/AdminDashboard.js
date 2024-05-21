@@ -99,7 +99,26 @@ const AdminDashboard = () => {
                 </select>
                 {formError.genreId && <div className="invalid-feedback">{formError.genreId}</div>}
               </div>
-              {/* Add other form fields */}
+              <div className="mb-3">
+                <label htmlFor="year" className="form-label">Year:</label>
+                <input type="text" id="year" name="year" value={formData.year} onChange={handleChange} className={`form-control ${formError.year && 'is-invalid'}`} required />
+                {formError.year && <div className="invalid-feedback">{formError.year}</div>}
+              </div>
+              <div className="mb-3">
+                <label htmlFor="rating" className="form-label">Rating:</label>
+                <input type="text" id="rating" name="rating" value={formData.rating} onChange={handleChange} className={`form-control ${formError.rating && 'is-invalid'}`} required />
+                {formError.rating && <div className="invalid-feedback">{formError.rating}</div>}
+              </div>
+              <div className="mb-3">
+                <label htmlFor="imageUrl" className="form-label">Image URL:</label>
+                <input type="text" id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className={`form-control ${formError.imageUrl && 'is-invalid'}`} required />
+                {formError.imageUrl && <div className="invalid-feedback">{formError.imageUrl}</div>}
+              </div>
+              <div className="mb-3">
+                <label htmlFor="videoUrl" className="form-label">Video URL:</label>
+                <input type="text" id="videoUrl" name="videoUrl" value={formData.videoUrl} onChange={handleChange} className={`form-control ${formError.videoUrl && 'is-invalid'}`} required />
+                {formError.videoUrl && <div className="invalid-feedback">{formError.videoUrl}</div>}
+              </div>
               <button type="submit" className="btn btn-primary">Add Movie</button>
             </form>
           </div>
