@@ -11,10 +11,10 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [recommendedMovies, setRecommendedMovies] = useState([]);
   const [likeStatus, setLikeStatus] = useState(null); // 1 for like, -1 for dislike
   const [showPlayer, setShowPlayer] = useState(false);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   const { id } = useParams();
   const playerRef = useRef(null);
-  const playerId = `player-${id}`; // Generate a unique ID for the player
+  const playerId = `player-${id}`;
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
@@ -23,19 +23,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const movieData = response.data;
         setMovie(movieData);
 
-        // Fetch likes count
         const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
         const likesCount = likesResponse.data.likes;
 
-        // Fetch dislikes count
         const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
         const dislikesCount = dislikesResponse.data.dislikes;
 
-        // Set likes and dislikes count
         movieData.likes = likesCount;
         movieData.dislikes = dislikesCount;
 
-        // Set like status based on user and movie data
         setLikeStatus(
           user
             ? movieData.likesBy?.includes(user._id)
@@ -55,7 +51,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     const fetchRecommendedMovies = async (genre) => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}&limit=4`);
-        setRecommendedMovies(response.data.slice(0, 4)); // Ensure only 4 movies
+        setRecommendedMovies(response.data.slice(0, 4));
       } catch (error) {
         console.error(error);
       }
@@ -109,18 +105,16 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   };
 
   const onPlayerReady = (event) => {
-    setIsPlayerReady(true); // Set player as ready
+    setPlayerReady(true);
     if (showPlayer) {
       event.target.playVideo();
     }
   };
 
   const handleWatchClick = () => {
-    if (isPlayerReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
-      setShowPlayer(true);
+    setShowPlayer(true);
+    if (playerReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
       playerRef.current.playVideo();
-    } else {
-      setShowPlayer(true); // Show player modal even if not ready, will show loading message
     }
   };
 
@@ -137,7 +131,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     } catch (err) {
       console.error(err);
-      // Handle error, display error message, etc.
     }
   };
 
@@ -172,10 +165,10 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           <div className="modal-dialog modal-sm">
             <div className="modal-content">
               <div className="modal-body">
-                {!isPlayerReady ? (
-                  <p>Loading video...</p>
-                ) : (
+                {playerReady ? (
                   <div id={playerId} />
+                ) : (
+                  <p>Loading video...</p>
                 )}
               </div>
             </div>
@@ -202,7 +195,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                 type="button"
                 className="btn btn-primary"
                 onClick={handleWatchClick}
-                disabled={!isPlayerReady && !showPlayer} // Disable button until player is ready
               >
                 <FaPlay className="mr-2" />
                 Watch

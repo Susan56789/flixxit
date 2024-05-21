@@ -45,13 +45,21 @@ const MovieList = ({ movies, type }) => {
       }
     } catch (error) {
       console.error("Error adding to watchlist:", error.response ? error.response.data : error.message);
-      alert("Failed to add movie to watchlist. Please try again later."); // Alert for other errors
     }
   };
 
-
   const shareMovie = (title, id) => {
-    // Implementation for sharing movie omitted for brevity
+    if (navigator.share) {
+      navigator.share({
+        title: `Check out this movie: ${title}`,
+        text: `I found this interesting movie titled "${title}". You can check it out here:`,
+        url: `https://flixxit-h9fa.onrender.com/movies/${id}`,
+      })
+        .then(() => console.log('Successfully shared'))
+        .catch((error) => console.error('Error sharing:', error));
+    } else {
+      alert('Web Share API is not supported in your browser.');
+    }
   };
 
   // Sort movies by release date in descending order
