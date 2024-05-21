@@ -224,7 +224,7 @@ app.get("/api/genres", async (req, res) => {
   }
 });
 
-// Example movie search endpoint
+//  movie search
 app.get("/api/movies/search", async (req, res) => {
   const query = req.query.query?.toString();
 
@@ -236,21 +236,31 @@ app.get("/api/movies/search", async (req, res) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
 
-    // Search for movies with titles matching the query (case-insensitive)
-    const moviesList = await movies.find({ title: { $regex: query, $options: "i" } }).toArray();
+    // Log the query being used
+    console.log(`Searching for movies with title or description matching: ${query}`);
 
-    // Check if moviesList contains the expected fields
-    if (moviesList.length > 0 && moviesList[0]._id) {
-      // Send the found movies back to the client
-      res.status(200).json(moviesList);
-    } else {
-      res.status(404).json({ message: "No movies found" });
+    // Search for movies with titles or descriptions matching the query (case-insensitive)
+    const moviesList = await movies.find({
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } }
+      ]
+    }).toArray();
+
+    // Check if any movies were found
+    if (moviesList.length === 0) {
+      console.log(`No movies found for query: ${query}`);
     }
+
+    res.status(200).json(moviesList);
   } catch (error) {
-    console.error("Error processing search request:", error);
+    console.error("Error processing search request:", error.message);
+    console.error("Stack trace:", error.stack);
+
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
+
 
 
 

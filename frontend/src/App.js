@@ -98,26 +98,20 @@ const App = () => {
     }
 
     try {
-      // Encode the search query to make it URL-safe
       const encodedQuery = encodeURIComponent(query);
-
-      // Make the GET request to the specified endpoint with the encoded query
       const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
 
-      // Return the response data
       return response.data;
     } catch (error) {
-      // Log the error to the console for debugging
       console.error("Search failed:", error);
 
-      // Extract the error message from the response or use a default message
       const errorMessage = error.response?.data?.message || "An error occurred during the search. Please try again.";
-      console.log("Search failed: " + errorMessage);
+      alert("Search failed: " + errorMessage);
 
-      // Return an empty array to signify that no results were found
       return [];
     }
   };
+
 
 
 
