@@ -17,6 +17,7 @@ const Watchlist = () => {
 
                 if (!token || !userId) {
                     setError('Please log in to view your watchlist.');
+                    setLoading(false);
                     return;
                 }
 
@@ -62,15 +63,8 @@ const Watchlist = () => {
                 }
             });
 
-            setWatchlist((prevWatchlist) => {
-                if (!prevWatchlist) return [];
-                return prevWatchlist.filter((item) => item.movieId && item.movieId.toString() !== movieId.toString());
-            });
-
-            setMovies((prevMovies) => {
-                if (!prevMovies) return [];
-                return prevMovies.filter((movie) => movie._id && movie._id.toString() !== movieId.toString());
-            });
+            setWatchlist(prevWatchlist => prevWatchlist.filter(item => item.movieId !== movieId));
+            setMovies(prevMovies => prevMovies.filter(movie => movie._id !== movieId));
         } catch (error) {
             setError('Error removing from watchlist. Please try again later.');
         }
@@ -87,8 +81,8 @@ const Watchlist = () => {
         <div className="container">
             <h2 className="mt-4 mb-4">My Watchlist</h2>
             <div className="row">
-                {movies.map((movie, index) => (
-                    <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                {movies.map((movie) => (
+                    <div key={movie._id} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
                         <div className="card h-100">
                             <div className="card-header">
                                 <h6 className="mb-0 fs-sm">{movie.title}</h6>

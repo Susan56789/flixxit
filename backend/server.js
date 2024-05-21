@@ -515,11 +515,15 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
   }
 });
 
-// Remove from watchlist endpoint
 app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
     const { movieId } = req.params;
+
+    // Ensure movieId is a valid ObjectId
+    if (!ObjectId.isValid(movieId)) {
+      return res.status(400).json({ message: "Invalid movie ID" });
+    }
 
     // Get database connection
     const database = client.db("sample_mflix");
@@ -539,11 +543,10 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
     res.json({ message: "Movie removed from watchlist" });
   } catch (err) {
     // If an error occurs during deletion, return 500 with error message
-    console.error("Error removing from watchlist:", err);
+    console.error("Error removing from watchlist:", err.message);
     res.status(500).json({ message: "Server error while removing from watchlist" });
   }
 });
-
 
 
 // Admin login endpoint
