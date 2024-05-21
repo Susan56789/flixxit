@@ -38,15 +38,23 @@ const Watchlist = () => {
         fetchWatchlist();
     }, []);
 
-    const removeFromWatchlist = async (movieId) => {
+    const removeFromWatchlist = async (movieId, userId) => {
         try {
             const token = getUserToken();
+            const user = getUser();
+            const userId = user ? user._id : null;
+
             if (!token) {
                 setError('Please log in to remove movies from your watchlist.');
                 return;
             }
 
-            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}/${watchlist.userId}`, {
+            if (!userId) {
+                setError('User ID not found. Please log in again.');
+                return;
+            }
+
+            const response = await axios.delete(`https://flixxit-h9fa.onrender.com/api/watchlist/${movieId}/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -62,6 +70,9 @@ const Watchlist = () => {
             setError('Error removing from watchlist. Please try again later.');
         }
     };
+
+
+
 
 
     if (loading) return <div>Loading...</div>;
@@ -86,10 +97,12 @@ const Watchlist = () => {
                             <div className="card-footer">
                                 <button
                                     className="btn btn-subtle"
-                                    onClick={() => removeFromWatchlist(movie._id)}
+                                    onClick={() => removeFromWatchlist(movie._id, watchlist.userId)}
                                 >
                                     Remove
                                 </button>
+
+
                             </div>
                         </div>
                     </div>
