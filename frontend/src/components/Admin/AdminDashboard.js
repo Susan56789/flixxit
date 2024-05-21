@@ -1,18 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const AdminDashboard = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    genre: '',
+    genreId: '', // Use genreId instead of genre name
     rating: '',
     year: '',
     imageUrl: '',
-    videoUrl: '' // Add videoUrl to state
+    videoUrl: ''
   });
-  const [message, setMessage] = useState('');
-  const [formError, setFormError] = useState({}); // State to track form errors
+  const [genres, setGenres] = useState([]);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [formError, setFormError] = useState({});
+
+  useEffect(() => {
+    // Fetch genres when component mounts
+    async function fetchGenres() {
+      try {
+        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/genres');
+        setGenres(response.data);
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+      }
+    }
+    fetchGenres();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,7 +39,6 @@ const AdminDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Check if any field is empty
     const errors = {};
     for (const key in formData) {
       if (!formData[key]) {
@@ -34,23 +47,22 @@ const AdminDashboard = () => {
     }
     setFormError(errors);
 
-    // If there are no errors, proceed with form submission
     if (Object.keys(errors).length === 0) {
       try {
         const response = await axios.post('https://flixxit-h9fa.onrender.com/api/movies', formData);
-        setMessage('Movie added successfully!');
-        // Clear form fields after successful submission
+        setMessage({ type: 'success', text: 'Movie added successfully!' });
         setFormData({
           title: '',
           description: '',
-          genre: '',
+          genreId: '', // Reset genreId instead of genre name
           rating: '',
           year: '',
           imageUrl: '',
-          videoUrl: '' // Clear videoUrl as well
+          videoUrl: ''
         });
+        setFormError({});
       } catch (error) {
-        setMessage('Failed to add movie. Please try again.');
+        setMessage({ type: 'error', text: 'Failed to add movie. Please try again.' });
       }
     }
   };
@@ -61,7 +73,11 @@ const AdminDashboard = () => {
         <div className="col-md-8">
           <div className="admin-dashboard">
             <h2 className="mb-4">Add New Movie</h2>
-            {message && <p className="alert alert-success">{message}</p>}
+            {message.text && (
+              <p className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
+                {message.text}
+              </p>
+            )}
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
                 <label htmlFor="title" className="form-label">Title:</label>
@@ -74,30 +90,16 @@ const AdminDashboard = () => {
                 {formError.description && <div className="invalid-feedback">{formError.description}</div>}
               </div>
               <div className="mb-3">
-                <label htmlFor="genre" className="form-label">Genre:</label>
-                <input type="text" id="genre" name="genre" value={formData.genre} onChange={handleChange} className={`form-control ${formError.genre && 'is-invalid'}`} required />
-                {formError.genre && <div className="invalid-feedback">{formError.genre}</div>}
+                <label htmlFor="genreId" className="form-label">Genre:</label>
+                <select id="genreId" name="genreId" value={formData.genreId} onChange={handleChange} className={`form-select ${formError.genreId && 'is-invalid'}`} required>
+                  <option value="">Select Genre</option>
+                  {genres.map(genre => (
+                    <option key={genre._id} value={genre._id}>{genre.name}</option>
+                  ))}
+                </select>
+                {formError.genreId && <div className="invalid-feedback">{formError.genreId}</div>}
               </div>
-              <div className="mb-3">
-                <label htmlFor="rating" className="form-label">Rating:</label>
-                <input type="text" id="rating" name="rating" value={formData.rating} onChange={handleChange} className={`form-control ${formError.rating && 'is-invalid'}`} required />
-                {formError.rating && <div className="invalid-feedback">{formError.rating}</div>}
-              </div>
-              <div className="mb-3">
-                <label htmlFor="year" className="form-label">Year:</label>
-                <input type="text" id="year" name="year" value={formData.year} onChange={handleChange} className={`form-control ${formError.year && 'is-invalid'}`} required />
-                {formError.year && <div className="invalid-feedback">{formError.year}</div>}
-              </div>
-              <div className="mb-3">
-                <label htmlFor="imageUrl" className="form-label">Image URL:</label>
-                <input type="text" id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className={`form-control ${formError.imageUrl && 'is-invalid'}`} required />
-                {formError.imageUrl && <div className="invalid-feedback">{formError.imageUrl}</div>}
-              </div>
-              <div className="mb-3">
-                <label htmlFor="videoUrl" className="form-label">Video URL:</label>
-                <input type="text" id="videoUrl" name="videoUrl" value={formData.videoUrl} onChange={handleChange} className={`form-control ${formError.videoUrl && 'is-invalid'}`} required />
-                {formError.videoUrl && <div className="invalid-feedback">{formError.videoUrl}</div>}
-              </div>
+              {/* Add other form fields */}
               <button type="submit" className="btn btn-primary">Add Movie</button>
             </form>
           </div>

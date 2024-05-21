@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
@@ -6,9 +6,13 @@ const MovieCategories = () => {
     const [genres, setGenres] = useState([]);
     const [selectedGenre, setSelectedGenre] = useState('All');
     const [movies, setMovies] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
+            setError(null);
             try {
                 const [genresResponse, moviesResponse] = await Promise.all([
                     axios.get('https://flixxit-h9fa.onrender.com/api/genres'),
@@ -18,22 +22,23 @@ const MovieCategories = () => {
                 setMovies(moviesResponse.data);
             } catch (error) {
                 console.error('Error fetching data:', error);
+                setError('Failed to load data. Please try again later.');
+            } finally {
+                setLoading(false);
             }
         };
-        fetchData(); // Initial fetch
-    }, [selectedGenre]); // Refetch when selectedGenre changes
+        fetchData();
+    }, [selectedGenre]);
 
-
-    const handleGenreChange = async (event) => {
-        const genre = event.target.value;
-        setSelectedGenre(genre);
-        try {
-            const moviesResponse = await axios.get(genre === 'All' ? 'https://flixxit-h9fa.onrender.com/api/movies' : `https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}`);
-            setMovies(moviesResponse.data);
-        } catch (error) {
-            console.error(error);
-        }
+    const handleGenreChange = (event) => {
+        setSelectedGenre(event.target.value);
     };
+
+    const genreOptions = useMemo(() => genres.map((genre) => (
+        <option key={genre} value={genre}>
+            {genre}
+        </option>
+    )), [genres]);
 
     return (
         <div className="container mt-4">
@@ -49,28 +54,30 @@ const MovieCategories = () => {
                         value={selectedGenre}
                         onChange={handleGenreChange}
                     >
-                        {Array.isArray(genres) && genres.map((genre) => (
-                            <option key={genre} value={genre}>
-                                {genre}
-                            </option>
-                        ))}
+                        {genreOptions}
                     </select>
                 </div>
             </div>
-            <div className="row row-cols-1 row-cols-md-3 g-4">
-                {Array.isArray(movies) && movies.map((movie) => (
-                    <div key={movie._id} className="col">
-                        <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <div className="card h-100">
-                                <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
-                                <div className="card-body">
-                                    <h5 className="card-title">{movie.title}</h5>
+            {loading ? (
+                <p>Loading movies...</p>
+            ) : error ? (
+                <p className="text-danger">{error}</p>
+            ) : (
+                <div className="row row-cols-1 row-cols-md-3 g-4">
+                    {movies.map((movie) => (
+                        <div key={movie._id} className="col">
+                            <Link to={`/movies/${movie._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <div className="card h-100">
+                                    <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
+                                    <div className="card-body">
+                                        <h5 className="card-title">{movie.title}</h5>
+                                    </div>
                                 </div>
-                            </div>
-                        </Link>
-                    </div>
-                ))}
-            </div>
+                            </Link>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

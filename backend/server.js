@@ -163,9 +163,6 @@ app.post("/api/change-password", authenticate, async (req, res) => {
 
 
 // Movies
-const { ObjectId } = require('mongodb');
-
-// Movies
 app.get("/api/movies", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
@@ -228,18 +225,6 @@ app.get("/api/movies/:id", async (req, res) => {
   }
 });
 
-// Genre endpoint
-app.get("/api/genres", async (req, res) => {
-  try {
-    const database = client.db("sample_mflix");
-    const movies = database.collection("movies");
-    const genres = await movies.distinct("genre");
-    res.json(genres);
-  } catch (err) {
-    console.error("Error fetching genres:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 //  movie search
 app.get("/api/movies/search", async (req, res) => {
@@ -275,6 +260,87 @@ app.get("/api/movies/search", async (req, res) => {
   } catch (error) {
     console.error("Error processing search request:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+// Get all genres
+app.get("/api/genres", async (req, res) => {
+  try {
+    const database = client.db("sample_mflix");
+    const genres = database.collection("genres");
+    const allGenres = await genres.find().toArray();
+    res.json(allGenres);
+  } catch (err) {
+    console.error("Error fetching genres:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Add a new genre
+app.post("/api/genres", async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    // Check if genre with the same name already exists
+    const database = client.db("sample_mflix");
+    const genres = database.collection("genres");
+    const existingGenre = await genres.findOne({ name });
+    if (existingGenre) {
+      return res.status(400).json({ message: "Genre already exists" });
+    }
+
+    // Insert the new genre
+    const result = await genres.insertOne({ name });
+    res.json(result.ops[0]);
+  } catch (err) {
+    console.error("Error adding genre:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update an existing genre
+app.put("/api/genres/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    // Check if genre with the given ID exists
+    const database = client.db("sample_mflix");
+    const genres = database.collection("genres");
+    const existingGenre = await genres.findOne({ _id: new ObjectId(id) });
+    if (!existingGenre) {
+      return res.status(404).json({ message: "Genre not found" });
+    }
+
+    // Update the genre name
+    await genres.updateOne({ _id: new ObjectId(id) }, { $set: { name } });
+    res.json({ message: "Genre updated successfully" });
+  } catch (err) {
+    console.error("Error updating genre:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Delete a genre
+app.delete("/api/genres/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if genre with the given ID exists
+    const database = client.db("sample_mflix");
+    const genres = database.collection("genres");
+    const existingGenre = await genres.findOne({ _id: new ObjectId(id) });
+    if (!existingGenre) {
+      return res.status(404).json({ message: "Genre not found" });
+    }
+
+    // Delete the genre
+    await genres.deleteOne({ _id: new ObjectId(id) });
+    res.json({ message: "Genre deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting genre:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -572,27 +638,32 @@ app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
 
 
 
-// Admin login endpoint
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
 
     // Check if the provided email exists in the database
     const database = client.db("sample_mflix");
     const admins = database.collection("admins");
     const admin = await admins.findOne({ email });
+
     if (!admin) {
-      return res.status(400).json({ message: "Admin not found" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
     // Compare the provided password with the hashed password stored in the database
     const passwordMatch = await bcrypt.compare(password, admin.password);
     if (!passwordMatch) {
-      return res.status(400).json({ message: "Invalid password" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
     // Generate a JWT token for authentication
-    const token = jwt.sign({ _id: admin._id }, "adminsecretkey", { expiresIn: "1h" });
+    const token = jwt.sign({ _id: admin._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
     // Return the token to the client
     res.json({ token });
