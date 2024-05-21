@@ -7,6 +7,7 @@ const AdminLogin = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [showForgotPasswordPopup, setShowForgotPasswordPopup] = useState(false);
+    const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const navigate = useNavigate();
 
@@ -27,18 +28,25 @@ const AdminLogin = () => {
 
     const handleForgotPassword = () => {
         setShowForgotPasswordPopup(true);
+        setForgotPasswordEmail(email);
     };
 
     const handleChangePassword = async () => {
         try {
-            const response = await axios.post('https://flixxit-h9fa.onrender.com/api/admin/change-password', { email, newPassword });
+            const response = await axios.post('https://flixxit-h9fa.onrender.com/api/admin/change-password', {
+                email: forgotPasswordEmail,
+                newPassword, // Use 'newPassword' as the key
+            });
+
             if (response.data.success) {
                 alert('Password changed successfully!');
                 setShowForgotPasswordPopup(false);
+                setNewPassword(''); // Reset the newPassword state
             } else {
                 alert(response.data.message);
             }
         } catch (error) {
+            console.error('Error changing password:', error);
             alert('Failed to change password. Please try again.');
         }
     };
@@ -102,6 +110,19 @@ const AdminLogin = () => {
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
+                                    <label htmlFor="forgotPasswordEmail" className="form-label">
+                                        Email:
+                                    </label>
+                                    <input
+                                        type="email"
+                                        id="forgotPasswordEmail"
+                                        className="form-control"
+                                        value={forgotPasswordEmail}
+                                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="mb-3">
                                     <label htmlFor="newPassword" className="form-label">
                                         New Password:
                                     </label>
@@ -127,8 +148,9 @@ const AdminLogin = () => {
                     </div>
                 </div>
             )}
+
         </div>
-    );
-};
+    )
+}
 
 export default AdminLogin;
