@@ -54,7 +54,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         );
   
         // Fetch recommended movies based on the genre of the current movie
-        fetchRecommendedMovies(movieData.genre.slice(0,4));
+        fetchRecommendedMovies(movieData?.genre?.slice(0,4));
       } catch (error) {
         setError(error);
       }
