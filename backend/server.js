@@ -38,7 +38,6 @@ const authenticate = async (req, res, next) => {
     res.status(400).json({ message: 'Invalid token.' });
   }
 };
-
 async function run() {
   try {
     // Connect the client to the server
