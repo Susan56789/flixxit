@@ -630,7 +630,7 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
 });
 
 // Remove from watchlist endpoint
-app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
+app.delete('/api/watchlist/:movieId/:userId', authenticate, async (req, res) => {
   try {
 
     const { movieId, userId } = req.params;
