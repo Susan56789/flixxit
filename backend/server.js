@@ -632,30 +632,36 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
 // Remove from watchlist endpoint
 app.delete('/api/watchlist/:movieId/:userId', authenticate, async (req, res) => {
   try {
-
     const { movieId, userId } = req.params;
 
-    // Ensure movieId is a valid ObjectId
-    if (!ObjectId.isValid(movieId)) {
-      return res.status(400).json({ message: "Invalid movie ID" });
+    // Ensure movieId and userId are valid ObjectIds
+    if (!ObjectId.isValid(movieId) || !ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid movie ID or user ID" });
     }
 
     // Get database connection
     const database = client.db("sample_mflix");
 
-    // Find and remove movie from watchlist
+    // Find the movie in the watchlist
+    const watchlistItem = await database.collection('watchlist').findOne({
+      userId: new ObjectId(userId),
+      movieId: new ObjectId(movieId)
+    });
+
+    // If the movie is not found in the watchlist, return 404
+    if (!watchlistItem) {
+      return res.status(404).json({ message: "Movie not found in watchlist" });
+    }
+
+    // Remove the movie from the watchlist
     const result = await database.collection('watchlist').deleteOne({
       userId: new ObjectId(userId),
       movieId: new ObjectId(movieId)
     });
 
-    if (result.deletedCount === 0) {
-      // If no document was deleted, return 404 with appropriate message
-      return res.status(404).json({ message: "Movie not found in watchlist" });
-    }
-
     // If deletion was successful, return success message
     res.json({ message: "Movie removed from watchlist" });
+
   } catch (err) {
     // If an error occurs during deletion, return 500 with error message
     console.error("Error removing from watchlist:", err.message);

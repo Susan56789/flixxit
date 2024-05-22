@@ -15,6 +15,7 @@ const Watchlist = () => {
                 const user = getUser();
                 const userId = user ? user._id : null;
 
+
                 if (!token || !userId) {
                     setError('Please log in to view your watchlist.');
                     return;
@@ -49,6 +50,7 @@ const Watchlist = () => {
     }, []); // Empty dependency array ensures useEffect runs only on component mount
 
     const removeFromWatchlist = async (movieId, userId) => {
+        console.log('USER ID:', userId)
         try {
             const token = getUserToken();
 
@@ -81,22 +83,30 @@ const Watchlist = () => {
         <div className="container">
             <h2 className="mt-4 mb-4">My Watchlist</h2>
             <div className="row">
-                {movies.map((movie, index) => (
-                    <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
-                        <div className="card h-100">
-                            <div className="card-header">
-                                <h6 className="mb-0 fs-sm">{movie.title}</h6>
-                                <span className="text-muted fs-sm">{movie.year}</span>
-                            </div>
-                            <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
-                            <div className="card-footer">
-                                <button className="btn btn-subtle" onClick={() => removeFromWatchlist(movie._id)}>
-                                    Remove
-                                </button>
+                {movies.map((movie, index) => {
+                    const user = getUser();
+                    const userId = user ? user._id : null;
+
+                    return (
+                        <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                            <div className="card h-100">
+                                <div className="card-header">
+                                    <h6 className="mb-0 fs-sm">{movie.title}</h6>
+                                    <span className="text-muted fs-sm">{movie.year}</span>
+                                </div>
+                                <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
+                                <div className="card-footer">
+                                    <button
+                                        className="btn btn-subtle"
+                                        onClick={() => removeFromWatchlist(movie._id, userId)}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
