@@ -166,35 +166,36 @@ app.get("/api/movies", async (req, res) => {
   try {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
-    const { genre } = req.query;
-
+    const { genre, page = 1, limit = 10 } = req.query;
     console.log("Received genre query:", genre);
 
     let query = {};
     if (genre) {
-      query = { genres: genre }; // Assuming genres is an array field in your documents
+      query = { genres: { $regex: new RegExp(genre, "i") } }; // Case-insensitive regex match
     }
 
     console.log("Query to be executed:", query);
 
-    const moviesList = await movies.aggregate([
-      { $match: query },
-      {
-        $addFields: {
-          likeCount: { $size: { $ifNull: ["$likesBy", []] } } // Ensure likesBy defaults to an empty array if it's null or undefined
-        }
-      },
-      {
-        $sort: { likeCount: -1 } // Sort by the number of likes in descending order
-      }
-    ]).toArray();
+    const moviesList = await movies
+      .aggregate([
+        { $match: query },
+        { $addFields: { likeCount: { $size: { $ifNull: ["$likesBy", []] } } } },
+        { $sort: { likeCount: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: Number(limit) },
+      ])
+      .toArray();
 
     console.log("Movies found:", moviesList.length);
-
     res.status(200).json(moviesList);
   } catch (err) {
     console.error("Error fetching movies:", err);
-    res.status(500).json({ message: "An error occurred while fetching movies. Please try again later." });
+    res
+      .status(500)
+      .json({
+        message:
+          "An error occurred while fetching movies. Please try again later.",
+      });
   }
 });
 

@@ -60,7 +60,7 @@ const MovieList = ({ movies, type }) => {
   };
 
   // Ensure movies is an array before sorting
-  const sortedMovies = Array.isArray(movies) ? movies.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate)) : [];
+  const sortedMovies = Array.isArray(movies) ? movies.sort((a, b) => b._id - a._id) : [];
 
   return (
     <div

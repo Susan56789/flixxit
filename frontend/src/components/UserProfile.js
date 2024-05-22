@@ -14,9 +14,11 @@ const UserProfile = () => {
           : null;
         setUser(userData);
 
-        // Fetch the latest 4 movies as recommended videos
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?sort=newest&limit=4`);
-        setLatestMovies(response.data.slice(0, 3));
+        // Fetch the latest 3 movies in descending order
+        const response = await axios.get(
+          `https://flixxit-h9fa.onrender.com/api/movies?sort=_id&order=desc`
+        );
+        setLatestMovies(response.data?.slice(0, 3));
       } catch (error) {
         console.error("Failed to fetch user:", error);
       }

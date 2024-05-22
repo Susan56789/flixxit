@@ -48,7 +48,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             : null
         );
 
-        fetchRecommendedMovies(movieData.genre, movieData._id);
+        fetchRecommendedMovies(movieData.genre);
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -57,16 +57,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchRecommendedMovies = async (genre, currentMovieId) => {
+    const fetchRecommendedMovies = async (genre) => {
+      console.log('GENRE:', genre);
       try {
-        const response = await axios.get(
-          `https://flixxit-h9fa.onrender.com/api/movies?genre=${encodeURIComponent(genre)}&limit=4${currentMovieId ? `&exclude=${currentMovieId}` : ''
-          }`
-        );
-        setRecommendedMovies(response.data);
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}`);
+        const filteredMovies = response.data.filter(movie => movie._id !== id);
+        setRecommendedMovies(filteredMovies.slice(0, 4));
+        console.log('Recommended movies response:', response.data);
       } catch (error) {
-        console.error("Error fetching recommended movies:", error);
-        setRecommendedMovies([]);
+        console.error(error);
       }
     };
 
@@ -270,27 +269,25 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       <hr />
       <h3>Recommended Movies</h3>
       {recommendedMovies.length > 0 ? (
-        <div className="row">
-          {recommendedMovies.map((recommendedMovie) => (
-            <div key={recommendedMovie._id} className="col-md-3 mb-4">
-              <Link
-                to={`/movies/${recommendedMovie._id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div className="card">
-                  <img
-                    src={recommendedMovie.imageUrl}
-                    alt={recommendedMovie.title}
-                    className="card-img-top"
-                  />
-                  <div className="card-body">
-                    <small className="card-title">{recommendedMovie.title}</small>
-                  </div>
+        recommendedMovies.map((recommendedMovie) => (
+          <div key={recommendedMovie._id} className="col-md-3 mb-4">
+            <Link
+              to={`/movies/${recommendedMovie._id}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <div className="card">
+                <img
+                  src={recommendedMovie.imageUrl}
+                  alt={recommendedMovie.title}
+                  className="card-img-top"
+                />
+                <div className="card-body">
+                  <small className="card-title">{recommendedMovie.title}</small>
                 </div>
-              </Link>
-            </div>
-          ))}
-        </div>
+              </div>
+            </Link>
+          </div>
+        ))
       ) : (
         <p>No recommended movies found.</p>
       )}
