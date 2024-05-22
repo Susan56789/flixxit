@@ -577,7 +577,7 @@ app.delete("/api/movies/:id/dislikes/:userId", async (req, res) => {
 // Watchlist endpoint
 app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
   try {
-    const { userId } = req.params; // Extract user ID from request parameters
+    const userId = req.params.userId; // Extract user ID from request parameters
 
     // Ensure userId is a valid ObjectId
     if (!ObjectId.isValid(userId)) {
@@ -590,17 +590,12 @@ app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
     const watchlist = database.collection('watchlist');
     // Find user's watchlist based on userId
     const userWatchlist = await watchlist.find({ userId: new ObjectId(userId) }).toArray();
-
-    if (!userWatchlist || userWatchlist.length === 0) {
-      return res.status(404).json({ message: "No watchlist found for the user" });
-    }
-
     const movieIds = userWatchlist.map((item) => item.movieId);
 
     const movies = database.collection("movies");
     // Find movies in user's watchlist based on movieIds
     const userWatchlistMovies = await movies
-      .find({ _id: { $in: movieIds.map(id => new ObjectId(id)) } })
+      .find({ _id: { $in: movieIds } })
       .toArray();
 
     res.json(userWatchlistMovies);
