@@ -202,7 +202,7 @@ app.post("/api/movies", async (req, res) => {
   const movie = {
     title: req.body.title,
     description: req.body.description,
-    genres: req.body.genres, // Assuming the genres field should be an array
+    genre: req.body.genre,
     rating: req.body.rating,
     year: req.body.year,
     imageUrl: req.body.imageUrl,

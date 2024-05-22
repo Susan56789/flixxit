@@ -7,9 +7,10 @@ import { AuthContext } from "../AuthContext";
 const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const { user } = useContext(AuthContext);
   const [movie, setMovie] = useState(null);
+  const [genre, setGenre] = useState(null);
   const [error, setError] = useState(null);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
-  const [likeStatus, setLikeStatus] = useState(null); // 1 for like, -1 for dislike
+  const [likeStatus, setLikeStatus] = useState(null);
   const [showPlayer, setShowPlayer] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
+        setGenre(movieData.genre);
 
         const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
         const likesCount = likesResponse.data.likes;
@@ -46,7 +48,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             : null
         );
 
-        fetchRecommendedMovies(movieData);
+        fetchRecommendedMovies(movieData.genre, movieData._id);
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -55,13 +57,16 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchRecommendedMovies = async (movie) => {
+    const fetchRecommendedMovies = async (genre, currentMovieId) => {
       try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${movie.genre}&limit=4`);
+        const response = await axios.get(
+          `https://flixxit-h9fa.onrender.com/api/movies?genre=${encodeURIComponent(genre)}&limit=4${currentMovieId ? `&exclude=${currentMovieId}` : ''
+          }`
+        );
         setRecommendedMovies(response.data);
       } catch (error) {
         console.error("Error fetching recommended movies:", error);
-        setRecommendedMovies([]); // Reset recommended movies array if fetching fails
+        setRecommendedMovies([]);
       }
     };
 
@@ -100,8 +105,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       const videoId = movie ? extractVideoId(movie.videoUrl) : null;
       if (videoId) {
         const player = new window.YT.Player(playerId, {
-          height: "200",
-          width: "100%",
+          height: "390",
+          width: "640",
           videoId: videoId,
           events: {
             onReady: onPlayerReady,
@@ -131,7 +136,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     if (alertMessage) {
       timeout = setTimeout(() => {
         setAlertMessage('');
-      }, 3000); // Hide the alert after 3 seconds
+      }, 3000);
     }
     return () => clearTimeout(timeout);
   }, [alertMessage]);
@@ -180,7 +185,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   };
 
   if (error) {
-    return <div>Error fetching movie details: {error.message}</div>;
+    return <div>Error fetching movie details: {error}</div>;
   }
 
   if (loading || !movie) {
@@ -205,7 +210,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       )}
       {showPlayer && (
         <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block" }}>
-          <div className="modal-dialog modal-sm">
+          <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-body">
                 {playerReady ? (

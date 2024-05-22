@@ -5,7 +5,7 @@ const AdminDashboard = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    genre: '', // Change genreId to genre for manual input
+    genre: '',
     rating: '',
     year: '',
     imageUrl: '',
@@ -40,7 +40,7 @@ const AdminDashboard = () => {
         setFormData({
           title: '',
           description: '',
-          genre: '', // Reset genre
+          genre: '',
           rating: '',
           year: '',
           imageUrl: '',
