@@ -632,8 +632,8 @@ app.post('/api/watchlist', authenticate, async (req, res) => {
 // Remove from watchlist endpoint
 app.delete('/api/watchlist/:movieId', authenticate, async (req, res) => {
   try {
-    const { userId } = req.user; // Extract userId from authenticated user
-    const { movieId } = req.params;
+
+    const { movieId, userId } = req.params;
 
     // Ensure movieId is a valid ObjectId
     if (!ObjectId.isValid(movieId)) {
