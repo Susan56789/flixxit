@@ -27,7 +27,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
-        setGenre(movieData.genre);
 
         const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
         const likesCount = likesResponse.data.likes;
@@ -48,7 +47,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             : null
         );
 
-        fetchRecommendedMovies(movieData.genre);
+        fetchRecommendedMovies(movieData);
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -57,15 +56,16 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchRecommendedMovies = async (genre) => {
-      console.log('GENRE:', genre);
+    const fetchRecommendedMovies = async (movie) => {
       try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}`);
-        const filteredMovies = response.data.filter(movie => movie._id !== id);
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`);
+        const allMovies = response.data;
+        const currentMovieID = movie._id;
+        const sortedMovies = allMovies.sort((a, b) => b._id - a._id);
+        const filteredMovies = sortedMovies.filter((m) => m._id !== currentMovieID);
         setRecommendedMovies(filteredMovies.slice(0, 4));
-        console.log('Recommended movies response:', response.data);
       } catch (error) {
-        console.error(error);
+        console.error('Error fetching recommended movies:', error);
       }
     };
 
@@ -267,30 +267,33 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         </div>
       </div>
       <hr />
-      <h3>Recommended Movies</h3>
-      {recommendedMovies.length > 0 ? (
-        recommendedMovies.map((recommendedMovie) => (
-          <div key={recommendedMovie._id} className="col-md-3 mb-4">
-            <Link
-              to={`/movies/${recommendedMovie._id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div className="card">
-                <img
-                  src={recommendedMovie.imageUrl}
-                  alt={recommendedMovie.title}
-                  className="card-img-top"
-                />
-                <div className="card-body">
-                  <small className="card-title">{recommendedMovie.title}</small>
+      <h3 className="mb-4">Recommended Movies</h3>
+      <div className="row row-cols-1 row-cols-md-4 g-4">
+        {recommendedMovies.length > 0 ? (
+          recommendedMovies.map((recommendedMovie) => (
+            <div key={recommendedMovie._id} className="col">
+              <Link
+                to={`/movies/${recommendedMovie._id}`}
+                style={{ textDecoration: "none", color: "inherit" }}
+                className="text-decoration-none text-body"
+              >
+                <div className="card h-100">
+                  <img
+                    src={recommendedMovie.imageUrl}
+                    alt={recommendedMovie.title}
+                    className="card-img-top"
+                  />
+                  <div className="card-body">
+                    <h5 className="card-title">{recommendedMovie.title}</h5>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </div>
-        ))
-      ) : (
-        <p>No recommended movies found.</p>
-      )}
+              </Link>
+            </div>
+          ))
+        ) : (
+          <p>No recommended movies found.</p>
+        )}
+      </div>
     </div>
   );
 };
