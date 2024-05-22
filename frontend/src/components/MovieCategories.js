@@ -3,25 +3,10 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 
 const MovieCategories = () => {
-    const [genres, setGenres] = useState([]);
     const [selectedGenre, setSelectedGenre] = useState('');
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    useEffect(() => {
-        const fetchGenres = async () => {
-            try {
-                const response = await axios.get('https://flixxit-h9fa.onrender.com/api/genres');
-                setGenres(response.data);
-            } catch (err) {
-                console.error('Error fetching genres:', err);
-                setError('Failed to load genres. Please try again later.');
-            }
-        };
-
-        fetchGenres();
-    }, []);
 
     useEffect(() => {
         const fetchMovies = async () => {
@@ -29,11 +14,7 @@ const MovieCategories = () => {
             setError(null);
 
             try {
-                const response = await axios.get(
-                    selectedGenre
-                        ? `https://flixxit-h9fa.onrender.com/api/movies?genre=${selectedGenre}`
-                        : 'https://flixxit-h9fa.onrender.com/api/movies'
-                );
+                const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
                 setMovies(response.data);
             } catch (err) {
                 console.error('Error fetching movies:', err);
@@ -44,25 +25,26 @@ const MovieCategories = () => {
         };
 
         fetchMovies();
-    }, [selectedGenre]);
+    }, []);
 
     const handleGenreChange = (event) => {
         setSelectedGenre(event.target.value);
     };
 
-    const genreOptions = useMemo(
-        () => [
-            <option key="all" value="">
-                All
-            </option>,
-            ...genres.map((genre) => (
-                <option key={genre._id} value={genre._id}>
-                    {genre.name}
-                </option>
-            )),
-        ],
-        [genres]
-    );
+    const genres = useMemo(() => {
+        const uniqueGenres = new Set();
+        movies.forEach(movie => {
+            if (movie.genre) {
+                uniqueGenres.add(movie.genre);
+            }
+        });
+        return Array.from(uniqueGenres);
+    }, [movies]);
+
+    const filteredMovies = useMemo(() => {
+        if (!selectedGenre) return movies;
+        return movies.filter(movie => movie.genre === selectedGenre);
+    }, [selectedGenre, movies]);
 
     return (
         <div className="container mt-4">
@@ -78,7 +60,12 @@ const MovieCategories = () => {
                         value={selectedGenre}
                         onChange={handleGenreChange}
                     >
-                        {genreOptions}
+                        <option value="">All</option>
+                        {genres.map((genre) => (
+                            <option key={genre} value={genre}>
+                                {genre}
+                            </option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -86,11 +73,11 @@ const MovieCategories = () => {
                 <p>Loading movies...</p>
             ) : error ? (
                 <p className="text-danger">{error}</p>
-            ) : movies.length === 0 ? (
+            ) : filteredMovies.length === 0 ? (
                 <p>No movies in this category</p>
             ) : (
                 <div className="row row-cols-1 row-cols-md-4 g-4">
-                    {movies.map((movie) => (
+                    {filteredMovies.map((movie) => (
                         <div key={movie._id} className="col">
                             <Link
                                 to={`/movies/${movie._id}`}

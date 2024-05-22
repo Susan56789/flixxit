@@ -1,32 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 const AdminDashboard = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    genreId: '', // Use genreId instead of genre name
+    genre: '', // Change genreId to genre for manual input
     rating: '',
     year: '',
     imageUrl: '',
     videoUrl: ''
   });
-  const [genres, setGenres] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [formError, setFormError] = useState({});
-
-  useEffect(() => {
-    // Fetch genres when component mounts
-    async function fetchGenres() {
-      try {
-        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/genres');
-        setGenres(response.data);
-      } catch (error) {
-        console.error('Error fetching genres:', error);
-      }
-    }
-    fetchGenres();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,7 +40,7 @@ const AdminDashboard = () => {
         setFormData({
           title: '',
           description: '',
-          genreId: '', // Reset genreId instead of genre name
+          genre: '', // Reset genre
           rating: '',
           year: '',
           imageUrl: '',
@@ -81,42 +67,92 @@ const AdminDashboard = () => {
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
                 <label htmlFor="title" className="form-label">Title:</label>
-                <input type="text" id="title" name="title" value={formData.title} onChange={handleChange} className={`form-control ${formError.title && 'is-invalid'}`} required />
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  className={`form-control ${formError.title && 'is-invalid'}`}
+                  required
+                />
                 {formError.title && <div className="invalid-feedback">{formError.title}</div>}
               </div>
               <div className="mb-3">
                 <label htmlFor="description" className="form-label">Description:</label>
-                <textarea id="description" name="description" value={formData.description} onChange={handleChange} className={`form-control ${formError.description && 'is-invalid'}`} required></textarea>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  className={`form-control ${formError.description && 'is-invalid'}`}
+                  required
+                ></textarea>
                 {formError.description && <div className="invalid-feedback">{formError.description}</div>}
               </div>
               <div className="mb-3">
-                <label htmlFor="genreId" className="form-label">Genre:</label>
-                <select id="genreId" name="genreId" value={formData.genreId} onChange={handleChange} className={`form-select ${formError.genreId && 'is-invalid'}`} required>
-                  <option value="">Select Genre</option>
-                  {genres.map(genre => (
-                    <option key={genre._id} value={genre._id}>{genre.name}</option>
-                  ))}
-                </select>
-                {formError.genreId && <div className="invalid-feedback">{formError.genreId}</div>}
+                <label htmlFor="genre" className="form-label">Genre:</label>
+                <input
+                  type="text"
+                  id="genre"
+                  name="genre"
+                  value={formData.genre}
+                  onChange={handleChange}
+                  className={`form-control ${formError.genre && 'is-invalid'}`}
+                  required
+                />
+                {formError.genre && <div className="invalid-feedback">{formError.genre}</div>}
               </div>
               <div className="mb-3">
                 <label htmlFor="year" className="form-label">Year:</label>
-                <input type="text" id="year" name="year" value={formData.year} onChange={handleChange} className={`form-control ${formError.year && 'is-invalid'}`} required />
+                <input
+                  type="text"
+                  id="year"
+                  name="year"
+                  value={formData.year}
+                  onChange={handleChange}
+                  className={`form-control ${formError.year && 'is-invalid'}`}
+                  required
+                />
                 {formError.year && <div className="invalid-feedback">{formError.year}</div>}
               </div>
               <div className="mb-3">
                 <label htmlFor="rating" className="form-label">Rating:</label>
-                <input type="text" id="rating" name="rating" value={formData.rating} onChange={handleChange} className={`form-control ${formError.rating && 'is-invalid'}`} required />
+                <input
+                  type="text"
+                  id="rating"
+                  name="rating"
+                  value={formData.rating}
+                  onChange={handleChange}
+                  className={`form-control ${formError.rating && 'is-invalid'}`}
+                  required
+                />
                 {formError.rating && <div className="invalid-feedback">{formError.rating}</div>}
               </div>
               <div className="mb-3">
                 <label htmlFor="imageUrl" className="form-label">Image URL:</label>
-                <input type="text" id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className={`form-control ${formError.imageUrl && 'is-invalid'}`} required />
+                <input
+                  type="text"
+                  id="imageUrl"
+                  name="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={handleChange}
+                  className={`form-control ${formError.imageUrl && 'is-invalid'}`}
+                  required
+                />
                 {formError.imageUrl && <div className="invalid-feedback">{formError.imageUrl}</div>}
               </div>
               <div className="mb-3">
                 <label htmlFor="videoUrl" className="form-label">Video URL:</label>
-                <input type="text" id="videoUrl" name="videoUrl" value={formData.videoUrl} onChange={handleChange} className={`form-control ${formError.videoUrl && 'is-invalid'}`} required />
+                <input
+                  type="text"
+                  id="videoUrl"
+                  name="videoUrl"
+                  value={formData.videoUrl}
+                  onChange={handleChange}
+                  className={`form-control ${formError.videoUrl && 'is-invalid'}`}
+                  required
+                />
                 {formError.videoUrl && <div className="invalid-feedback">{formError.videoUrl}</div>}
               </div>
               <button type="submit" className="btn btn-primary">Add Movie</button>

@@ -12,63 +12,53 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [likeStatus, setLikeStatus] = useState(null); // 1 for like, -1 for dislike
   const [showPlayer, setShowPlayer] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { id } = useParams();
   const playerRef = useRef(null);
   const playerId = `player-${id}`;
-
-
-  const fetchMoviesFromAnyGenre = async () => {
-    try {
-      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`);
-      setRecommendedMovies(response.data.slice(0,4));
-    } catch (error) {
-      console.error("Error fetching movies from any genre:", error);
-      setRecommendedMovies([]); // Reset recommended movies array if fetching fails
-    }
-  };
+  const [alertMessage, setAlertMessage] = useState('');
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
-  
+
         const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
         const likesCount = likesResponse.data.likes;
-  
+
         const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
         const dislikesCount = dislikesResponse.data.dislikes;
-  
+
         movieData.likes = likesCount;
         movieData.dislikes = dislikesCount;
-  
+
         setLikeStatus(
           user
             ? movieData.likesBy?.includes(user._id)
               ? 1
               : movieData.dislikesBy?.includes(user._id)
-              ? -1
-              : null
+                ? -1
+                : null
             : null
         );
-  
-        // Fetch recommended movies based on the genre of the current movie
-        fetchRecommendedMovies(movieData?.genre?.slice(0,4));
+
+        fetchRecommendedMovies(movieData);
       } catch (error) {
-        setError(error);
+        console.error('Error fetching movie details:', error);
+        setError('Failed to load movie details. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
-  
-    const fetchRecommendedMovies = async (genre) => {
-      try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${genre}`);
-        setRecommendedMovies(response.data);
 
-        // If no recommended movies were found in the same genre, fetch movies from any genre
-        if (response.data.length === 0) {
-          fetchMoviesFromAnyGenre();
-        }
+    const fetchRecommendedMovies = async (movie) => {
+      try {
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies?genre=${movie.genre}&limit=4`);
+        setRecommendedMovies(response.data);
       } catch (error) {
         console.error("Error fetching recommended movies:", error);
         setRecommendedMovies([]); // Reset recommended movies array if fetching fails
@@ -136,17 +126,33 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
   };
 
+  useEffect(() => {
+    let timeout;
+    if (alertMessage) {
+      timeout = setTimeout(() => {
+        setAlertMessage('');
+      }, 3000); // Hide the alert after 3 seconds
+    }
+    return () => clearTimeout(timeout);
+  }, [alertMessage]);
+
   const handleLikeClick = async () => {
     if (!user) {
-      alert("Please log in to like the movie.");
+      setAlertMessage('Please log in to like the movie.');
+      return;
+    }
+    if (likeStatus === -1) {
+      setAlertMessage('You have already disliked this movie.');
       return;
     }
     try {
       const updatedMovie = await handleLike(movie._id, user._id);
-      if (updatedMovie) {
-        setMovie(updatedMovie);
-        setLikeStatus(1);
-      }
+      setMovie(prevMovie => ({
+        ...prevMovie,
+        ...updatedMovie,
+        likesBy: updatedMovie.likesBy,
+      }));
+      setLikeStatus(1);
     } catch (err) {
       console.error(err);
     }
@@ -154,15 +160,20 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
 
   const handleDislikeClick = async () => {
     if (!user) {
-      alert("Please log in to dislike the movie.");
+      setAlertMessage('Please log in to dislike the movie.');
+      return;
+    }
+    if (likeStatus === 1) {
+      setAlertMessage('You have already liked this movie.');
       return;
     }
     try {
-      const updatedMovie = await handleDislike(movie._id, user._id);
-      if (updatedMovie) {
-        setMovie(updatedMovie);
-        setLikeStatus(-1);
-      }
+      const updatedDislikesBy = await handleDislike(movie._id, user._id);
+      setMovie(prevMovie => ({
+        ...prevMovie,
+        dislikesBy: updatedDislikesBy,
+      }));
+      setLikeStatus(-1);
     } catch (err) {
       console.error(err);
     }
@@ -172,12 +183,26 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     return <div>Error fetching movie details: {error.message}</div>;
   }
 
-  if (!movie) {
+  if (loading || !movie) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className="container mt-4">
+      {alertMessage && (
+        <div
+          className="alert alert-warning alert-dismissible fade show position-fixed top-0 start-0 m-3"
+          role="alert"
+        >
+          {alertMessage}
+          <button
+            type="button"
+            className="btn-close"
+            aria-label="Close"
+            onClick={() => setAlertMessage('')}
+          />
+        </div>
+      )}
       {showPlayer && (
         <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block" }}>
           <div className="modal-dialog modal-sm">
@@ -220,8 +245,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             )}
             <button
               type="button"
-              className={`btn ${likeStatus === 1 ? "btn-danger" : "btn-outline-danger"
-                }`}
+              className={`btn ${likeStatus === 1 ? "btn-danger" : "btn-outline-danger"}`}
               onClick={handleLikeClick}
             >
               <FaThumbsUp className="mr-2" />
@@ -229,8 +253,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             </button>
             <button
               type="button"
-              className={`btn ${likeStatus === -1 ? "btn-primary" : "btn-outline-primary"
-                }`}
+              className={`btn ${likeStatus === -1 ? "btn-primary" : "btn-outline-primary"}`}
               onClick={handleDislikeClick}
             >
               <FaThumbsDown className="mr-2" />
@@ -268,8 +291,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       )}
     </div>
   );
-      
-  
 };
 
 export default MovieDetailPage;
