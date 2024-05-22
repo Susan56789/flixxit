@@ -1,22 +1,19 @@
-import React, { useContext, useEffect, useState, useRef } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import { FaPlay, FaThumbsUp, FaThumbsDown } from "react-icons/fa";
 import { AuthContext } from "../AuthContext";
+import ReactPlayer from 'react-player';
 
 const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const { user } = useContext(AuthContext);
   const [movie, setMovie] = useState(null);
-  const [genre, setGenre] = useState(null);
   const [error, setError] = useState(null);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
   const [likeStatus, setLikeStatus] = useState(null);
   const [showPlayer, setShowPlayer] = useState(false);
-  const [playerReady, setPlayerReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const { id } = useParams();
-  const playerRef = useRef(null);
-  const playerId = `player-${id}`;
   const [alertMessage, setAlertMessage] = useState('');
 
   useEffect(() => {
@@ -72,62 +69,12 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     fetchMovieDetail();
   }, [id, user]);
 
-  useEffect(() => {
-    const loadYouTubeAPI = () => {
-      if (!window.YT) {
-        const tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName("script")[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-        window.onYouTubeIframeAPIReady = () => {
-          initializePlayer();
-        };
-      } else {
-        initializePlayer();
-      }
-    };
-
-    if (movie && movie.videoUrl) {
-      loadYouTubeAPI();
-    }
-  }, [movie]);
-
-  const extractVideoId = (url) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  };
-
-  const initializePlayer = () => {
-    if (window.YT && window.YT.Player) {
-      const videoId = movie ? extractVideoId(movie.videoUrl) : null;
-      if (videoId) {
-        const player = new window.YT.Player(playerId, {
-          height: "390",
-          width: "640",
-          videoId: videoId,
-          events: {
-            onReady: onPlayerReady,
-          },
-        });
-        playerRef.current = player;
-      }
-    }
-  };
-
-  const onPlayerReady = (event) => {
-    setPlayerReady(true);
-    if (showPlayer) {
-      event.target.playVideo();
-    }
-  };
-
   const handleWatchClick = () => {
     setShowPlayer(true);
-    if (playerReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
-      playerRef.current.playVideo();
-    }
+  };
+
+  const handleClosePlayer = () => {
+    setShowPlayer(false);
   };
 
   useEffect(() => {
@@ -211,12 +158,13 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block" }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="btn btn-secondary" onClick={handleClosePlayer}>
+                  Back to Details
+                </button>
+              </div>
               <div className="modal-body">
-                {playerReady ? (
-                  <div id={playerId} />
-                ) : (
-                  <p>Loading video...</p>
-                )}
+                <ReactPlayer url={movie.videoUrl} playing controls width="100%" />
               </div>
             </div>
           </div>
