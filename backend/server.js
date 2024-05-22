@@ -577,7 +577,7 @@ app.delete("/api/movies/:id/dislikes/:userId", async (req, res) => {
 // Watchlist endpoint
 app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
   try {
-    const userId = req.params.userId; // Extract user ID from request parameters
+    const { userId } = req.params; // Extract user ID from request parameters
 
     // Ensure userId is a valid ObjectId
     if (!ObjectId.isValid(userId)) {
