@@ -1,6 +1,6 @@
 module.exports = (client, app) => {
     //aDMIN LOGIN
-    app.post('/api/admin/login', async (req, res) => {
+    app.post('/api/admin/login', async (req, res, bcrypt) => {
         try {
             const { email, password } = req.body;
             if (!email || !password) {

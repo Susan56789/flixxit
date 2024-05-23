@@ -1,4 +1,4 @@
-module.exports = (client, app, authenticate, bcrypt) => {
+module.exports = (client, app, authenticate, bcrypt, jwt) => {
     // Authentication
     app.post("/api/register", async (req, res) => {
         try {
