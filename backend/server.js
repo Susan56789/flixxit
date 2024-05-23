@@ -254,26 +254,26 @@ app.get("/api/movies/:id", async (req, res) => {
 
 //  movie search
 app.get('/api/movies/search', async (req, res) => {
-  const query = req.query.query?.toString();
+  const query = req.query.query;
 
   if (!query) {
     return res.status(400).json({ message: 'Query parameter is required' });
   }
 
   try {
-    await client.connect();
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
 
+    // Create a text index on the 'title' and 'description' fields if it doesn't exist
+    await createTextIndex(movies);
+
     console.log(`Searching for movies with text matching: ${query}`);
 
-    // Perform text search
-    const moviesList = await movies.find({
-      $or: [
-        { title: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } }
-      ]
-    }).toArray();
+    // Perform text search using the text index
+    const moviesList = await movies
+      .find({ $text: { $search: query } }, { score: { $meta: "textScore" } })
+      .sort({ score: { $meta: "textScore" } })
+      .toArray();
 
     if (moviesList.length === 0) {
       console.log(`No movies found for query: ${query}`);
@@ -284,8 +284,6 @@ app.get('/api/movies/search', async (req, res) => {
   } catch (error) {
     console.error('Error processing search request:', error);
     res.status(500).json({ message: 'Internal server error' });
-  } finally {
-    await client.close();
   }
 });
 

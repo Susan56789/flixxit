@@ -102,7 +102,9 @@ const App = () => {
     try {
       const encodedQuery = encodeURIComponent(query);
       const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
+      console.log('SEARCH RESPONSE', response)
       return response.data;
+
     } catch (error) {
       console.error('Search failed:', error);
 
