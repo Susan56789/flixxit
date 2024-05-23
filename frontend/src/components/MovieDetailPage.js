@@ -16,6 +16,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const { id } = useParams();
   const [alertMessage, setAlertMessage] = useState('');
 
+  // Fetch movie details and recommended movies
   useEffect(() => {
     const fetchMovieDetail = async () => {
       setLoading(true);
@@ -25,15 +26,16 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const movieData = response.data;
         setMovie(movieData);
 
+        // Fetch likes and dislikes
         const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
         const likesCount = likesResponse.data.likes;
-
         const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
         const dislikesCount = dislikesResponse.data.dislikes;
 
         movieData.likes = likesCount;
         movieData.dislikes = dislikesCount;
 
+        // Set like status based on user
         setLikeStatus(
           user
             ? movieData.likesBy?.includes(user._id)
@@ -77,6 +79,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     setShowPlayer(false);
   };
 
+  // Hide alert message after 3 seconds
   useEffect(() => {
     let timeout;
     if (alertMessage) {
@@ -87,6 +90,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
+  // Handle like button click
   const handleLikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to like the movie.');
@@ -94,6 +98,10 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
     if (likeStatus === -1) {
       setAlertMessage('You have already disliked this movie.');
+      return;
+    }
+    if (likeStatus === 1) {
+      setAlertMessage('You have already liked this movie.');
       return;
     }
     try {
@@ -104,11 +112,14 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         likesBy: updatedMovie.likesBy,
       }));
       setLikeStatus(1);
+      setAlertMessage('You have liked this movie.');
     } catch (err) {
       console.error(err);
+      setAlertMessage('Error liking the movie.');
     }
   };
 
+  // Handle dislike button click
   const handleDislikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to dislike the movie.');
@@ -118,6 +129,10 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       setAlertMessage('You have already liked this movie.');
       return;
     }
+    if (likeStatus === -1) {
+      setAlertMessage('You have already disliked this movie.');
+      return;
+    }
     try {
       const updatedDislikesBy = await handleDislike(movie._id, user._id);
       setMovie(prevMovie => ({
@@ -125,11 +140,14 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         dislikesBy: updatedDislikesBy,
       }));
       setLikeStatus(-1);
+      setAlertMessage('You have disliked this movie.');
     } catch (err) {
       console.error(err);
+      setAlertMessage('Error disliking the movie.');
     }
   };
 
+  // Handle loading and error states
   if (error) {
     return <div>Error fetching movie details: {error}</div>;
   }

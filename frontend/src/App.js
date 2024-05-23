@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AllRouters from "./AllRouters";
 import { AuthContext } from './AuthContext';
-import { getUser } from "./utils/helpers";
+import { clearCache } from "./utils/helpers";
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem("flixxItToken") || "");
@@ -66,6 +66,8 @@ const App = () => {
   };
 
   const handleLogin = async (email, password) => {
+
+    clearCache();  // Clear cache before login
     try {
       const response = await axios.post(
         "https://flixxit-h9fa.onrender.com/api/login",

@@ -13,3 +13,9 @@ export const getUserToken = () => {
 
   return userToken;
 };
+
+
+export const clearCache = () => {
+  localStorage.clear();
+  sessionStorage.clear();
+};

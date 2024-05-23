@@ -12,7 +12,7 @@ const Watchlist = () => {
             try {
                 const token = getUserToken();
                 const user = getUser();
-                const userId = user ? user._id : null;
+                const userId = user?._id;
 
                 if (!token || !userId) {
                     setError('Please log in to view your watchlist.');
@@ -27,6 +27,7 @@ const Watchlist = () => {
                 });
 
                 const watchlist = response.data;
+                console.log('WATCHLIST DATA', watchlist)
 
                 if (watchlist.length === 0) {
                     setMovies([]);
@@ -34,14 +35,9 @@ const Watchlist = () => {
                     return;
                 }
 
-                const movieIds = watchlist.map(item => item._id);
-                const moviesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`, {
-                    params: {
-                        ids: movieIds.join(',')
-                    }
-                });
 
-                setMovies(moviesResponse.data);
+                setMovies(watchlist);
+
             } catch (error) {
                 setError('Error fetching watchlist. Please try again later.');
             } finally {
