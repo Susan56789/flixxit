@@ -38,6 +38,19 @@ const authenticate = async (req, res, next) => {
     res.status(400).json({ message: 'Invalid token.' });
   }
 };
+
+const createTextIndex = async (collection) => {
+  const indexes = await collection.indexes();
+  const hasTextIndex = indexes.some(index => index.key && index.key._fts === "text");
+
+  if (!hasTextIndex) {
+    await collection.createIndex({ title: "text", description: "text" });
+    console.log("Text index created on 'title' and 'description' fields.");
+  } else {
+    console.log("Text index already exists on 'title' and 'description' fields.");
+  }
+};
+
 async function run() {
   try {
     // Connect the client to the server
@@ -252,26 +265,14 @@ app.get("/api/movies/search", async (req, res) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
 
-    // Log the query being used
-    console.log(`Searching for movies with title or description matching: ${query}`);
+    // Ensure text index is created
+    await createTextIndex(movies);
 
-    // Use text search for better performance and accuracy
-    const moviesList = await movies.aggregate([
-      {
-        $search: {
-          index: "default",
-          text: {
-            query: query,
-            path: ["title", "description"]
-          }
-        }
-      },
-      {
-        $limit: 50 // Limit the number of results to avoid overloading the response
-      }
-    ]).toArray();
+    console.log(`Searching for movies with text matching: ${query}`);
 
-    // Check if any movies were found
+    // Perform text search
+    const moviesList = await movies.find({ $text: { $search: query } }).toArray();
+
     if (moviesList.length === 0) {
       console.log(`No movies found for query: ${query}`);
       return res.status(404).json({ message: "No movies found" });
@@ -285,7 +286,6 @@ app.get("/api/movies/search", async (req, res) => {
     await client.close();
   }
 });
-
 
 // Get all genres
 app.get("/api/genres", async (req, res) => {
