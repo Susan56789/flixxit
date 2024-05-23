@@ -253,11 +253,11 @@ app.get("/api/movies/:id", async (req, res) => {
 
 
 //  movie search
-app.get("/api/movies/search", async (req, res) => {
+app.get('/api/movies/search', async (req, res) => {
   const query = req.query.query?.toString();
 
   if (!query) {
-    return res.status(400).json({ message: "Query parameter is required" });
+    return res.status(400).json({ message: 'Query parameter is required' });
   }
 
   try {
@@ -265,27 +265,30 @@ app.get("/api/movies/search", async (req, res) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
 
-    // Ensure text index is created
-    await createTextIndex(movies);
-
     console.log(`Searching for movies with text matching: ${query}`);
 
     // Perform text search
-    const moviesList = await movies.find({ $text: { $search: query } }).toArray();
+    const moviesList = await movies.find({
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+      ]
+    }).toArray();
 
     if (moviesList.length === 0) {
       console.log(`No movies found for query: ${query}`);
-      return res.status(404).json({ message: "No movies found" });
+      return res.status(404).json({ message: 'No movies found' });
     }
 
     res.status(200).json(moviesList);
   } catch (error) {
-    console.error("Error processing search request:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('Error processing search request:', error);
+    res.status(500).json({ message: 'Internal server error' });
   } finally {
     await client.close();
   }
 });
+
 
 // Get all genres
 app.get("/api/genres", async (req, res) => {

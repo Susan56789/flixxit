@@ -1,24 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import MovieList from "./MovieList";
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import MovieList from './MovieList';
 
 const SearchResults = ({ handleSearch }) => {
   const location = useLocation();
   const state = location.state || {};
   const [results, setResults] = useState([]);
-  const [query, setQuery] = useState(state.query || "");
-  const [error, setError] = useState("");
+  const [query, setQuery] = useState(state.query || '');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const searcher = async (searchQuery) => {
       try {
         const data = await handleSearch(searchQuery);
         setResults(data);
-        setError("");
+        setError('');
       } catch (err) {
-        console.error("Error during search:", err);
+        console.error('Error during search:', err);
         setResults([]);
-        setError("An error occurred while fetching search results. Please try again.");
+        setError('An error occurred while fetching search results. Please try again.');
       }
     };
 

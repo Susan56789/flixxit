@@ -93,20 +93,19 @@ const App = () => {
 
   const handleSearch = async (query) => {
     if (!query) {
-      alert("Search query cannot be empty.");
+      alert('Search query cannot be empty.');
       return [];
     }
 
     try {
       const encodedQuery = encodeURIComponent(query);
       const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
-
       return response.data;
     } catch (error) {
-      console.error("Search failed:", error);
+      console.error('Search failed:', error);
 
-      const errorMessage = error.response?.data?.message || "An error occurred during the search. Please try again.";
-      console.log("Search failed: " + errorMessage);
+      const errorMessage = error.response?.data?.message || 'An error occurred during the search. Please try again.';
+      console.error('Search failed: ' + errorMessage);
 
       return [];
     }
