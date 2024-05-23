@@ -2,7 +2,7 @@ import React from "react";
 
 const Footer = () => {
     return (
-        <footer className="footer container text-center">
+        <footer className="footer container text-center  mt-auto">
             <hr />
             <span className="text">
                 &copy; {new Date().getFullYear()} Flixxit
