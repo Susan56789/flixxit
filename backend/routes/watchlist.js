@@ -1,4 +1,4 @@
-module.exports = (client, app, authenticate) => {
+module.exports = (client, app, authenticate, ObjectId) => {
     // Watchlist endpoint
     app.get('/api/watchlist/:userId', authenticate, async (req, res) => {
         try {

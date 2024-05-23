@@ -84,7 +84,7 @@ require('./routes/likes')(client, app);
 require('./routes/movies')(client, app, authenticate, createTextIndex);
 require('./routes/subscribers')(client, app);
 require('./routes/users')(client, app, authenticate, bcrypt, jwt);
-require('./routes/watchlist')(client, app, authenticate);
+require('./routes/watchlist')(client, app, authenticate, ObjectId);
 
 
 
