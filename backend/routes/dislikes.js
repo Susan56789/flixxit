@@ -1,4 +1,4 @@
-module.exports = (client, app) => {
+module.exports = (client, app, ObjectId) => {
 
     // Dislikes
     app.post("/api/dislike", async (req, res) => {

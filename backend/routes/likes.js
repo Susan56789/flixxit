@@ -1,4 +1,4 @@
-module.exports = (client, app) => {
+module.exports = (client, app, ObjectId) => {
     // Likes
     app.post("/api/like", async (req, res) => {
         try {

@@ -78,10 +78,10 @@ app.get("/", (req, res) => {
 
 // Routes
 require('./routes/admin')(client, app, bcrypt);
-require('./routes/dislikes')(client, app);
+require('./routes/dislikes')(client, app, ObjectId);
 require('./routes/genre')(client, app);
-require('./routes/likes')(client, app);
-require('./routes/movies')(client, app, authenticate, createTextIndex);
+require('./routes/likes')(client, app, ObjectId);
+require('./routes/movies')(client, app, authenticate, createTextIndex, ObjectId);
 require('./routes/subscribers')(client, app);
 require('./routes/users')(client, app, authenticate, bcrypt, jwt);
 require('./routes/watchlist')(client, app, authenticate, ObjectId);

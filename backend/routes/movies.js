@@ -1,4 +1,4 @@
-module.exports = (client, app, authenticate, createTextIndex) => {
+module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
     // Movies
     app.get("/api/movies", async (req, res) => {
         try {
@@ -65,7 +65,6 @@ module.exports = (client, app, authenticate, createTextIndex) => {
         try {
             const database = client.db("sample_mflix");
             const movies = database.collection("movies");
-            const ObjectId = require("mongodb").ObjectId;
             const movie = await movies.findOne({ _id: new ObjectId(req.params.id) });
             if (!movie) {
                 return res.status(404).json({ message: "Movie not found" });
