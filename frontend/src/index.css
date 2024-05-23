@@ -5,6 +5,11 @@
 
 }
 
+.footer {
+    background: #000 !important;
+    color: #FFF !important;
+}
+
 .text-muted.fs-sm {
     color: aqua !important;
 }

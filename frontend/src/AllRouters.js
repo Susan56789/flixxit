@@ -14,11 +14,12 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminLogin from "./components/Admin/AdminLogin";
 import PasswordReset from "./components/PasswordReset";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminRoute from "./components/AdminRoute";
+// import AdminRoute from "./components/AdminRoute";
 import { AuthContext } from './AuthContext';
+import Footer from "./components/Footer";
 
 const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, isAdmin, handleLogin, handleLogout }) => {
-  const { isLoggedIn, user, logout } = useContext(AuthContext);
+  const { isLoggedIn, user } = useContext(AuthContext);
 
   return (
     <div className="App">
@@ -51,6 +52,7 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
           // </AdminRoute>
         } />
       </Routes>
+      <Footer />
     </div>
   );
 };
