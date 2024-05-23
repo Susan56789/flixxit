@@ -3,7 +3,6 @@ import axios from 'axios';
 import { getUser, getUserToken } from '../utils/helpers';
 
 const Watchlist = () => {
-    const [watchlist, setWatchlist] = useState([]);
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -15,23 +14,27 @@ const Watchlist = () => {
                 const user = getUser();
                 const userId = user ? user._id : null;
 
-
                 if (!token || !userId) {
                     setError('Please log in to view your watchlist.');
+                    setLoading(false);
                     return;
                 }
 
-                // Fetch the watchlist data from the API
                 const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/watchlist/${userId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
 
-                setWatchlist(response.data);
+                const watchlist = response.data;
 
-                // Fetch the movie details based on the movieId values in the watchlist
-                const movieIds = response.data.map(item => item.movieId);
+                if (watchlist.length === 0) {
+                    setMovies([]);
+                    setLoading(false);
+                    return;
+                }
+
+                const movieIds = watchlist.map(item => item._id);
                 const moviesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`, {
                     params: {
                         ids: movieIds.join(',')
@@ -47,14 +50,15 @@ const Watchlist = () => {
         };
 
         fetchWatchlist();
-    }, []); // Empty dependency array ensures useEffect runs only on component mount
+    }, []);
 
-    const removeFromWatchlist = async (movieId, userId) => {
-        console.log('USER ID:', userId)
+    const removeFromWatchlist = async (movieId) => {
         try {
             const token = getUserToken();
+            const user = getUser();
+            const userId = user ? user._id : null;
 
-            if (!token) {
+            if (!token || !userId) {
                 setError('Please log in to remove movies from your watchlist.');
                 return;
             }
@@ -65,7 +69,6 @@ const Watchlist = () => {
                 }
             });
 
-            setWatchlist(prevWatchlist => prevWatchlist.filter(item => item.movieId.toString() !== movieId.toString()));
             setMovies(prevMovies => prevMovies.filter(movie => movie._id.toString() !== movieId.toString()));
         } catch (error) {
             setError('Error removing from watchlist. Please try again later.');
@@ -83,30 +86,25 @@ const Watchlist = () => {
         <div className="container">
             <h2 className="mt-4 mb-4">My Watchlist</h2>
             <div className="row">
-                {movies.map((movie, index) => {
-                    const user = getUser();
-                    const userId = user ? user._id : null;
-
-                    return (
-                        <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
-                            <div className="card h-100">
-                                <div className="card-header">
-                                    <h6 className="mb-0 fs-sm">{movie.title}</h6>
-                                    <span className="text-muted fs-sm">{movie.year}</span>
-                                </div>
-                                <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
-                                <div className="card-footer">
-                                    <button
-                                        className="btn btn-subtle"
-                                        onClick={() => removeFromWatchlist(movie._id, userId)}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
+                {movies.map((movie) => (
+                    <div key={movie._id} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                        <div className="card h-100">
+                            <div className="card-header">
+                                <h6 className="mb-0 fs-sm">{movie.title}</h6>
+                                <span className="text-muted fs-sm">{movie.year}</span>
+                            </div>
+                            <img src={movie.imageUrl} className="card-img-top" alt={movie.title} />
+                            <div className="card-footer">
+                                <button
+                                    className="btn btn-subtle"
+                                    onClick={() => removeFromWatchlist(movie._id)}
+                                >
+                                    Remove
+                                </button>
                             </div>
                         </div>
-                    );
-                })}
+                    </div>
+                ))}
             </div>
         </div>
     );
