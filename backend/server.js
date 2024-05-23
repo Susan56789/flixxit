@@ -248,31 +248,41 @@ app.get("/api/movies/search", async (req, res) => {
   }
 
   try {
+    await client.connect();
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
 
     // Log the query being used
     console.log(`Searching for movies with title or description matching: ${query}`);
 
-    // Search for movies with titles or descriptions matching the query (case-insensitive)
-    const moviesList = await movies
-      .find({
-        $or: [
-          { title: { $regex: query, $options: "i" } },
-          { description: { $regex: query, $options: "i" } }
-        ]
-      })
-      .toArray();
+    // Use text search for better performance and accuracy
+    const moviesList = await movies.aggregate([
+      {
+        $search: {
+          index: "default",
+          text: {
+            query: query,
+            path: ["title", "description"]
+          }
+        }
+      },
+      {
+        $limit: 50 // Limit the number of results to avoid overloading the response
+      }
+    ]).toArray();
 
     // Check if any movies were found
     if (moviesList.length === 0) {
       console.log(`No movies found for query: ${query}`);
+      return res.status(404).json({ message: "No movies found" });
     }
 
     res.status(200).json(moviesList);
   } catch (error) {
     console.error("Error processing search request:", error);
     res.status(500).json({ message: "Internal server error" });
+  } finally {
+    await client.close();
   }
 });
 

@@ -114,7 +114,6 @@ const App = () => {
 
 
 
-
   const handleLike = async (movieId, userId) => {
     try {
       const response = await axios.post("https://flixxit-h9fa.onrender.com/api/like", {
