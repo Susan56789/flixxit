@@ -24,35 +24,39 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
   return (
     <div className="App">
       <Header isLoggedIn={isLoggedIn} handleLogout={handleLogout} handleSearch={handleSearch} />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginForm handleLogin={handleLogin} />} />
-        <Route path="/register" element={<RegisterForm handleRegister={handleRegister} />} />
-        <Route path="/movies/:id" element={
-          <MovieDetailPage handleLike={handleLike} handleDislike={handleDislike} />
-        } />
-        <Route path="/about-us" element={<AboutUs />} />
-        <Route path="/categories" element={<MovieCategories handleSearch={handleSearch} />} />
-        <Route path="/search-page" element={<SearchResults handleSearch={handleSearch} />} />
-        <Route path="/watchlist" element={
-          <ProtectedRoute isLoggedIn={isLoggedIn}>
-            <WatchList user={user} />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute isLoggedIn={isLoggedIn}>
-            <UserProfile user={user} />
-          </ProtectedRoute>
-        } />
-        <Route path="/reset-password" element={<PasswordReset />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={
-          // <AdminRoute isAdmin={isAdmin}>
-          <AdminDashboard />
-          // </AdminRoute>
-        } />
-      </Routes>
-      <Footer />
+      <div className="main">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginForm handleLogin={handleLogin} />} />
+          <Route path="/register" element={<RegisterForm handleRegister={handleRegister} />} />
+          <Route path="/movies/:id" element={
+            <MovieDetailPage handleLike={handleLike} handleDislike={handleDislike} />
+          } />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/categories" element={<MovieCategories handleSearch={handleSearch} />} />
+          <Route path="/search-page" element={<SearchResults handleSearch={handleSearch} />} />
+          <Route path="/watchlist" element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <WatchList user={user} />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <UserProfile user={user} />
+            </ProtectedRoute>
+          } />
+          <Route path="/reset-password" element={<PasswordReset />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={
+            // <AdminRoute isAdmin={isAdmin}>
+            <AdminDashboard />
+            // </AdminRoute>
+          } />
+        </Routes>
+      </div>
+      <div className="footer">
+        <Footer />
+      </div>
     </div>
   );
 };
