@@ -1,11 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { getUserToken } from "../utils/helpers";
 
 const MovieList = ({ movies, type }) => {
-  // Debugging: Log the movies prop
-  // console.log("MovieList movies prop:", movies);
+  const [alertMessage, setAlertMessage] = useState('');
+
+  // Hide alert message after 3 seconds
+  useEffect(() => {
+    let timeout;
+    if (alertMessage) {
+      timeout = setTimeout(() => {
+        setAlertMessage('');
+      }, 3000);
+    }
+    return () => clearTimeout(timeout);
+  }, [alertMessage]);
 
   const backgroundColor = () => {
     switch (type) {
@@ -38,10 +48,12 @@ const MovieList = ({ movies, type }) => {
           },
         }
       );
+      setAlertMessage(response.data.message);
 
-      console.log(response.data.message);
+
     } catch (error) {
       console.error("Error adding to watchlist:", error.response ? error.response.data : error.message);
+      setAlertMessage('Movie Already in Watchlist')
     }
   };
 
@@ -63,55 +75,71 @@ const MovieList = ({ movies, type }) => {
   const sortedMovies = Array.isArray(movies) ? movies.sort((a, b) => b._id - a._id) : [];
 
   return (
-    <div
-      className="row"
-      style={{
-        backgroundColor: backgroundColor(),
-        padding: "10px",
-        borderRadius: "5px",
-        marginBottom: "20px",
-      }}
-    >
-      {sortedMovies.length > 0 ? (
-        sortedMovies.slice(0, 4).map((movie, index) => ( // Display only the latest four movies
-          <div key={index} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4"> {/* Adjusted column classes for better responsiveness */}
-            <Link
-              to={`/movies/${movie._id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div className="card h-100">
-                <div className="card-header d-flex align-items-center">
-                  <div className="ms-3">
-                    <h6 className="mb-0 fs-sm">{movie.title}</h6>
-                    <span className="text-muted fs-sm">{movie.year}</span>
-                  </div>
-                </div>
-                <img
-                  src={movie.imageUrl}
-                  className="card-img-top"
-                  alt={movie.title}
-                />
-              </div>
-            </Link>
-            <div className="card-footer d-flex justify-content-between"> {/* Improved button alignment */}
-              <button
-                className="btn btn-subtle me-2"
-                onClick={() => addToWatchlist(movie._id)}
-              >
-                <i className="fas fa-heart fa-lg"></i>
-              </button>
-              <button
-                className="btn btn-subtle"
-                onClick={() => shareMovie(movie.title, movie._id)}
-              >
-                <i className="fas fa-share fa-lg"></i>
-              </button>
-            </div>
-          </div>
-        ))
-      ) : (
-        <p>No movies found</p>
+    <div>
+      {alertMessage && (
+        <div
+          className="alert alert-warning alert-dismissible fade show position-fixed top-0 start-0 m-3"
+          role="alert"
+        >
+          {alertMessage}
+          <button
+            type="button"
+            className="btn-close"
+            aria-label="Close"
+            onClick={() => setAlertMessage('')}
+          />
+        </div>
       )}
+      <div
+        className="row"
+        style={{
+          backgroundColor: backgroundColor(),
+          padding: "10px",
+          borderRadius: "5px",
+          marginBottom: "20px",
+        }}
+      >
+        {sortedMovies.length > 0 ? (
+          sortedMovies.slice(0, 4).map((movie, index) => ( // Display only the latest four movies
+            <div key={index} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4"> {/* Adjusted column classes for better responsiveness */}
+              <Link
+                to={`/movies/${movie._id}`}
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <div className="card h-100">
+                  <div className="card-header d-flex align-items-center">
+                    <div className="ms-3">
+                      <h6 className="mb-0 fs-sm">{movie.title}</h6>
+                      <span className="text-muted fs-sm">{movie.year}</span>
+                    </div>
+                  </div>
+                  <img
+                    src={movie.imageUrl}
+                    className="card-img-top"
+                    alt={movie.title}
+                  />
+                </div>
+              </Link>
+              <div className="card-footer d-flex justify-content-between"> {/* Improved button alignment */}
+                <button
+                  className="btn btn-subtle me-2"
+                  onClick={() => addToWatchlist(movie._id)}
+                >
+                  <i className="fas fa-heart fa-lg"></i>
+                </button>
+                <button
+                  className="btn btn-subtle"
+                  onClick={() => shareMovie(movie.title, movie._id)}
+                >
+                  <i className="fas fa-share fa-lg"></i>
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No movies found</p>
+        )}
+      </div>
     </div>
   );
 };

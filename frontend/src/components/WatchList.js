@@ -6,6 +6,18 @@ const Watchlist = () => {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [alertMessage, setAlertMessage] = useState('');
+
+    // Hide alert message after 3 seconds
+    useEffect(() => {
+        let timeout;
+        if (alertMessage) {
+            timeout = setTimeout(() => {
+                setAlertMessage('');
+            }, 3000);
+        }
+        return () => clearTimeout(timeout);
+    }, [alertMessage]);
 
     useEffect(() => {
         const fetchWatchlist = async () => {
@@ -27,7 +39,7 @@ const Watchlist = () => {
                 });
 
                 const watchlist = response.data;
-                console.log('WATCHLIST DATA', watchlist)
+
 
                 if (watchlist.length === 0) {
                     setMovies([]);
@@ -64,6 +76,7 @@ const Watchlist = () => {
                     Authorization: `Bearer ${token}`
                 }
             });
+            setAlertMessage("Movie Removed From Watchlist.")
 
             setMovies(prevMovies => prevMovies.filter(movie => movie._id.toString() !== movieId.toString()));
         } catch (error) {
@@ -80,6 +93,20 @@ const Watchlist = () => {
 
     return (
         <div className="container">
+            {alertMessage && (
+                <div
+                    className="alert alert-warning alert-dismissible fade show position-fixed top-0 start-0 m-3"
+                    role="alert"
+                >
+                    {alertMessage}
+                    <button
+                        type="button"
+                        className="btn-close"
+                        aria-label="Close"
+                        onClick={() => setAlertMessage('')}
+                    />
+                </div>
+            )}
             <h2 className="mt-4 mb-4">My Watchlist</h2>
             <div className="row">
                 {movies.map((movie) => (
