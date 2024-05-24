@@ -92,30 +92,43 @@ const App = () => {
     localStorage.removeItem("flixxItToken");
     navigate("/login");
   };
-  const handleSearch = async (query) => {
-    if (!query) {
-      console.warn('Search query cannot be empty.');
-      return [];
-    }
+  
+const handleSearch = async (query) => {
+  if (!query) {
+    console.warn('Search query cannot be empty.');
+    return [];
+  }
 
-    try {
-      const encodedQuery = encodeURIComponent(query);
-      console.log('ENCODEQUERY:', encodedQuery)
-      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
-      console.log('SEARCH RESPONSE:', response.data);
-      return response.data;
+  try {
+    const encodedQuery = encodeURIComponent(query);
+    console.log('ENCODEQUERY:', encodedQuery);
 
-    } catch (error) {
-      console.error('Search failed:', error);
-      let errorMessage = 'An error occurred during the search. Please try again.';
-      if (error.response) {
-        errorMessage = error.response.data?.message || errorMessage;
+    const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`, {
+      validateStatus: (status) => {
+        return status >= 200 && status < 500; // Accept only 2xx and 4xx status codes
       }
+    });
 
-      console.error('Search failed: ' + errorMessage);
-      return [];
+    console.log("response.data", response.data);
+
+    if (response.data && response.data.message) {
+      return response.data.message;
     }
-  };
+
+    return response.data;
+
+  } catch (error) {
+    console.error('Search failed:', error);
+    let errorMessage = 'An error occurred during the search. Please try again.';
+
+    if (error.response) {
+      errorMessage = error.response.data?.message || errorMessage;
+    }
+
+    console.error('Search failed: ' + errorMessage);
+    return [];
+  }
+};
 
 
 

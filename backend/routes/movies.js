@@ -1,4 +1,17 @@
 module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
+    const express = require('express');
+    const router = express.Router();
+    router.use(authenticate);  // Ensure all routes are authenticated
+
+     // Ensure text index is created before handling search
+     router.use(async (req, res, next) => {
+        const database = client.db('sample_mflix');
+        const movies = database.collection('movies');
+        await createTextIndex(movies);
+        next();
+    });
+
+
     // Movies
     app.get("/api/movies", async (req, res) => {
         try {
@@ -90,45 +103,41 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
 
 
     //  movie search
-    app.get('/api/movies/search', async (req, res) => {
+    router.get('/api/movies/search', async (req, res) => {
         const query = req.query.query || "";
         try {
             const database = client.db("sample_mflix");
             const movies = database.collection("movies");
 
-            console.log('movies: ', movies)
-            console.log('database: ', database)
-
             if (!query) {
                 return res.status(400).json({ message: 'Search query is required' });
             }
-            const moviesList = await movies
-                .find({ $title: { $search: query } })
-                .toArray();
 
+            const moviesList = await movies
+                .find({ $text: { $search: query } })
+                .toArray();
 
             if (moviesList.length === 0) {
                 console.log(`No movies found for query: ${query}`);
                 return res.status(404).json({ message: 'No movies found matching your search' });
             }
+            
             console.log(`Searching for movies with text matching: ${query}`);
 
-            res.send(moviesList)
+            res.send(moviesList);
         } catch (error) {
             console.error('Error processing search request:', error);
 
-            // Check for specific error types and return corresponding status codes
             if (error.name === 'MongoError' && error.code === 22) {
                 return res.status(400).json({ message: 'Invalid search query' });
             } else if (error.name === 'MongoError' && error.code === 11600) {
                 return res.status(500).json({ message: 'Internal server error: MongoDB query timeout' });
             } else {
-
                 return res.status(500).json({ message: 'Internal server error' });
-
             }
         }
     });
+    
 
 
 

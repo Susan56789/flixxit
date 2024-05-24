@@ -11,14 +11,14 @@ const PORT = process.env.PORT || 5000;
 const ObjectId = require("mongodb").ObjectId;
 
 // Connection URI
-const uri =
-  "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
+const uri =   "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
 
 // Create a new MongoClient
 const client = new MongoClient(uri);
 
 // Use CORS middleware
 app.use(cors());
+app.use(bodyParser.json());
 
 const authenticate = async (req, res, next) => {
   const token = req.header('Authorization')?.split(' ')[1];
@@ -53,11 +53,9 @@ const createTextIndex = async (collection) => {
 
 async function run() {
   try {
-    // Connect the client to the server
     await client.connect();
     console.log("Connected to the database");
 
-    // Establish and verify connection
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
     const users = database.collection("users");
@@ -68,8 +66,6 @@ async function run() {
 }
 
 run().catch(console.dir);
-
-app.use(bodyParser.json());
 
 // Default landing page
 app.get("/", (req, res) => {
@@ -85,9 +81,6 @@ require('./routes/movies')(client, app, authenticate, createTextIndex, ObjectId)
 require('./routes/subscribers')(client, app, ObjectId);
 require('./routes/users')(client, app, authenticate, bcrypt, jwt);
 require('./routes/watchlist')(client, app, authenticate, ObjectId);
-
-
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
