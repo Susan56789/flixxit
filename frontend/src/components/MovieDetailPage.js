@@ -174,7 +174,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       )}
       {showPlayer && (
         <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block" }}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
                 <button type="button" className="btn btn-secondary" onClick={handleClosePlayer}>

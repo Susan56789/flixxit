@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getUserToken } from "../utils/helpers";
 
-const Header = ({ loggedIn, handleLogout }) => {
+
+const Header = ({ handleLogout }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
   const [logIn, setLoggedIn] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const token = getUserToken()
+  const token = getUserToken();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,23 +28,21 @@ const Header = ({ loggedIn, handleLogout }) => {
     };
 
     getUser();
-  }, []); // Run effect only once
+  }, []);
 
   useEffect(() => {
     if (token) {
-      setLoggedIn(true)
+      setLoggedIn(true);
     } else {
-      setLoggedIn(false)
+      setLoggedIn(false);
     }
-
-  }, [token]); // Run effect only once
-
-
+  }, [token]);
 
   return (
     <div className="container">
-      <nav className="navbar navbar-expand-lg">
+      <nav className="navbar navbar-expand-lg sticky-top">
         <div className="container-fluid">
+          <a className="navbar-brand" href="/">Flixxit</a>
           <button
             className="navbar-toggler"
             type="button"
@@ -52,70 +52,37 @@ const Header = ({ loggedIn, handleLogout }) => {
             aria-expanded="false"
             aria-label="Toggle navigation"
           >
-            <span className="navbar-toggler-icon"></span>
+            <span className="navbar-toggler-icon custom-toggler-icon"></span>
           </button>
-          <a className="navbar-brand" href="/">
-            <img src="/logo.png" alt="Flixxit" width="36" />
-          </a>
           <div className="collapse navbar-collapse" id="navbarExample">
             <ul className="navbar-nav me-auto mb-0">
-              <li className="nav-item">
-                <a className="nav-link active" aria-current="page" href="/">
-                  Home
-                </a>
+              <li className={`nav-item ${location.pathname === "/" ? "active" : ""}`}>
+                <a className="nav-link hover-underline-animation" href="/">Home</a>
               </li>
-              <li className="nav-item">
-                <a
-                  className="nav-link active"
-                  aria-current="page"
-                  href="/about-us"
-                >
-                  About Us
-                </a>
+              <li className={`nav-item ${location.pathname === "/about-us" ? "active" : ""}`}>
+                <a className="nav-link hover-underline-animation" href="/about-us">About Us</a>
               </li>
-              <li className="nav-item">
-                <a
-                  className="nav-link active"
-                  aria-current="page"
-                  href="/categories"
-                >
-                  Category
-                </a>
+              <li className={`nav-item ${location.pathname === "/categories" ? "active" : ""}`}>
+                <a className="nav-link hover-underline-animation" href="/categories">Category</a>
               </li>
             </ul>
 
             <div className="d-flex align-items-center flex-column flex-lg-row">
               {!logIn ? (
                 <div>
-                  <a className="btn btn-primary me-2" href="/login">
-                    Login
-                  </a>
+                  <a className="btn btn-primary me-2 hover-scale-animation" href="/login">Login</a>
                 </div>
               ) : (
                 <div>
                   <ul className="navbar-nav me-auto mb-0">
-                    <li className="nav-item">
-                      <a
-                        className="nav-link active"
-                        aria-current="page"
-                        href="/watchlist"
-                      >
-                        WatchList
-                      </a>
+                    <li className={`nav-item ${location.pathname === "/watchlist" ? "active" : ""}`}>
+                      <a className="nav-link hover-underline-animation" href="/watchlist">WatchList</a>
+                    </li>
+                    <li className={`nav-item ${location.pathname === "/profile" ? "active" : ""}`}>
+                      <a className="nav-link hover-underline-animation" href="/profile">My Profile</a>
                     </li>
                     <li className="nav-item">
-                      <a
-                        className="nav-link active"
-                        aria-current="page"
-                        href="/profile"
-                      >
-                        My Profile
-                      </a>
-                    </li>
-                    <li className="nav-item">
-                      <button className="btn btn-danger" onClick={handleLogout}>
-                        Logout
-                      </button>
+                      <button className="btn btn-danger hover-scale-animation" onClick={handleLogout}>Logout</button>
                     </li>
                   </ul>
                 </div>
@@ -124,21 +91,24 @@ const Header = ({ loggedIn, handleLogout }) => {
           </div>
         </div>
       </nav>
-      <form
-        className="d-flex justify-content-center my-3"
-        onSubmit={handleSubmit}
-      >
-        <input
-          className="form-control form-control-sm me-2 rounded-pill"
-          type="search"
-          placeholder="Search..."
-          aria-label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button className="btn btn-subtle" type="submit">
-          <i className="fa-solid fa-magnifying-glass fa-lg"></i>
-        </button>
+      <form className="d-flex justify-content-center my-3" onSubmit={handleSubmit}>
+        <div className="row w-100">
+          <div className="col-9 col-md-10">
+            <input
+              className="form-control form-control-sm me-2 rounded-pill w-100"
+              type="search"
+              placeholder="Search..."
+              aria-label="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="col-3 col-md-2 d-flex justify-content-center">
+            <button className="btn btn-subtle" type="submit">
+              <i className="fa-solid fa-magnifying-glass fa-lg"></i>
+            </button>
+          </div>
+        </div>
       </form>
     </div>
   );

@@ -1,76 +1,139 @@
+
 * {
     font-family: 'Poppins', sans-serif;
     background: #000 !important;
-    color: #FFF !important;
+    color: #fff !important;
     margin: 0;
     padding: 0;
 }
 
-html,
-body {
+html, body {
     height: 100%;
 }
 
+/* Footer */
 .footer {
     clear: both;
     position: relative;
     bottom: 0;
     height: 100px;
-
 }
 
 .text-muted.fs-sm {
     color: aqua !important;
 }
 
+/* Container */
 div {
     max-width: 100%;
     margin: 0 auto;
 }
 
+/* Input placeholders */
 input::placeholder {
     color: #fff !important;
 }
 
+/* Navbar toggler */
 button.navbar-toggler {
-
     color: #fff !important;
 }
 
+/* Navbar toggler icon */
 span.navbar-toggler-icon {
     background: red !important;
     color: #fff !important;
 }
 
+/* Hover effect for links */
 a:hover {
     color: red !important;
 }
 
+/* Navbar border */
+nav {
+    border-bottom: 1px solid #f01111;
+}
+
 /* Styling input placeholders */
-::-webkit-input-placeholder {
-    /* Chrome/Opera/Safari */
+::-webkit-input-placeholder { /* Chrome/Opera/Safari */
     color: #fff;
 }
 
-::-moz-placeholder {
-    /* Firefox 19+ */
+::-moz-placeholder { /* Firefox 19+ */
     color: #fff;
 }
 
-:-ms-input-placeholder {
-    /* IE 10+ */
+:-ms-input-placeholder { /* IE 10+ */
     color: #fff;
 }
 
-:-moz-placeholder {
-    /* Firefox 18- */
+:-moz-placeholder { /* Firefox 18- */
     color: #fff;
 }
 
 /* Styling checkbox tick */
 .form-check-input::before {
-
     display: inline-block;
     font-size: 14px;
     color: #fff;
+}
+
+/* Underline Animation */
+.hover-underline-animation {
+    display: inline-block;
+    position: relative;
+}
+
+.hover-underline-animation::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: #f01111;
+    transform: scaleX(0);
+    transition: transform 0.3s ease-in-out;
+}
+
+.hover-underline-animation:hover::after {
+    transform: scaleX(1);
+}
+
+/* Scale Animation */
+.hover-scale-animation {
+    transition: transform 0.3s ease-in-out;
+}
+
+.hover-scale-animation:hover {
+    transform: scale(1.05);
+}
+
+.sticky-top {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.navbar .nav-link.active {
+    font-weight: bold;
+  background-color: #f01111 !important;
+  color: #fff !important;
+}
+
+.navbar .nav-link.hover-underline-animation:hover {
+    text-decoration: underline;
+}
+
+.btn-subtle {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.btn-subtle:hover {
+    color: #0056b3;
 }
