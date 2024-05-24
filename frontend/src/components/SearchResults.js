@@ -7,7 +7,7 @@ const SearchResults = ({ handleSearch }) => {
   const state = location.state || {};
   const [results, setResults] = useState([]);
   const [query, setQuery] = useState(state.query || '');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -16,8 +16,7 @@ const SearchResults = ({ handleSearch }) => {
       try {
         const data = await handleSearch(query);
         setResults(data);
-        setError('');
-        console.log('Fetched data:', data); // Log the fetched data here
+
       } catch (err) {
         console.error('Error during search:', err);
         setResults([]);
@@ -28,7 +27,6 @@ const SearchResults = ({ handleSearch }) => {
     fetchData();
   }, [query, handleSearch]);
 
-  console.log('Current results:', results); // Log the current state value
   return (
     <div className="container mt-4">
       {query ? (

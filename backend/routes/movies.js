@@ -78,38 +78,44 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
 
     //  movie search
     app.get('/api/movies/search', async (req, res) => {
-        const query = req.query.query;
+        const query = req.query.query?.trim(); // Trim leading/trailing whitespace
 
         if (!query) {
-            return res.status(400).json({ message: 'Query parameter is required' });
+            return res.status(400).json({ message: 'Search query is required' });
         }
 
         try {
             const database = client.db("sample_mflix");
             const movies = database.collection("movies");
 
-            // Create a text index on the 'title' and 'description' fields if it doesn't exist
-            await createTextIndex(movies);
-
             console.log(`Searching for movies with text matching: ${query}`);
 
-            // Perform text search using the text index
+            // Perform text search using full-text search capabilities of MongoDB (assuming such collection exists)
             const moviesList = await movies
-                .find({ $text: { $search: query } }, { score: { $meta: "textScore" } })
-                .sort({ score: { $meta: "textScore" } })
+                .find({ $text: { $search: query } }) // Replace with your full-text search syntax if different
                 .toArray();
 
             if (moviesList.length === 0) {
                 console.log(`No movies found for query: ${query}`);
-                return res.status(404).json({ message: 'No movies found' });
+                return res.status(404).json({ message: 'No movies found matching your search' });
             }
 
             res.status(200).json(moviesList);
         } catch (error) {
             console.error('Error processing search request:', error);
-            res.status(500).json({ message: 'Internal server error' });
+
+            // Check for specific error types and return corresponding status codes
+            if (error.name === 'MongoError' && error.code === 22) {
+                return res.status(400).json({ message: 'Invalid search query' });
+            } else if (error.name === 'MongoError' && error.code === 11600) {
+                return res.status(500).json({ message: 'Internal server error: MongoDB query timeout' });
+            } else {
+                return res.status(500).json({ message: 'Internal server error' });
+            }
         }
     });
+
+
 
     // Interacted movies endpoint
     app.get("/api/movies/interacted", authenticate, async (req, res) => {

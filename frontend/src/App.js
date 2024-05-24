@@ -92,25 +92,30 @@ const App = () => {
     localStorage.removeItem("flixxItToken");
     navigate("/login");
   };
-
   const handleSearch = async (query) => {
     if (!query) {
-      alert('Search query cannot be empty.');
+      // Instead of alert, consider using a UI framework's notification system
+      console.warn('Search query cannot be empty.');
       return [];
     }
 
     try {
       const encodedQuery = encodeURIComponent(query);
-      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
-      console.log('SEARCH RESPONSE', response)
+      const response = await axios.get(`http://localhost:5000/api/movies/search?query=${encodedQuery}`);
+      console.log('SEARCH RESPONSE:', response.data);
       return response.data;
 
     } catch (error) {
       console.error('Search failed:', error);
 
-      const errorMessage = error.response?.data?.message || 'An error occurred during the search. Please try again.';
-      console.error('Search failed: ' + errorMessage);
+      // Provide more informative message to the user based on the error details
+      let errorMessage = 'An error occurred during the search. Please try again.';
+      if (error.response) {
+        // If there's a response object, use its data
+        errorMessage = error.response.data?.message || errorMessage;
+      }
 
+      console.error('Search failed: ' + errorMessage);
       return [];
     }
   };
