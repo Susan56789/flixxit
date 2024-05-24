@@ -103,9 +103,8 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
 
             console.log(`Searching for movies with text matching: ${query}`);
 
-            // Perform text search using full-text search capabilities of MongoDB (assuming such collection exists)
             const moviesList = await movies
-                .find({ $text: { $search: query } }) // Replace with your full-text search syntax if different
+                .find({ $title: { $search: query } })
                 .toArray();
 
             if (moviesList.length === 0) {
