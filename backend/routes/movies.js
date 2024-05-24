@@ -125,17 +125,13 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
             console.log(`Searching for movies with text matching: ${query}`);
 
             res.send(moviesList);
-        } catch (error) {
-            console.error('Error processing search request:', error);
-
-            if (error.name === 'MongoError' && error.code === 22) {
-                return res.status(400).json({ message: 'Invalid search query' });
-            } else if (error.name === 'MongoError' && error.code === 11600) {
-                return res.status(500).json({ message: 'Internal server error: MongoDB query timeout' });
-            } else {
-                return res.status(500).json({ message: 'Internal server error' });
+        } catch (err) {
+            if (!err.status && !err.statusCode) {
+              console.error("Uncaught Error -- turning into 500", err, err.message);
+              err.status = 500;
             }
-        }
+            throw err;
+          }
     });
     
 
