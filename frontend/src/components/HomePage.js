@@ -16,10 +16,23 @@ const HomePage = () => {
                 const movies = response.data;
 
                 // Sort movies based on different criteria
-                const newArrivals = [...movies].sort((a, b) => new Date(b.year) - new Date(a.year)).slice(0, 4);
-                const mostPopular = [...movies].sort((a, b) => b._id - a._id).slice(0, 4);
-                const recommended = [...movies].sort((a, b) => b.rating - a.rating).slice(0, 4);
+                const newArrivals = [...movies].sort((a, b) => {
+                    const yearA = a.year || 0;
+                    const yearB = b.year || 0;
+                    return yearB - yearA;
+                });
 
+                const mostPopular = [...movies].sort((a, b) => {
+                    const likesCountA = a.likesCount || 0;
+                    const likesCountB = b.likesCount || 0;
+                    return likesCountB - likesCountA;
+                });
+
+                const recommended = [...movies].sort((a, b) => {
+                    const ratingA = a.rating || 0;
+                    const ratingB = b.rating || 0;
+                    return ratingB - ratingA;
+                });
                 setNewArrivals(newArrivals);
                 setMostPopular(mostPopular);
                 setRecommended(recommended);

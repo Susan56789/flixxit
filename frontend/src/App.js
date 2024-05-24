@@ -100,6 +100,7 @@ const App = () => {
 
     try {
       const encodedQuery = encodeURIComponent(query);
+      console.log('ENCODEQUERY:', encodedQuery)
       const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/search?query=${encodedQuery}`);
       console.log('SEARCH RESPONSE:', response.data);
       return response.data;

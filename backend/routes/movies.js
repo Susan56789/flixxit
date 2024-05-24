@@ -91,28 +91,29 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
 
     //  movie search
     app.get('/api/movies/search', async (req, res) => {
-        const query = req.query.query;
-
+        const query = req.query.query || "";
         try {
             const database = client.db("sample_mflix");
             const movies = database.collection("movies");
 
+            console.log('movies: ', movies)
+            console.log('database: ', database)
+
             if (!query) {
                 return res.status(400).json({ message: 'Search query is required' });
             }
-
-            console.log(`Searching for movies with text matching: ${query}`);
-
             const moviesList = await movies
                 .find({ $title: { $search: query } })
                 .toArray();
+
 
             if (moviesList.length === 0) {
                 console.log(`No movies found for query: ${query}`);
                 return res.status(404).json({ message: 'No movies found matching your search' });
             }
+            console.log(`Searching for movies with text matching: ${query}`);
 
-            res.status(200).json(moviesList);
+            res.send(moviesList)
         } catch (error) {
             console.error('Error processing search request:', error);
 
