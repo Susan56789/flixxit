@@ -5,14 +5,13 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
             const database = client.db("sample_mflix");
             const movies = database.collection("movies");
             const { genre, page = 1, limit = 10 } = req.query;
-            console.log("Received genre query:", genre);
 
             let query = {};
             if (genre) {
                 query = { genres: { $regex: new RegExp(genre, "i") } }; // Case-insensitive regex match
             }
 
-            console.log("Query to be executed:", query);
+
 
             const moviesList = await movies
                 .aggregate([
@@ -24,7 +23,6 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
                 ])
                 .toArray();
 
-            console.log("Movies found:", moviesList.length);
             res.status(200).json(moviesList);
         } catch (err) {
             console.error("Error fetching movies:", err);
@@ -34,6 +32,21 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
                     message:
                         "An error occurred while fetching movies. Please try again later.",
                 });
+        }
+    });
+
+    // Endpoint to fetch movies by genre
+    app.get('/api/movies/genre/:genre', async (req, res) => {
+        const { genre } = req.params;
+        try {
+            const database = client.db("sample_mflix");
+            const movies = database.collection("movies");
+            // Find movies by genre using MongoDB query
+            const filteredMovies = await movies.find({ genre }).toArray();
+            res.json(filteredMovies);
+        } catch (error) {
+            console.error('Failed to fetch movies by genre:', error);
+            res.status(500).json({ error: 'Failed to fetch movies by genre' });
         }
     });
 
@@ -78,15 +91,15 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
 
     //  movie search
     app.get('/api/movies/search', async (req, res) => {
-        const query = req.query.query?.trim(); // Trim leading/trailing whitespace
-
-        if (!query) {
-            return res.status(400).json({ message: 'Search query is required' });
-        }
+        const query = req.query.query;
 
         try {
             const database = client.db("sample_mflix");
             const movies = database.collection("movies");
+
+            if (!query) {
+                return res.status(400).json({ message: 'Search query is required' });
+            }
 
             console.log(`Searching for movies with text matching: ${query}`);
 
@@ -110,7 +123,9 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
             } else if (error.name === 'MongoError' && error.code === 11600) {
                 return res.status(500).json({ message: 'Internal server error: MongoDB query timeout' });
             } else {
+
                 return res.status(500).json({ message: 'Internal server error' });
+
             }
         }
     });

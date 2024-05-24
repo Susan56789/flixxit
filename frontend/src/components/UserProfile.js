@@ -4,21 +4,20 @@ import { Link } from "react-router-dom";
 
 const UserProfile = () => {
   const [user, setUser] = useState({});
-  const [latestMovies, setLatestMovies] = useState([]);
+  const [subscribed, setSubscribed] = useState(false);
+  const [genre, setGenre] = useState('');
+  const [mustWatchMovies, setMustWatchMovies] = useState([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState({});
+  const [subscriptionOptions, setSubscriptionOptions] = useState({});
+  const [selectedPlan, setSelectedPlan] = useState('');
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        let userData = localStorage.getItem("flixxItUser")
+        const userData = localStorage.getItem("flixxItUser")
           ? JSON.parse(localStorage.getItem("flixxItUser"))
           : null;
         setUser(userData);
-
-        // Fetch the latest 3 movies in descending order
-        const response = await axios.get(
-          `https://flixxit-h9fa.onrender.com/api/movies?sort=_id&order=desc`
-        );
-        setLatestMovies(response.data?.slice(0, 3));
       } catch (error) {
         console.error("Failed to fetch user:", error);
       }
@@ -27,9 +26,61 @@ const UserProfile = () => {
     fetchUser();
   }, []);
 
-  const handleSubscribe = () => {
-    // Handle subscription logic here, e.g., redirect to subscription page
-    console.log("Redirecting to subscription page...");
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      try {
+        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/subscription-status');
+        setSubscriptionStatus(response.data.subscriptionStatus);
+        setSubscriptionOptions(response.data.subscriptionOptions);
+        setSubscribed(response.data.subscriptionStatus.subscribed);
+        setSelectedPlan(response.data.subscriptionStatus.plan);
+
+        console.log(subscriptionStatus)
+      } catch (error) {
+        console.error('Failed to fetch subscription status:', error);
+      }
+    };
+
+    fetchSubscriptionStatus();
+  }, []);
+
+  useEffect(() => {
+    const fetchMustWatchMovies = async () => {
+      try {
+        if (user && user.preferredGenre) {
+          const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/genre/${user.preferredGenre}`);
+          setMustWatchMovies(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch must-watch movies:', error);
+      }
+    };
+
+    fetchMustWatchMovies();
+  }, [user, user.preferredGenre]);
+
+  const handleSubscribe = async (subscriptionType) => {
+    try {
+      const response = await axios.post('https://flixxit-h9fa.onrender.com/api/subscribe', { userId: user._id, subscriptionType });
+      console.log(response.data.message);
+      setSubscribed(true);
+      setSelectedPlan(subscriptionType);
+    } catch (error) {
+      console.error('Subscription failed:', error);
+    }
+  };
+
+  const handleGenreChange = (e) => {
+    setGenre(e.target.value);
+  };
+
+  const handleSaveGenre = async () => {
+    try {
+      const response = await axios.post('https://flixxit-h9fa.onrender.com/api/set-preferred-genre', { userId: user._id, genre });
+      console.log(response.data.message);
+    } catch (error) {
+      console.error('Failed to set preferred genre:', error);
+    }
   };
 
   return (
@@ -64,45 +115,59 @@ const UserProfile = () => {
                 />
               </div>
             </div>
-          </div>
-          <div className="mb-3">
-            <h4>Recommended Movies</h4>
-            {latestMovies.length > 0 ? (
-              <div className="row">
-                {latestMovies.map((movie) => (
-                  <div key={movie._id} className="col-md-3 mb-4">
-                    <Link to={`/movies/${movie._id}`}>
-                      <div className="card">
-                        <img
-                          src={movie.imageUrl}
-                          alt={movie.title}
-                          className="img-fluid"
-                        />
-                      </div>
-                    </Link>
+            {subscribed ? (
+              <div className="mb-3 col">
+                <p>Subscription Status: {subscriptionStatus.status}</p>
+                <p>Selected Plan: {selectedPlan}</p>
+              </div>
+            ) : (
+              <div className="mb-3 col">
+                <h4>Subscription Options</h4>
+                {Object.keys(subscriptionOptions).map((option) => (
+                  <div key={option}>
+                    <p>
+                      {option} - ${subscriptionOptions[option].cost} ({subscriptionOptions[option].duration})
+                    </p>
+                    <button onClick={() => handleSubscribe(option)}>Subscribe</button>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p>No movies to show</p>
-            )}
-          </div>
-          <div className="mb-3">
-            {user.subscriptionStatus ? (
-              <h4>Subscription Status</h4>
-            ) : (
-              <>
-                <h4>No subscription information available</h4>
-                <button className="btn btn-primary" onClick={handleSubscribe}>
-                  Subscribe to Premium
-                </button>
-              </>
-            )}
-            {user.subscriptionStatus && (
-              <p>{user.subscriptionStatus}</p>
             )}
           </div>
 
+          {subscribed && (
+            <div className="mb-3">
+              <h4>Preferred Genre</h4>
+              <select value={genre} onChange={handleGenreChange}>
+                <option value="">Select Genre</option>
+                <option value="Action">Action</option>
+                <option value="Comedy">Comedy</option>
+                {/* Add more genre options as needed */}
+              </select>
+              <button className="btn btn-primary" onClick={handleSaveGenre}>Save Genre</button>
+            </div>
+          )}
+
+          {subscribed && (
+            <div className="mb-3">
+              <h4>Must Watch</h4>
+              {mustWatchMovies.length > 0 ? (
+                <div className="row">
+                  {mustWatchMovies.map((movie) => (
+                    <div key={movie._id} className="col-md-3 mb-4">
+                      <Link to={`/movies/${movie._id}`}>
+                        <div className="card">
+                          <img src={movie.imageUrl} alt={movie.title} className="img-fluid" />
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No movies to show</p>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
