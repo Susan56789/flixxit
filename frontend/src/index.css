@@ -1,4 +1,3 @@
-
 * {
     font-family: 'Poppins', sans-serif;
     background: #000 !important;
@@ -7,7 +6,8 @@
     padding: 0;
 }
 
-html, body {
+html,
+body {
     height: 100%;
 }
 
@@ -56,19 +56,23 @@ nav {
 }
 
 /* Styling input placeholders */
-::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+::-webkit-input-placeholder {
+    /* Chrome/Opera/Safari */
     color: #fff;
 }
 
-::-moz-placeholder { /* Firefox 19+ */
+::-moz-placeholder {
+    /* Firefox 19+ */
     color: #fff;
 }
 
-:-ms-input-placeholder { /* IE 10+ */
+:-ms-input-placeholder {
+    /* IE 10+ */
     color: #fff;
 }
 
-:-moz-placeholder { /* Firefox 18- */
+:-moz-placeholder {
+    /* Firefox 18- */
     color: #fff;
 }
 
@@ -119,8 +123,8 @@ nav {
 
 .navbar .nav-link.active {
     font-weight: bold;
-  background-color: #f01111 !important;
-  color: #fff !important;
+    background-color: #f01111 !important;
+    color: #fff !important;
 }
 
 .navbar .nav-link.hover-underline-animation:hover {
@@ -136,4 +140,36 @@ nav {
 
 .btn-subtle:hover {
     color: #0056b3;
+}
+
+.loading {
+    font-size: 1.5em;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.error {
+    color: red;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.search-results {
+    padding: 20px;
+}
+
+.movie-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.movie-item {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.movie-item h2 {
+    margin: 0 0 10px 0;
 }

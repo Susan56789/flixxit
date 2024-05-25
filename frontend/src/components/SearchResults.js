@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
+import MovieList from "./MovieList";
 
 const SearchResults = () => {
-  const location = useLocation();
+  const { query } = useParams();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const searchQuery = location.state?.query || "";
 
   useEffect(() => {
     const fetchMovies = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies/search', {
-          params: { query: searchQuery }
+        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/search', {
+          params: { query }
         });
         setMovies(response.data);
       } catch (err) {
@@ -25,10 +25,10 @@ const SearchResults = () => {
       }
     };
 
-    if (searchQuery) {
+    if (query) {
       fetchMovies();
     }
-  }, [searchQuery]);
+  }, [query]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
@@ -37,15 +37,7 @@ const SearchResults = () => {
     <div>
       <h1>Search Results</h1>
       {movies.length > 0 ? (
-        <ul>
-          {movies.map((movie) => (
-            <li key={movie._id}>
-              <h2>{movie.title}</h2>
-              <p>{movie.description}</p>
-              <p>Likes: {movie.likeCount}</p>
-            </li>
-          ))}
-        </ul>
+        <MovieList movies={movies} />
       ) : (
         <p>No movies found for your search.</p>
       )}

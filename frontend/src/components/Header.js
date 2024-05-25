@@ -2,41 +2,28 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getUserToken } from "../utils/helpers";
 
-
 const Header = ({ handleLogout }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
-  const [logIn, setLoggedIn] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   const token = getUserToken();
 
+  useEffect(() => {
+    const userData = localStorage.getItem("flixxItUser")
+      ? JSON.parse(localStorage.getItem("flixxItUser"))
+      : null;
+    setUser(userData);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim() !== "") {
-      navigate("/search", { state: { query: searchQuery } });
+      navigate(`/search/${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
     }
   };
-
-  useEffect(() => {
-    const getUser = () => {
-      let userData = localStorage.getItem("flixxItUser")
-        ? JSON.parse(localStorage.getItem("flixxItUser"))
-        : null;
-      setUser(userData);
-    };
-
-    getUser();
-  }, []);
-
-  useEffect(() => {
-    if (token) {
-      setLoggedIn(true);
-    } else {
-      setLoggedIn(false);
-    }
-  }, [token]);
 
   return (
     <div className="container">
@@ -68,24 +55,22 @@ const Header = ({ handleLogout }) => {
             </ul>
 
             <div className="d-flex align-items-center flex-column flex-lg-row">
-              {!logIn ? (
-                <div>
-                  <a className="btn btn-primary me-2 hover-scale-animation" href="/login">Login</a>
-                </div>
+              {token ? (
+                <ul className="navbar-nav me-auto mb-0">
+                  <li className={`nav-item ${location.pathname === "/watchlist" ? "active" : ""}`}>
+                    <a className="nav-link hover-underline-animation" href="/watchlist">WatchList</a>
+                  </li>
+                  <li className={`nav-item ${location.pathname === "/profile" ? "active" : ""}`}>
+                    <a className="nav-link hover-underline-animation" href="/profile">My Profile</a>
+                  </li>
+                  <li className="nav-item">
+                    <button className="btn btn-danger hover-scale-animation" onClick={handleLogout}>
+                      Logout
+                    </button>
+                  </li>
+                </ul>
               ) : (
-                <div>
-                  <ul className="navbar-nav me-auto mb-0">
-                    <li className={`nav-item ${location.pathname === "/watchlist" ? "active" : ""}`}>
-                      <a className="nav-link hover-underline-animation" href="/watchlist">WatchList</a>
-                    </li>
-                    <li className={`nav-item ${location.pathname === "/profile" ? "active" : ""}`}>
-                      <a className="nav-link hover-underline-animation" href="/profile">My Profile</a>
-                    </li>
-                    <li className="nav-item">
-                      <button className="btn btn-danger hover-scale-animation" onClick={handleLogout}>Logout</button>
-                    </li>
-                  </ul>
-                </div>
+                <a className="btn btn-primary me-2 hover-scale-animation" href="/login">Login</a>
               )}
             </div>
           </div>
@@ -104,7 +89,7 @@ const Header = ({ handleLogout }) => {
             />
           </div>
           <div className="col-3 col-md-2 d-flex justify-content-center">
-            <button className="btn btn-subtle" type="submit">
+            <button className="btn btn-subtle" type="submit" aria-label="Search">
               <i className="fa-solid fa-magnifying-glass fa-lg"></i>
             </button>
           </div>

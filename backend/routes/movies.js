@@ -90,20 +90,24 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
     });
 
 
-   app.get("/api/movies/search", async (req, res) => {
-      const { query } = req?.query || "";
-    try {
-        const database = client.db("sample_mflix");
-        const movies = database.collection("movies");
-        const searchRegex = new RegExp(query, "i");
-        const results = await movies.find({ title: { $regex: searchRegex } }).toArray();
-        // res.status(200).json(results);
-        res.send(results)
-    } catch (error) {
-        console.error("Error fetching search results:", error);
-        res.status(500).json({ message: "An error occurred while searching for movies.", error: error.message });
-    }
+    // Movie Search Endpoint
+
+    app.get("/api/search", async (req, res) => {
+        const query = req.query.query || "";
+
+        try {
+            const database = client.db("sample_mflix");
+            const movies = database.collection("movies");
+            const searchRegex = new RegExp(query, "i");
+            const results = await movies.find({ title: { $regex: searchRegex } }).toArray();
+            res.status(200).json(results);
+        } catch (error) {
+            console.error("Error fetching search results:", error);
+            res.status(500).json({ message: "An error occurred while searching for movies.", error: error.message });
+        }
     });
+
+
 
 
 
