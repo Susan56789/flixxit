@@ -27,7 +27,7 @@ const Header = ({ handleLogout }) => {
 
   return (
     <div className="container">
-      <nav className="navbar navbar-expand-lg sticky-top">
+      <nav className="navbar navbar-expand-lg">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">Flixxit</a>
           <button

@@ -17,7 +17,7 @@ const PasswordReset = () => {
         }
 
         try {
-            const response = await axios.post('https://flixxit-h9fa.onrender.com/api/change-password', {
+            const response = await axios.post('https://flixxit-h9fa.onrender.com/api/reset-password', {
                 email,
                 newPassword,
             });
@@ -25,7 +25,7 @@ const PasswordReset = () => {
             setError('');
         } catch (error) {
             setMessage('');
-            setError('Failed to change password. Please try again.');
+            setError('Failed to reset password. Please try again.');
         }
     };
 
@@ -35,7 +35,7 @@ const PasswordReset = () => {
                 <div className="col-md-6">
                     <div className="card">
                         <div className="card-body">
-                            <h2 className="card-title">Change Password</h2>
+                            <h2 className="card-title">Reset Password</h2>
                             {message && <p className="text-success">{message}</p>}
                             {error && <p className="text-danger">{error}</p>}
                             <form onSubmit={handleChangePassword}>
@@ -79,7 +79,7 @@ const PasswordReset = () => {
                                     />
                                 </div>
                                 <button type="submit" className="btn btn-primary">
-                                    Change Password
+                                    Reset Password
                                 </button>
                             </form>
                         </div>

@@ -4,7 +4,7 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
     app.get("/api/movies", async (req, res) => {
         try {
             const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
+            const movies = await database.collection("movies");
             const { genre, page = 1, limit = 10 } = req.query;
 
             let query = {};
@@ -41,7 +41,7 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
         const { genre } = req.params;
         try {
             const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
+            const movies = await database.collection("movies");
             // Find movies by genre using MongoDB query
             const filteredMovies = await movies.find({ genre }).toArray();
             res.json(filteredMovies);

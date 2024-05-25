@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { getUser } from '../utils/helpers';
+import { getUser } from "../utils/helpers";
+
 const UserProfile = () => {
   const [user, setUser] = useState({});
   const [subscribed, setSubscribed] = useState(false);
-  const [genre, setGenre] = useState('');
+  const [genre, setGenre] = useState("");
   const [mustWatchMovies, setMustWatchMovies] = useState([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [subscriptionOptions, setSubscriptionOptions] = useState({});
-  const [selectedPlan, setSelectedPlan] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState("");
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,7 +20,6 @@ const UserProfile = () => {
       try {
         const userData = getUser();
         setUser(userData);
-
         if (userData && userData.preferredGenre) {
           setGenre(userData.preferredGenre);
         }
@@ -27,7 +27,6 @@ const UserProfile = () => {
         console.error("Failed to fetch user:", error);
       }
     };
-
     fetchUser();
   }, []);
 
@@ -35,52 +34,63 @@ const UserProfile = () => {
     const fetchMovies = async () => {
       setLoading(true);
       setError(null);
-
       try {
-        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
+        const response = await axios.get("https://flixxit-h9fa.onrender.com/api/movies");
         setMovies(response.data);
       } catch (err) {
-        console.error('Error fetching movies:', err);
-        setError('Failed to load movies. Please try again later.');
+        console.error("Error fetching movies:", err);
+        setError("Failed to load movies. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchMovies();
   }, []);
 
   useEffect(() => {
-    const fetchSubscriptionStatus = async () => {
-      try {
-        const user = getUser();
-        if (!user) return;
+    const storedSubscriptionData = localStorage.getItem("flixxItSubscription");
+    if (storedSubscriptionData) {
+      const subscriptionData = JSON.parse(storedSubscriptionData);
+      setSubscribed(subscriptionData.subscribed);
+      setSelectedPlan(subscriptionData.plan);
+      setSubscriptionStatus(subscriptionData.status);
+    } else {
+      const fetchSubscriptionStatus = async () => {
+        try {
+          const user = getUser();
+          if (!user) return;
 
-        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/subscription-status', {
-          params: { userId: user._id }
-        });
+          const response = await axios.get("https://flixxit-h9fa.onrender.com/api/subscription-status", {
+            params: { userId: user._id },
+          });
 
-        const statusData = response.data.subscriptionStatus || { status: 'Free', subscribed: false, plan: '' };
-        setSubscriptionStatus(statusData.status);
-        setSubscriptionOptions(response.data.subscriptionOptions);
-        setSubscribed(statusData.subscribed);
-        setSelectedPlan(statusData.plan);
+          const statusData = response?.data?.subscriptionStatus || {
+            status: "Free",
+            subscribed: false,
+            plan: "",
+          };
 
-        // Save subscription status in local storage
-        const subscriptionData = {
-          subscribed: statusData.subscribed,
-          plan: statusData.plan,
-          status: statusData.status
-        };
-        localStorage.setItem('flixxItSubscription', JSON.stringify(subscriptionData));
-      } catch (error) {
-        console.error('Failed to fetch subscription status:', error);
+          console.log("statusData", statusData);
+          setSubscriptionStatus(statusData.status);
+          setSubscriptionOptions(response.data.subscriptionOptions);
+          setSubscribed(statusData.subscribed);
+          setSelectedPlan(statusData.plan);
+
+          const subscriptionData = {
+            subscribed: statusData.subscribed,
+            plan: statusData.plan,
+            status: statusData.status,
+          };
+          localStorage.setItem("flixxItSubscription", JSON.stringify(subscriptionData));
+        } catch (error) {
+          console.error("Failed to fetch subscription status:", error);
+        }
+      };
+
+      const user = getUser();
+      if (user && user._id) {
+        fetchSubscriptionStatus();
       }
-    };
-
-    const user = getUser();
-    if (user && user._id) {
-      fetchSubscriptionStatus();
     }
   }, []);
 
@@ -89,39 +99,41 @@ const UserProfile = () => {
       try {
         const response = genre
           ? await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/genre/${genre}`)
-          : await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
+          : await axios.get("https://flixxit-h9fa.onrender.com/api/movies");
         setMustWatchMovies(response.data.slice(0, 4));
       } catch (error) {
-        console.error('Failed to fetch must-watch movies:', error);
+        console.error("Failed to fetch must-watch movies:", error);
       }
     };
-
     fetchMustWatchMovies();
   }, [genre]);
 
   const handleSubscribe = async (subscriptionType) => {
     try {
-      const response = await axios.post('https://flixxit-h9fa.onrender.com/api/subscribe', { userId: user._id, subscriptionType });
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/subscribe", {
+        userId: user._id,
+        subscriptionType,
+      });
       console.log(response.data.message);
       setSubscribed(true);
       setSelectedPlan(subscriptionType);
-      setSubscriptionStatus('Premium');
+      setSubscriptionStatus("Premium");
 
-      // Update user object with subscription details
-      const updatedUser = { ...user, subscribed: true, plan: subscriptionType, status: 'Premium' };
+      const updatedUser = { ...user, subscribed: true, plan: subscriptionType, status: "Premium" };
       setUser(updatedUser);
-      localStorage.setItem('flixxItUser', JSON.stringify(updatedUser));
-
-      // Update subscription data in local storage
-      localStorage.setItem('flixxItSubscription', JSON.stringify({ subscribed: true, plan: subscriptionType, status: 'Premium' }));
+      localStorage.setItem("flixxItUser", JSON.stringify(updatedUser));
+      localStorage.setItem(
+        "flixxItSubscription",
+        JSON.stringify({ subscribed: true, plan: subscriptionType, status: "Premium" })
+      );
     } catch (error) {
-      console.error('Subscription failed:', error);
+      console.error("Subscription failed:", error);
     }
   };
 
   const genres = useMemo(() => {
     const uniqueGenres = new Set();
-    movies.forEach(movie => {
+    movies.forEach((movie) => {
       if (movie.genre) {
         uniqueGenres.add(movie.genre);
       }
@@ -135,15 +147,17 @@ const UserProfile = () => {
 
   const handleSaveGenre = async () => {
     try {
-      const response = await axios.post('https://flixxit-h9fa.onrender.com/api/set-preferred-genre', { userId: user._id, genre });
+      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/set-preferred-genre", {
+        userId: user._id,
+        genre,
+      });
       console.log(response.data.message);
 
-      // Update user object with preferred genre
       const updatedUser = { ...user, preferredGenre: genre };
       setUser(updatedUser);
-      localStorage.setItem('flixxItUser', JSON.stringify(updatedUser));
+      localStorage.setItem("flixxItUser", JSON.stringify(updatedUser));
     } catch (error) {
-      console.error('Failed to set preferred genre:', error);
+      console.error("Failed to set preferred genre:", error);
     }
   };
 
@@ -179,7 +193,7 @@ const UserProfile = () => {
                 />
               </div>
             </div>
-            {subscribed ? (
+            {subscriptionStatus === "Premium" ? (
               <div className="mb-3 col">
                 <p>Subscription Status: {subscriptionStatus}</p>
                 <p>Selected Plan: {selectedPlan}</p>
@@ -199,45 +213,42 @@ const UserProfile = () => {
             )}
           </div>
 
-          {subscribed && (
-            <div className="mb-3">
-              <h4>Preferred Genre</h4>
-              <select
-                id="genre-select"
-                className="form-select d-inline-block"
-                value={genre}
-                onChange={handleGenreChange}
-              >
-                <option value="">All</option>
-                {genres.map((genre) => (
-                  <option key={genre} value={genre}>
-                    {genre}
-                  </option>
-                ))}
-              </select>
-              <button className="btn btn-primary" onClick={handleSaveGenre}>Save Genre</button>
-            </div>
-          )}
-
-          {subscribed && (
-            <div className="mb-3">
-              <h4>Must Watch</h4>
-              {mustWatchMovies.length > 0 ? (
-                <div className="row">
-                  {mustWatchMovies.map((movie) => (
-                    <div key={movie._id} className="col-md-3 mb-4">
-                      <Link to={`/movies/${movie._id}`}>
-                        <div className="card">
-                          <img src={movie.imageUrl} alt={movie.title} className="img-fluid" />
-                        </div>
-                      </Link>
-                    </div>
+          {subscriptionStatus === "Premium" && (
+            <>
+              <div className="mb-3">
+                <h4>Preferred Genre</h4>
+                <select id="genre-select" className="form-select d-inline-block" value={genre} onChange={handleGenreChange}>
+                  <option value="">All</option>
+                  {genres.map((genre) => (
+                    <option key={genre} value={genre}>
+                      {genre}
+                    </option>
                   ))}
-                </div>
-              ) : (
-                <p>No movies to show</p>
-              )}
-            </div>
+                </select>
+                <button className="btn btn-primary" onClick={handleSaveGenre}>
+                  Save Genre
+                </button>
+              </div>
+
+              <div className="mb-3">
+                <h4>Must Watch</h4>
+                {mustWatchMovies.length > 0 ? (
+                  <div className="row">
+                    {mustWatchMovies.map((movie) => (
+                      <div key={movie._id} className="col-md-3 mb-4">
+                        <Link to={`/movies/${movie._id}`}>
+                          <div className="card">
+                            <img src={movie.imageUrl} alt={movie.title} className="img-fluid" />
+                          </div>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No movies to show</p>
+                )}
+              </div>
+            </>
           )}
         </>
       )}

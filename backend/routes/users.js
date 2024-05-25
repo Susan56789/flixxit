@@ -64,10 +64,18 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
         }
     });
 
-    // Change password endpoint
-    app.post("/api/change-password", authenticate, async (req, res) => {
+    app.post("/api/reset-password", async (req, res) => {
         try {
             const { email, newPassword } = req.body;
+
+            if (!email || !newPassword) {
+                return res.status(400).json({ message: "Email and new password are required" });
+            }
+
+            // Validate new password strength
+            if (newPassword.length < 8) {
+                return res.status(400).json({ message: "New password must be at least 8 characters long" });
+            }
 
             // Find the user by email
             const database = client.db("sample_mflix");
@@ -78,7 +86,7 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
                 return res.status(404).json({ message: "User not found" });
             }
 
-            // Hash the new password with a higher cost factor
+            // Hash the new password
             const saltRounds = 12;
             const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
@@ -88,12 +96,13 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
                 { $set: { password: hashedNewPassword } }
             );
 
-            res.json({ message: "Password updated successfully" });
+            res.json({ message: "Password reset successfully" });
         } catch (err) {
-            console.error("Error changing password:", err);
+            console.error("Error resetting password:", err);
             res.status(500).json({ message: "Internal server error" });
         }
     });
+
 
     //get user data
     app.get("/api/user/:id", async (req, res) => {
