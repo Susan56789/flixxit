@@ -23,7 +23,7 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
 
   return (
     <div className="App">
-      <Header isLoggedIn={isLoggedIn} handleLogout={handleLogout} handleSearch={handleSearch} />
+      <Header isLoggedIn={isLoggedIn} handleLogout={handleLogout}  />
       <div className="main">
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -34,7 +34,7 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
           } />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/categories" element={<MovieCategories handleSearch={handleSearch} />} />
-          <Route path="/search-page" element={<SearchResults handleSearch={handleSearch} />} />
+          <Route path="/search" element={<SearchResults handleSearch={handleSearch} />} />
           <Route path="/watchlist" element={
             <ProtectedRoute isLoggedIn={isLoggedIn}>
               <WatchList user={user} />

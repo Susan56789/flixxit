@@ -1,50 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import MovieList from './MovieList';
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import axios from "axios";
 
-const SearchResults = ({ handleSearch }) => {
+const SearchResults = () => {
   const location = useLocation();
-  const state = location.state || {};
-  const [results, setResults] = useState([]);
-  const [query, setQuery] = useState(state.query || '');
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const searchQuery = location.state?.query || "";
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!query) return;
-
+    const fetchMovies = async () => {
       try {
-        const data = await handleSearch(query);
-        setResults(data);
-
+        setLoading(true);
+        const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies/search', {
+          params: { query: searchQuery }
+        });
+        setMovies(response.data);
       } catch (err) {
-        console.error('Error during search:', err);
-        setResults([]);
-        setError('An error occurred while fetching search results. Please try again.');
+        console.error("Error fetching search results:", err);
+        setError('An error occurred while fetching the movies.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchData();
-  }, [query, handleSearch]);
+    if (searchQuery) {
+      fetchMovies();
+    }
+  }, [searchQuery]);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
-    <div className="container mt-4">
-      {query ? (
-        <div className="mt-4">
-          <h2 className="mb-4">Search Results for "{query}"</h2>
-          {error ? (
-            <div className="alert alert-danger">{error}</div>
-          ) : results.length > 0 ? (
-            <MovieList movies={results} />
-          ) : (
-            <p className="lead">No results found for your search query.</p>
-          )}
-        </div>
+    <div>
+      <h1>Search Results</h1>
+      {movies.length > 0 ? (
+        <ul>
+          {movies.map((movie) => (
+            <li key={movie._id}>
+              <h2>{movie.title}</h2>
+              <p>{movie.description}</p>
+              <p>Likes: {movie.likeCount}</p>
+            </li>
+          ))}
+        </ul>
       ) : (
-        <div className="mt-4">
-          <h2 className="mb-4">No search query provided</h2>
-          <p className="lead">Please enter a search query to see results.</p>
-        </div>
+        <p>No movies found for your search.</p>
       )}
     </div>
   );

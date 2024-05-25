@@ -1,16 +1,4 @@
 module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
-    const express = require('express');
-    const router = express.Router();
-    router.use(authenticate);  // Ensure all routes are authenticated
-
-     // Ensure text index is created before handling search
-     router.use(async (req, res, next) => {
-        const database = client.db('sample_mflix');
-        const movies = database.collection('movies');
-        await createTextIndex(movies);
-        next();
-    });
-
 
     // Movies
     app.get("/api/movies", async (req, res) => {
@@ -102,38 +90,20 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
     });
 
 
-    //  movie search
-    router.get('/api/movies/search', async (req, res) => {
-        const query = req.query.query || "";
-        try {
-            const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
-
-            if (!query) {
-                return res.status(400).json({ message: 'Search query is required' });
-            }
-
-            const moviesList = await movies
-                .find({ $text: { $search: query } })
-                .toArray();
-
-            if (moviesList.length === 0) {
-                console.log(`No movies found for query: ${query}`);
-                return res.status(404).json({ message: 'No movies found matching your search' });
-            }
-            
-            console.log(`Searching for movies with text matching: ${query}`);
-
-            res.send(moviesList);
-        } catch (err) {
-            if (!err.status && !err.statusCode) {
-              console.error("Uncaught Error -- turning into 500", err, err.message);
-              err.status = 500;
-            }
-            throw err;
-          }
+   app.get("/api/movies/search", async (req, res) => {
+      const { query } = req?.query || "";
+    try {
+        const database = client.db("sample_mflix");
+        const movies = database.collection("movies");
+        const searchRegex = new RegExp(query, "i");
+        const results = await movies.find({ title: { $regex: searchRegex } }).toArray();
+        // res.status(200).json(results);
+        res.send(results)
+    } catch (error) {
+        console.error("Error fetching search results:", error);
+        res.status(500).json({ message: "An error occurred while searching for movies.", error: error.message });
+    }
     });
-    
 
 
 

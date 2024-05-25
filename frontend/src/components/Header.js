@@ -15,7 +15,7 @@ const Header = ({ handleLogout }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim() !== "") {
-      navigate("/search-page", { state: { query: searchQuery } });
+      navigate("/search", { state: { query: searchQuery } });
     }
   };
 
