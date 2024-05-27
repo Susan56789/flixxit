@@ -19,7 +19,7 @@ Flixxit is an application that allows users to add and view movies. It is built 
 1. Clone the repository:
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/Susan56789/flixxit
     cd flixxit
     ```
 
