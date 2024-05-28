@@ -14,7 +14,7 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminLogin from "./components/Admin/AdminLogin";
 import PasswordReset from "./components/PasswordReset";
 import ProtectedRoute from "./components/ProtectedRoute";
-// import AdminRoute from "./components/AdminRoute";
+import AdminRoute from "./components/AdminRoute";
 import { AuthContext } from './AuthContext';
 import Footer from "./components/Footer";
 
@@ -48,9 +48,9 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
           <Route path="/reset-password" element={<PasswordReset />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={
-            // <AdminRoute isAdmin={isAdmin}>
-            <AdminDashboard />
-            // </AdminRoute>
+            <AdminRoute isAdmin={isAdmin}>
+              <AdminDashboard />
+            </AdminRoute>
           } />
         </Routes>
       </div>
