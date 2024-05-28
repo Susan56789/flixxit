@@ -55,7 +55,7 @@ const Header = ({ handleLogout }) => {
             </ul>
 
             <div className="d-flex align-items-center flex-column flex-lg-row">
-              {token ? (
+              {token && user ? (
                 <ul className="navbar-nav me-auto mb-0">
                   <li className={`nav-item ${location.pathname === "/watchlist" ? "active" : ""}`}>
                     <Link className="nav-link hover-underline-animation" to="/watchlist">WatchList</Link>
