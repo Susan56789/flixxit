@@ -13,15 +13,18 @@ const AdminLogin = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError(''); // Clear previous errors
+
         try {
             const response = await axios.post('https://flixxit-h9fa.onrender.com/api/admin/login', { email, password });
+
             if (response.data.success) {
                 navigate('/admin/dashboard');
             } else {
-                setError(response.data.message);
+                setError(response.data.message || 'Login failed. Please check your credentials.');
             }
         } catch (error) {
-            setError('Failed to log in. Please try again.');
+            setError(error.response?.data?.message || 'Failed to log in. Please try again.');
         }
     };
 
@@ -31,20 +34,23 @@ const AdminLogin = () => {
     };
 
     const handleChangePassword = async () => {
+        setError(''); // Clear previous errors
+
         try {
             const response = await axios.post('https://flixxit-h9fa.onrender.com/api/admin/change-password', {
                 email: forgotPasswordEmail,
                 newPassword,
             });
+
             if (response.data.success) {
                 alert('Password changed successfully!');
                 setShowForgotPasswordPopup(false);
                 setNewPassword('');
             } else {
-                alert(response.data.message);
+                alert(response.data.message || 'Failed to change password.');
             }
         } catch (error) {
-            alert('Failed to change password. Please try again.');
+            alert(error.response?.data?.message || 'Failed to change password. Please try again.');
         }
     };
 

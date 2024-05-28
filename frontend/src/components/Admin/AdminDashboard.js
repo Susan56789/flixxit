@@ -34,8 +34,14 @@ const AdminDashboard = () => {
     setFormError(errors);
 
     if (Object.keys(errors).length === 0) {
+      const formattedData = {
+        ...formData,
+        rating: parseFloat(formData.rating),
+        year: parseInt(formData.year, 10)
+      };
+
       try {
-        const response = await axios.post('https://flixxit-h9fa.onrender.com/api/movies', formData);
+        const response = await axios.post('https://flixxit-h9fa.onrender.com/api/movies', formattedData);
         setMessage({ type: 'success', text: 'Movie added successfully!' });
         setFormData({
           title: '',

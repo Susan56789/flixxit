@@ -1,11 +1,12 @@
 module.exports = (client, app, bcrypt) => {
-    const database = client.db("sample_mflix");
-    const admins = database.collection("admins");
+
 
     // Admin Login
     app.post('/api/admin/login', async (req, res) => {
         try {
             const { email, password } = req.body;
+            const database = client.db("sample_mflix");
+            const admins = database.collection("admins");
 
             if (!email || !password) {
                 return res.status(400).json({ success: false, message: 'Email and password are required' });
@@ -33,6 +34,9 @@ module.exports = (client, app, bcrypt) => {
     app.post('/api/admin/change-password', async (req, res) => {
         try {
             const { email, newPassword } = req.body;
+
+            const database = client.db("sample_mflix");
+            const admins = database.collection("admins");
 
             if (!email || !newPassword) {
                 return res.status(400).json({ success: false, message: 'Email and new password are required' });

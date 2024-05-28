@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getUserToken } from "../utils/helpers";
 
 const Header = ({ handleLogout }) => {
@@ -29,7 +29,7 @@ const Header = ({ handleLogout }) => {
     <div className="container">
       <nav className="navbar navbar-expand-lg">
         <div className="container-fluid">
-          <a className="navbar-brand" href="/">Flixxit</a>
+          <Link className="navbar-brand" to="/">Flixxit</Link>
           <button
             className="navbar-toggler"
             type="button"
@@ -44,13 +44,13 @@ const Header = ({ handleLogout }) => {
           <div className="collapse navbar-collapse" id="navbarExample">
             <ul className="navbar-nav me-auto mb-0">
               <li className={`nav-item ${location.pathname === "/" ? "active" : ""}`}>
-                <a className="nav-link hover-underline-animation" href="/">Home</a>
+                <Link className="nav-link hover-underline-animation" to="/">Home</Link>
               </li>
               <li className={`nav-item ${location.pathname === "/about-us" ? "active" : ""}`}>
-                <a className="nav-link hover-underline-animation" href="/about-us">About Us</a>
+                <Link className="nav-link hover-underline-animation" to="/about-us">About Us</Link>
               </li>
               <li className={`nav-item ${location.pathname === "/categories" ? "active" : ""}`}>
-                <a className="nav-link hover-underline-animation" href="/categories">Category</a>
+                <Link className="nav-link hover-underline-animation" to="/categories">Category</Link>
               </li>
             </ul>
 
@@ -58,10 +58,10 @@ const Header = ({ handleLogout }) => {
               {token ? (
                 <ul className="navbar-nav me-auto mb-0">
                   <li className={`nav-item ${location.pathname === "/watchlist" ? "active" : ""}`}>
-                    <a className="nav-link hover-underline-animation" href="/watchlist">WatchList</a>
+                    <Link className="nav-link hover-underline-animation" to="/watchlist">WatchList</Link>
                   </li>
                   <li className={`nav-item ${location.pathname === "/profile" ? "active" : ""}`}>
-                    <a className="nav-link hover-underline-animation" href="/profile">My Profile</a>
+                    <Link className="nav-link hover-underline-animation" to="/profile">My Profile</Link>
                   </li>
                   <li className="nav-item">
                     <button className="btn btn-danger hover-scale-animation" onClick={handleLogout}>
@@ -70,7 +70,7 @@ const Header = ({ handleLogout }) => {
                   </li>
                 </ul>
               ) : (
-                <a className="btn btn-primary me-2 hover-scale-animation" href="/login">Login</a>
+                <Link className="btn btn-primary me-2 hover-scale-animation" to="/login">Login</Link>
               )}
             </div>
           </div>
