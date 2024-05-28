@@ -16,7 +16,6 @@ const AdminLogin = () => {
         try {
             const response = await axios.post('https://flixxit-h9fa.onrender.com/api/admin/login', { email, password });
             if (response.data.success) {
-                // Redirect to admin dashboard upon successful login
                 navigate('/admin/dashboard');
             } else {
                 setError(response.data.message);
@@ -35,20 +34,73 @@ const AdminLogin = () => {
         try {
             const response = await axios.post('https://flixxit-h9fa.onrender.com/api/admin/change-password', {
                 email: forgotPasswordEmail,
-                newPassword, // Use 'newPassword' as the key
+                newPassword,
             });
-
             if (response.data.success) {
                 alert('Password changed successfully!');
                 setShowForgotPasswordPopup(false);
-                setNewPassword(''); // Reset the newPassword state
+                setNewPassword('');
             } else {
                 alert(response.data.message);
             }
         } catch (error) {
-            console.error('Error changing password:', error);
             alert('Failed to change password. Please try again.');
         }
+    };
+
+    const renderError = () => {
+        return error ? <p className="text-danger">{error}</p> : null;
+    };
+
+    const renderModal = () => {
+        if (!showForgotPasswordPopup) return null;
+
+        return (
+            <div className="modal" style={{ display: 'block' }}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title">Change Password</h5>
+                            <button type="button" className="close" onClick={() => setShowForgotPasswordPopup(false)}>
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="mb-3">
+                                <label htmlFor="forgotPasswordEmail" className="form-label">Email:</label>
+                                <input
+                                    type="email"
+                                    id="forgotPasswordEmail"
+                                    className="form-control"
+                                    value={forgotPasswordEmail}
+                                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="newPassword" className="form-label">New Password:</label>
+                                <input
+                                    type="password"
+                                    id="newPassword"
+                                    className="form-control"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-secondary" onClick={() => setShowForgotPasswordPopup(false)}>
+                                Cancel
+                            </button>
+                            <button type="button" className="btn btn-primary" onClick={handleChangePassword}>
+                                Change Password
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -58,12 +110,10 @@ const AdminLogin = () => {
                     <div className="card">
                         <div className="card-body">
                             <h2 className="card-title">Admin Login</h2>
-                            {error && <p className="text-danger">{error}</p>}
+                            {renderError()}
                             <form onSubmit={handleLogin}>
                                 <div className="mb-3">
-                                    <label htmlFor="email" className="form-label">
-                                        Email:
-                                    </label>
+                                    <label htmlFor="email" className="form-label">Email:</label>
                                     <input
                                         type="email"
                                         id="email"
@@ -74,9 +124,7 @@ const AdminLogin = () => {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="password" className="form-label">
-                                        Password:
-                                    </label>
+                                    <label htmlFor="password" className="form-label">Password:</label>
                                     <input
                                         type="password"
                                         id="password"
@@ -86,9 +134,7 @@ const AdminLogin = () => {
                                         required
                                     />
                                 </div>
-                                <button type="submit" className="btn btn-primary">
-                                    Login
-                                </button>
+                                <button type="submit" className="btn btn-primary">Login</button>
                                 <button type="button" className="btn btn-link" onClick={handleForgotPassword}>
                                     Forgot Password?
                                 </button>
@@ -97,60 +143,9 @@ const AdminLogin = () => {
                     </div>
                 </div>
             </div>
-
-            {showForgotPasswordPopup && (
-                <div className="modal" style={{ display: 'block' }}>
-                    <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Change Password</h5>
-                                <button type="button" className="close" onClick={() => setShowForgotPasswordPopup(false)}>
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="mb-3">
-                                    <label htmlFor="forgotPasswordEmail" className="form-label">
-                                        Email:
-                                    </label>
-                                    <input
-                                        type="email"
-                                        id="forgotPasswordEmail"
-                                        className="form-control"
-                                        value={forgotPasswordEmail}
-                                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="mb-3">
-                                    <label htmlFor="newPassword" className="form-label">
-                                        New Password:
-                                    </label>
-                                    <input
-                                        type="password"
-                                        id="newPassword"
-                                        className="form-control"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowForgotPasswordPopup(false)}>
-                                    Cancel
-                                </button>
-                                <button type="button" className="btn btn-primary" onClick={handleChangePassword}>
-                                    Change Password
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            {renderModal()}
         </div>
-    )
-}
+    );
+};
 
 export default AdminLogin;

@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -5,13 +8,14 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { MongoClient } = require("mongodb");
 
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 const ObjectId = require("mongodb").ObjectId;
 
 // Connection URI
-const uri =   "mongodb+srv://devnimoh:INM8mbnUneU1mGFu@cluster0.inrpjl1.mongodb.net/sample_mflix?retryWrites=true&w=majority";
+const uri = process.env.MONGODB_URI;
 
 // Create a new MongoClient
 const client = new MongoClient(uri);
