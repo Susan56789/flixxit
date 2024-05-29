@@ -210,7 +210,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                 onClick={handleWatchClick}
               >
                 <FaPlay className="mr-2" />
-                Watch
+                Trailer
               </button>
             )}
             <button
