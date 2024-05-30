@@ -17,6 +17,9 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [alertMessage, setAlertMessage] = useState('');
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [username, setUsername] = useState(null);
+
 
   // Fetch movie details and recommended movies
   useEffect(() => {
@@ -49,7 +52,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         );
 
         fetchRecommendedMovies(movieData);
-        fetchComments(movieData._id); // Fetch comments
+        fetchComments(movieData._id);
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -74,14 +77,61 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     const fetchComments = async (movieId) => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
-        setComments(response.data);
+        if (response.data.length > 0) {
+          setComments(response.data);
+        } else {
+          setComments([]);
+        }
       } catch (error) {
         console.error('Error fetching comments:', error);
       }
     };
 
+
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/users");
+        setUsers(response.data);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+
+    fetchUsers();
+
     fetchMovieDetail();
   }, [id, user]);
+
+  useEffect(() => {
+
+    const findUserByUserId = async () => {
+
+      if (comments && comments.length > 0 && comments[0].userId) {
+        const userId = comments[0].userId;
+
+        if (users && Array.isArray(users)) {
+
+          for (const user of users) {
+            if (user._id === userId) {
+              setUsername(user.username);
+              return;
+            }
+          }
+        } else {
+
+          console.error('users is not an iterable object');
+        }
+      } else {
+        console.log('No comments or userId available yet');
+      }
+
+
+      return null;
+    };
+    findUserByUserId();
+  }, [users, comments]);
+
+
 
   const handleWatchClick = () => {
     setShowPlayer(true);
@@ -159,6 +209,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
   };
 
+
   // Handle comment submission
   const handleCommentSubmit = async () => {
     if (!user) {
@@ -171,10 +222,19 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       return;
     }
 
-    const commentPayload = { text: commentText };
+    // Check if the user has already commented
+    const hasCommented = comments.some(comment => comment.userId === user._id);
+    if (hasCommented) {
+      setAlertMessage('You have already posted a comment for this movie.');
+      return;
+    }
+
+    // Limit the comment text to 300 words
+    const maxLength = 300;
+    const trimmedCommentText = commentText.trim().split(' ').slice(0, maxLength).join(' ');
+
+    const commentPayload = { text: trimmedCommentText };
     const token = localStorage.getItem('token');
-    console.log('Auth token:', token);
-    console.log('Submitting comment:', commentPayload);
 
     try {
       const response = await axios.post(
@@ -191,6 +251,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       setAlertMessage('Error posting comment.');
     }
   };
+
 
   // Handle loading and error states
   if (error) {
@@ -222,54 +283,77 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Movie Player</h5>
-                <button type="button" className="btn-close" aria-label="Close" onClick={handleClosePlayer}></button>
+                <button type="button" className="btn btn-secondary" onClick={handleClosePlayer}>
+                  Back to Details
+                </button>
               </div>
               <div className="modal-body">
-                <div className="ratio ratio-16x9">
-                  <ReactPlayer
-                    url={movie.videoUrl}
-                    controls
-                    playing
-                    width="100%"
-                    height="100%"
-                  />
-                </div>
+                <ReactPlayer url={movie.videoUrl} playing controls width="100%" />
               </div>
             </div>
           </div>
         </div>
       )}
-      <h2 className="display-4 mb-3">{movie.title}</h2>
-      <div className="row mb-3">
-        <div className="col-md-6">
-          <img src={movie.imageUrl} className="img-fluid" alt={movie.title} />
+      <div className="row">
+        <div className="col-md-4">
+          <img
+            src={movie.imageUrl}
+            alt={movie.title}
+            className="img-fluid mb-3"
+          />
         </div>
-        <div className="col-md-6">
-          <p><strong>Year:</strong> {movie.year}</p>
-          <p><strong>Genre:</strong> {movie.genre}</p>
-          <p><strong>Rating:</strong> {movie.rating}</p>
+        <div className="col-md-8">
+          <h2>{movie.title}</h2>
           <p>{movie.description}</p>
-          <button className="btn btn-primary me-2" onClick={handleWatchClick}>
-            <FaPlay className="me-1" /> Trailer
-          </button>
-          <button className="btn btn-success me-2" onClick={handleLikeClick}>
-            <FaThumbsUp className="me-1" /> Like {movie.likes ? `(${movie.likes})` : ''}
-          </button>
-          <button className="btn btn-danger" onClick={handleDislikeClick}>
-            <FaThumbsDown className="me-1" /> Dislike {movie.dislikes ? `(${movie.dislikes})` : ''}
-          </button>
+          <p>Genre: {movie.genre}</p>
+          <p>Rating: {movie.rating}</p>
+          <p>Year: {movie.year}</p>
+          <div className="btn-group" role="group">
+            {movie.videoUrl && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleWatchClick}
+              >
+                <FaPlay className="mr-2" />
+                Trailer
+              </button>
+            )}
+            <button
+              type="button"
+              className={`btn ${likeStatus === 1 ? "btn-danger" : "btn-outline-danger"}`}
+              onClick={handleLikeClick}
+            >
+              <FaThumbsUp className="mr-2" />
+              Like ({movie.likes || 0})
+            </button>
+            <button
+              type="button"
+              className={`btn ${likeStatus === -1 ? "btn-primary" : "btn-outline-primary"}`}
+              onClick={handleDislikeClick}
+            >
+              <FaThumbsDown className="mr-2" />
+              Dislike ({movie.dislikes || 0})
+            </button>
+          </div>
         </div>
-      </div>
-      <div>
+
         <hr />
         <div className="mt-4">
+
           <h3>Comments</h3>
-          {comments.map(comment => (
-            <div className="mb-2" key={comment._id}>
-              <strong>{comment.user?.username}:</strong> {comment.text}
-            </div>
-          ))}
+          {comments.length > 0 ? (
+            comments.map((comment) => (
+              <div className="mb-2" key={comment._id}>
+                <strong>
+                  {username}:
+                </strong>{" "}
+                {comment.text}
+              </div>
+            ))
+          ) : (
+            <p>No comments yet.</p>
+          )}
           <div className="mt-3">
             <textarea
               className="form-control mb-2"
@@ -277,7 +361,9 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
             ></textarea>
-            <button className="btn btn-primary" onClick={handleCommentSubmit}>Post Comment</button>
+            <button className="btn btn-primary" onClick={handleCommentSubmit}>
+              Post Comment
+            </button>
           </div>
         </div>
         <hr />

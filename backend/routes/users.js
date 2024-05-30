@@ -120,6 +120,20 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
         }
     });
 
+    // Endpoint to fetch user details based on userId
+    app.get('/api/users/:userId', (req, res) => {
+        const database = client.db("sample_mflix");
+        const users = database.collection("users");
+
+        const userId = req.params.userId;
+        const user = users.find(user => user._id === userId);
+        if (user) {
+            res.json(user);
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    });
+
     app.get("/api/user", async (req, res) => {
         try {
             const database = client.db("sample_mflix");
@@ -130,6 +144,17 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
                 return res.status(404).json({ message: "User not found" });
             }
             res.json(user);
+        } catch (err) {
+            res.status(500).json({ message: err });
+        }
+    });
+
+    app.get("/api/users", async (req, res) => {
+        try {
+            const database = client.db("sample_mflix");
+            const users = database.collection("users");
+            const allUsers = await users.find().toArray();
+            res.json(allUsers);
         } catch (err) {
             res.status(500).json({ message: err });
         }
