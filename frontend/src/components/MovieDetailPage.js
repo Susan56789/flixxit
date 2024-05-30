@@ -17,6 +17,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [alertMessage, setAlertMessage] = useState('');
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
+  const [filteredComments, setFilteredComments] = useState([]);
   const [users, setUsers] = useState([]);
   const [username, setUsername] = useState(null);
 
@@ -105,31 +106,88 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   useEffect(() => {
 
     const findUserByUserId = async () => {
+      if (comments && comments.length > 0) {
+        comments.map((comment) => {
+          const idUser = comment.useId
+          if (users && Array.isArray(users)) {
 
-      if (comments && comments.length > 0 && comments[0].userId) {
-        const userId = comments[0].userId;
-
-        if (users && Array.isArray(users)) {
-
-          for (const user of users) {
-            if (user._id === userId) {
-              setUsername(user.username);
-              return;
+            for (const user of users) {
+              if (user._id === idUser) {
+                setUsername(user.username);
+                let filtComment = { username: user.username, text: comment.text, id: comment.id }
+                setFilteredComments(...filteredComments, filtComment)
+                console.log(filteredComments, filtComment)
+                // return
+              }
             }
-          }
-        } else {
+          } else {
 
-          console.error('users is not an iterable object');
+            console.error('users is not an iterable object');
+          }
         }
+
+        )
       } else {
         console.log('No comments or userId available yet');
       }
+
+      // if (comments && comments.length > 0 && comments[0].userId) {
+      //   const userId = comments[0].userId;
+
+      //   if (users && Array.isArray(users)) {
+
+      //     for (const user of users) {
+      //       if (user._id === userId) {
+      //         setUsername(user.username);
+      //         return;
+      //       }
+      //     }
+      //   } else {
+
+      //     console.error('users is not an iterable object');
+      //   }
+      // } else {
+      //   console.log('No comments or userId available yet');
+      // }
 
 
       return null;
     };
     findUserByUserId();
   }, [users, comments]);
+
+  useEffect(() => {
+
+    const findUserByUserId = async () => {
+      if (comments && comments.length > 0) {
+        comments.map((comment) => {
+          const idUser = comment.useId
+          if (users && Array.isArray(users)) {
+
+            for (const user of users) {
+              if (user._id === idUser) {
+                setUsername(user.username);
+                let filtComment = { username: user.username, text: comment.text, id: comment.id }
+                setFilteredComments(...filteredComments, filtComment)
+                console.log(filteredComments, filtComment)
+                // return
+              }
+            }
+          } else {
+
+            console.error('users is not an iterable object');
+          }
+        }
+
+        )
+      } else {
+        console.log('No comments or userId available yet');
+      }
+
+      return null;
+    };
+    findUserByUserId();
+  }, []);
 
 
 
@@ -342,11 +400,11 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         <div className="mt-4">
 
           <h3>Comments</h3>
-          {comments.length > 0 ? (
+          {filteredComments?.length > 0 ? (
             comments.map((comment) => (
-              <div className="mb-2" key={comment._id}>
+              <div className="mb-2" key={comment.id}>
                 <strong>
-                  {username}:
+                  {comment.username}:
                 </strong>{" "}
                 {comment.text}
               </div>
