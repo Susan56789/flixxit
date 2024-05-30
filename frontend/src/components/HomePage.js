@@ -15,22 +15,23 @@ const HomePage = () => {
                 const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
                 const movies = response.data;
 
+
                 // Sort movies based on different criteria
                 const newArrivals = [...movies].sort((a, b) => {
-                    const yearA = a.year || 0;
-                    const yearB = b.year || 0;
+                    const yearA = parseInt(a._id, 10) || 0;
+                    const yearB = parseInt(b._id, 10) || 0;
                     return yearB - yearA;
                 });
 
                 const mostPopular = [...movies].sort((a, b) => {
-                    const likesCountA = a.likesCount || 0;
-                    const likesCountB = b.likesCount || 0;
+                    const likesCountA = parseInt(a.likeCount, 10) || 0;
+                    const likesCountB = parseInt(b.likeCount, 10) || 0;
                     return likesCountB - likesCountA;
                 });
 
                 const recommended = [...movies].sort((a, b) => {
-                    const ratingA = a.rating || 0;
-                    const ratingB = b.rating || 0;
+                    const ratingA = parseInt(a.rating, 10) || 0;
+                    const ratingB = parseInt(b.rating, 10) || 0;
                     return ratingB - ratingA;
                 });
                 setNewArrivals(newArrivals);
