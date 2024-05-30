@@ -240,7 +240,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           <p><strong>Rating:</strong> {movie.rating}</p>
           <p>{movie.description}</p>
           <button className="btn btn-primary me-2" onClick={handleWatchClick}>
-            <FaPlay className="me-1" /> Watch
+            <FaPlay className="me-1" /> Trailer
           </button>
           <button className="btn btn-success me-2" onClick={handleLikeClick}>
             <FaThumbsUp className="me-1" /> Like {movie.likes ? `(${movie.likes})` : ''}
@@ -251,6 +251,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         </div>
       </div>
       <div>
+        <hr />
         <h3>Comments</h3>
         {comments.length > 0 ? (
           <ul className="list-group">
@@ -277,6 +278,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         </button>
       </div>
       <div>
+        <hr />
         <h3>Recommended Movies</h3>
         <div className="row">
           {recommendedMovies.map((recommendedMovie) => (

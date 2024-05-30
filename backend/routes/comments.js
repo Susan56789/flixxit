@@ -1,3 +1,6 @@
+const express = require('express');
+const router = express.Router();
+
 module.exports = (client, app, authenticate, ObjectId) => {
     const database = client.db("sample_mflix");
     const comments = database.collection("comments");
@@ -9,7 +12,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
             const movieId = req.params.movieId;
             const movieComments = await comments.find({ movieId: new ObjectId(movieId) }).toArray();
 
-            if (!movieComments) {
+            if (!movieComments.length) {
                 return res.status(404).json({ message: "No comments found for this movie." });
             }
 
@@ -30,7 +33,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     });
 
     // Post a new comment to a specific movie
-    app.post('/api/movies/:movieId/comments', async (req, res) => {
+    app.post('/api/movies/:movieId/comments', authenticate, async (req, res) => {
         const movieId = req.params.movieId;
         const { text } = req.body;
         const userId = req.user._id;
@@ -43,22 +46,16 @@ module.exports = (client, app, authenticate, ObjectId) => {
         // Comment object
         const comment = {
             userId: new ObjectId(userId),
-            userName: req.user.name,  // Assuming the user's name is stored in the req.user object
+            userName: req.user.name,
             text,
             createdAt: new Date(),
         };
 
         try {
-            const database = client.db('sample_mflix');
-            const movies = database.collection('movies');
+            // Insert the comment into the comments collection
+            const result = await comments.insertOne({ ...comment, movieId: new ObjectId(movieId) });
 
-            // Push the new comment to the comments array
-            const result = await movies.updateOne(
-                { _id: new ObjectId(movieId) },
-                { $push: { comments: comment } }
-            );
-
-            if (result.modifiedCount === 1) {
+            if (result.acknowledged) {
                 res.status(201).json(comment);
             } else {
                 res.status(500).json({ message: 'Failed to post comment.' });
@@ -69,5 +66,5 @@ module.exports = (client, app, authenticate, ObjectId) => {
         }
     });
 
-
+    app.use('/api/movies', router);
 };
