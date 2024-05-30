@@ -15,6 +15,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [loading, setLoading] = useState(false);
   const { id } = useParams();
   const [alertMessage, setAlertMessage] = useState('');
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
 
   // Fetch movie details and recommended movies
   useEffect(() => {
@@ -47,6 +49,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         );
 
         fetchRecommendedMovies(movieData);
+        fetchComments(movieData._id);
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -65,6 +68,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         setRecommendedMovies(filteredMovies.slice(0, 4));
       } catch (error) {
         console.error('Error fetching recommended movies:', error);
+      }
+    };
+
+    const fetchComments = async (movieId) => {
+      try {
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
+        setComments(response.data);
+      } catch (error) {
+        console.error('Error fetching comments:', error);
       }
     };
 
@@ -144,6 +156,30 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     } catch (err) {
       console.error(err);
       setAlertMessage('Error disliking the movie.');
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      setAlertMessage('Please log in to post a comment.');
+      return;
+    }
+    if (!newComment.trim()) {
+      setAlertMessage('Comment cannot be empty.');
+      return;
+    }
+    try {
+      const response = await axios.post(`https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/comments`, {
+        text: newComment,
+        userId: user._id,
+      });
+      setComments(prevComments => [...prevComments, response.data]);
+      setNewComment('');
+      setAlertMessage('Comment posted successfully.');
+    } catch (err) {
+      console.error('Error posting comment:', err);
+      setAlertMessage('Error posting comment.');
     }
   };
 
@@ -233,6 +269,32 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         </div>
       </div>
       <hr />
+      <h3 className="mb-4">Reviews</h3>
+      {comments.length > 0 ? (
+        comments.map((comment) => (
+          <div key={comment._id} className="mb-2">
+            <strong>{comment.userName}:</strong> {comment.text}
+          </div>
+        ))
+      ) : (
+        <p>No reviews yet.</p>
+      )}
+      {user && (
+        <form onSubmit={handleCommentSubmit}>
+          <div className="mb-3">
+            <label htmlFor="newComment" className="form-label">Add a review</label>
+            <textarea
+              id="newComment"
+              className="form-control"
+              rows="3"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            ></textarea>
+          </div>
+          <button type="submit" className="btn btn-primary">Post Review</button>
+        </form>
+      )}
+      <hr />
       <h3 className="mb-4">Recommended Movies</h3>
       <div className="row row-cols-1 row-cols-md-4 g-4">
         {recommendedMovies.length > 0 ? (
@@ -260,6 +322,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           <p>No recommended movies found.</p>
         )}
       </div>
+
     </div>
   );
 };

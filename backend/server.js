@@ -85,6 +85,8 @@ require('./routes/movies')(client, app, authenticate, createTextIndex, ObjectId)
 require('./routes/subscribers')(client, app, ObjectId);
 require('./routes/users')(client, app, authenticate, bcrypt, jwt);
 require('./routes/watchlist')(client, app, authenticate, ObjectId);
+require('./routes/comments')(client, app, authenticate, ObjectId);
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
