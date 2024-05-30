@@ -15,8 +15,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [loading, setLoading] = useState(false);
   const { id } = useParams();
   const [alertMessage, setAlertMessage] = useState('');
+  const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
 
   // Fetch movie details and recommended movies
   useEffect(() => {
@@ -49,7 +49,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         );
 
         fetchRecommendedMovies(movieData);
-        fetchComments(movieData._id);
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -68,15 +67,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         setRecommendedMovies(filteredMovies.slice(0, 4));
       } catch (error) {
         console.error('Error fetching recommended movies:', error);
-      }
-    };
-
-    const fetchComments = async (movieId) => {
-      try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
-        setComments(response.data);
-      } catch (error) {
-        console.error('Error fetching comments:', error);
       }
     };
 
@@ -159,23 +149,31 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
   };
 
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
+  // Handle comment submission
+  const handleCommentSubmit = async () => {
     if (!user) {
       setAlertMessage('Please log in to post a comment.');
       return;
     }
-    if (!newComment.trim()) {
+
+    if (!commentText.trim()) {
       setAlertMessage('Comment cannot be empty.');
       return;
     }
+
+    const commentPayload = { text: commentText };
+    console.log('Submitting comment:', commentPayload);
+
     try {
-      const response = await axios.post(`https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/comments`, {
-        text: newComment,
-        userId: user._id,
-      });
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/comments`,
+        commentPayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       setComments(prevComments => [...prevComments, response.data]);
-      setNewComment('');
+      setCommentText('');
       setAlertMessage('Comment posted successfully.');
     } catch (err) {
       console.error('Error posting comment:', err);
@@ -213,116 +211,101 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
-                <button type="button" className="btn btn-secondary" onClick={handleClosePlayer}>
-                  Back to Details
-                </button>
+                <h5 className="modal-title">Movie Player</h5>
+                <button type="button" className="btn-close" aria-label="Close" onClick={handleClosePlayer}></button>
               </div>
               <div className="modal-body">
-                <ReactPlayer url={movie.videoUrl} playing controls width="100%" />
+                <div className="ratio ratio-16x9">
+                  <ReactPlayer
+                    url={movie.videoUrl}
+                    controls
+                    playing
+                    width="100%"
+                    height="100%"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
-      <div className="row">
-        <div className="col-md-4">
-          <img
-            src={movie.imageUrl}
-            alt={movie.title}
-            className="img-fluid mb-3"
-          />
+      <h2 className="display-4 mb-3">{movie.title}</h2>
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <img src={movie.imageUrl} className="img-fluid" alt={movie.title} />
         </div>
-        <div className="col-md-8">
-          <h2>{movie.title}</h2>
+        <div className="col-md-6">
+          <p><strong>Year:</strong> {movie.year}</p>
+          <p><strong>Genre:</strong> {movie.genre}</p>
+          <p><strong>Rating:</strong> {movie.rating}</p>
           <p>{movie.description}</p>
-          <p>Genre: {movie.genre}</p>
-          <p>Rating: {movie.rating}</p>
-          <p>Year: {movie.year}</p>
-          <div className="btn-group" role="group">
-            {movie.videoUrl && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleWatchClick}
-              >
-                <FaPlay className="mr-2" />
-                Trailer
-              </button>
-            )}
-            <button
-              type="button"
-              className={`btn ${likeStatus === 1 ? "btn-danger" : "btn-outline-danger"}`}
-              onClick={handleLikeClick}
-            >
-              <FaThumbsUp className="mr-2" />
-              Like ({movie.likes || 0})
-            </button>
-            <button
-              type="button"
-              className={`btn ${likeStatus === -1 ? "btn-primary" : "btn-outline-primary"}`}
-              onClick={handleDislikeClick}
-            >
-              <FaThumbsDown className="mr-2" />
-              Dislike ({movie.dislikes || 0})
-            </button>
-          </div>
+          <button className="btn btn-primary me-2" onClick={handleWatchClick}>
+            <FaPlay className="me-1" /> Watch
+          </button>
+          <button className="btn btn-success me-2" onClick={handleLikeClick}>
+            <FaThumbsUp className="me-1" /> Like {movie.likes ? `(${movie.likes})` : ''}
+          </button>
+          <button className="btn btn-danger" onClick={handleDislikeClick}>
+            <FaThumbsDown className="me-1" /> Dislike {movie.dislikes ? `(${movie.dislikes})` : ''}
+          </button>
         </div>
       </div>
-      <hr />
-      <h3 className="mb-4">Reviews</h3>
-      {comments.length > 0 ? (
-        comments.map((comment) => (
-          <div key={comment._id} className="mb-2">
-            <strong>{comment.userName}:</strong> {comment.text}
-          </div>
-        ))
-      ) : (
-        <p>No reviews yet.</p>
-      )}
-      {user && (
-        <form onSubmit={handleCommentSubmit}>
-          <div className="mb-3">
-            <label htmlFor="newComment" className="form-label">Add a review</label>
-            <textarea
-              id="newComment"
-              className="form-control"
-              rows="3"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-            ></textarea>
-          </div>
-          <button type="submit" className="btn btn-primary">Post Review</button>
-        </form>
-      )}
-      <hr />
-      <h3 className="mb-4">Recommended Movies</h3>
-      <div className="row row-cols-1 row-cols-md-4 g-4">
-        {recommendedMovies.length > 0 ? (
-          recommendedMovies.map((recommendedMovie) => (
-            <div key={recommendedMovie._id} className="col">
-              <Link
-                to={`/movies/${recommendedMovie._id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-                className="text-decoration-none text-body"
-              >
-                <div className="card h-100">
-                  <img
-                    src={recommendedMovie.imageUrl}
-                    alt={recommendedMovie.title}
-                    className="card-img-top"
-                  />
-                  <div className="card-body">
-                    <h5 className="card-title">{recommendedMovie.title}</h5>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          ))
+      <div>
+        <h3>Comments</h3>
+        {comments.length > 0 ? (
+          <ul className="list-group">
+            {comments.map((comment, index) => (
+              <li key={index} className="list-group-item">
+                <strong>{comment.userName}</strong>: {comment.text} <small className="text-muted">{new Date(comment.createdAt).toLocaleString()}</small>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p>No recommended movies found.</p>
+          <p>No comments yet.</p>
         )}
+        <div className="mb-3 mt-3">
+          <textarea
+            className="form-control"
+            rows="3"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Write a comment..."
+          ></textarea>
+        </div>
+        <button className="btn btn-primary" onClick={handleCommentSubmit}>
+          Post Comment
+        </button>
       </div>
-
+      <div>
+        <h3>Recommended Movies</h3>
+        <div className="row">
+          {recommendedMovies.map((recommendedMovie) => (
+            <div key={recommendedMovie._id} className="col-md-3 mb-3">
+              <div className="card">
+                <img
+                  src={recommendedMovie.imageUrl}
+                  className="card-img-top"
+                  alt={recommendedMovie.title}
+                />
+                <div className="card-body">
+                  <h5 className="card-title">{recommendedMovie.title}</h5>
+                  <p className="card-text">
+                    <strong>Year:</strong> {recommendedMovie.year}
+                    <br />
+                    <strong>Genre:</strong> {recommendedMovie.genre}
+                  </p>
+                  <Link
+                    to={`/movies/${recommendedMovie._id}`}
+                    className="btn btn-primary"
+                  >
+                    View Details
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
