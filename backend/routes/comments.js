@@ -46,7 +46,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
         // Comment object
         const comment = {
             userId: new ObjectId(userId),
-            userName: req.user.name,
+            userName: req.user.username,
             text,
             createdAt: new Date(),
         };

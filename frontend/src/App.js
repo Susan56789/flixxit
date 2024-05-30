@@ -66,7 +66,6 @@ const App = () => {
   };
 
   const handleLogin = async (email, password) => {
-
     clearCache();  // Clear cache before login
     try {
       const response = await axios.post(
@@ -76,6 +75,7 @@ const App = () => {
       const data = response.data;
       login(data.user);
       setToken(data.token);
+      localStorage.setItem("token", data.token); // Ensure token is stored in localStorage
       localStorage.setItem("flixxItUser", JSON.stringify(data.user));
       return true;
     } catch (error) {
@@ -84,6 +84,7 @@ const App = () => {
       return false;
     }
   };
+
 
   const handleLogout = () => {
     logout();

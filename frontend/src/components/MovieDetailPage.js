@@ -49,6 +49,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         );
 
         fetchRecommendedMovies(movieData);
+        fetchComments(movieData._id); // Fetch comments
       } catch (error) {
         console.error('Error fetching movie details:', error);
         setError('Failed to load movie details. Please try again later.');
@@ -67,6 +68,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         setRecommendedMovies(filteredMovies.slice(0, 4));
       } catch (error) {
         console.error('Error fetching recommended movies:', error);
+      }
+    };
+
+    const fetchComments = async (movieId) => {
+      try {
+        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
+        setComments(response.data);
+      } catch (error) {
+        console.error('Error fetching comments:', error);
       }
     };
 
@@ -162,10 +172,11 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
 
     const commentPayload = { text: commentText };
+    const token = localStorage.getItem('token');
+    console.log('Auth token:', token);
     console.log('Submitting comment:', commentPayload);
 
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.post(
         `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/comments`,
         commentPayload,
@@ -252,62 +263,37 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       </div>
       <div>
         <hr />
-        <h3>Comments</h3>
-        {comments.length > 0 ? (
-          <ul className="list-group">
-            {comments.map((comment, index) => (
-              <li key={index} className="list-group-item">
-                <strong>{comment.userName}</strong>: {comment.text} <small className="text-muted">{new Date(comment.createdAt).toLocaleString()}</small>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No comments yet.</p>
-        )}
-        <div className="mb-3 mt-3">
-          <textarea
-            className="form-control"
-            rows="3"
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Write a comment..."
-          ></textarea>
+        <div className="mt-4">
+          <h3>Comments</h3>
+          {comments.map(comment => (
+            <div className="mb-2" key={comment._id}>
+              <strong>{comment.user?.username}:</strong> {comment.text}
+            </div>
+          ))}
+          <div className="mt-3">
+            <textarea
+              className="form-control mb-2"
+              placeholder="Write a comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+            ></textarea>
+            <button className="btn btn-primary" onClick={handleCommentSubmit}>Post Comment</button>
+          </div>
         </div>
-        <button className="btn btn-primary" onClick={handleCommentSubmit}>
-          Post Comment
-        </button>
-      </div>
-      <div>
         <hr />
         <h3>Recommended Movies</h3>
         <div className="row">
-          {recommendedMovies.map((recommendedMovie) => (
-            <div key={recommendedMovie._id} className="col-md-3 mb-3">
-              <div className="card">
-                <img
-                  src={recommendedMovie.imageUrl}
-                  className="card-img-top"
-                  alt={recommendedMovie.title}
-                />
-                <div className="card-body">
-                  <h5 className="card-title">{recommendedMovie.title}</h5>
-                  <p className="card-text">
-                    <strong>Year:</strong> {recommendedMovie.year}
-                    <br />
-                    <strong>Genre:</strong> {recommendedMovie.genre}
-                  </p>
-                  <Link
-                    to={`/movies/${recommendedMovie._id}`}
-                    className="btn btn-primary"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
+          {recommendedMovies.map(recommendedMovie => (
+            <div className="col-md-3" key={recommendedMovie._id}>
+              <Link to={`/movies/${recommendedMovie._id}`}>
+                <img src={recommendedMovie.imageUrl} className="img-fluid" alt={recommendedMovie.title} />
+                <p className="mt-2">{recommendedMovie.title}</p>
+              </Link>
             </div>
           ))}
         </div>
       </div>
+
     </div>
   );
 };
