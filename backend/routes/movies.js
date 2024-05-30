@@ -5,7 +5,7 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
         try {
             const database = client.db("sample_mflix");
             const movies = await database.collection("movies");
-            const { genre, page = 1, limit = 10 } = req.query;
+            const { genre } = req.query;
 
             let query = {};
             if (genre) {
