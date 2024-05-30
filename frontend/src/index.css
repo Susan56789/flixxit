@@ -20,7 +20,7 @@ body {
 }
 
 .text-muted.fs-sm {
-    color: aqua !important;
+    color: rgb(141, 15, 78) !important;
 }
 
 /* Container */
@@ -45,9 +45,14 @@ span.navbar-toggler-icon {
     color: #fff !important;
 }
 
+a {
+    text-decoration: none !important;
+}
+
 /* Hover effect for links */
 a:hover {
     color: red !important;
+
 }
 
 /* Navbar border */
@@ -128,7 +133,7 @@ nav {
 }
 
 .navbar .nav-link.hover-underline-animation:hover {
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 .btn-subtle {

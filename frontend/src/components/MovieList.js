@@ -101,7 +101,7 @@ const MovieList = ({ movies, type }) => {
       >
         {sortedMovies.length > 0 ? (
           sortedMovies.slice(0, 4).map((movie, index) => ( // Display only the latest four movies
-            <div key={index} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4"> {/* Adjusted column classes for better responsiveness */}
+            <div key={index} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
               <Link
                 to={`/movies/${movie._id}`}
                 style={{ textDecoration: "none", color: "inherit" }}
