@@ -7,6 +7,8 @@ const MovieCategories = () => {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const moviesPerPage = 12;
 
     useEffect(() => {
         const fetchMovies = async () => {
@@ -15,7 +17,6 @@ const MovieCategories = () => {
 
             try {
                 const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
-
                 setMovies(response.data);
             } catch (err) {
                 console.error('Error fetching movies:', err);
@@ -30,6 +31,7 @@ const MovieCategories = () => {
 
     const handleGenreChange = (event) => {
         setSelectedGenre(event.target.value);
+        setCurrentPage(1); // Reset to the first page when genre changes
     };
 
     const genres = useMemo(() => {
@@ -46,6 +48,17 @@ const MovieCategories = () => {
         if (!selectedGenre) return movies;
         return movies.filter(movie => movie.genre === selectedGenre);
     }, [selectedGenre, movies]);
+
+    const currentMovies = useMemo(() => {
+        const startIndex = (currentPage - 1) * moviesPerPage;
+        return filteredMovies.slice(startIndex, startIndex + moviesPerPage);
+    }, [currentPage, filteredMovies]);
+
+    const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
 
     return (
         <div className="container mt-4">
@@ -74,29 +87,50 @@ const MovieCategories = () => {
                 <p>Loading movies...</p>
             ) : error ? (
                 <p className="text-danger">{error}</p>
-            ) : filteredMovies.length === 0 ? (
+            ) : currentMovies.length === 0 ? (
                 <p>No movies in this category</p>
             ) : (
-                <div className="row row-cols-1 row-cols-md-4 g-4">
-                    {filteredMovies.map((movie) => (
-                        <div key={movie._id} className="col">
-                            <Link
-                                to={`/movies/${movie._id}`}
-                                style={{ textDecoration: 'none', color: 'inherit' }}
-                            >
-                                <div className="card h-100">
-                                    <img
-                                        src={movie.imageUrl}
-                                        className="card-img-top"
-                                        alt={movie.title}
-                                    />
-                                    <div className="card-body">
-                                        <h5 className="card-title">{movie.title}</h5>
+                <div>
+                    <div className="row row-cols-1 row-cols-md-4 g-4">
+                        {currentMovies.map((movie) => (
+                            <div key={movie._id} className="col">
+                                <Link
+                                    to={`/movies/${movie._id}`}
+                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                >
+                                    <div className="card h-100">
+                                        <img
+                                            src={movie.imageUrl}
+                                            className="card-img-top"
+                                            alt={movie.title}
+                                        />
+                                        <div className="card-body">
+                                            <h5 className="card-title">{movie.title}</h5>
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
-                        </div>
-                    ))}
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="d-flex justify-content-center mt-4">
+                        <nav>
+                            <ul className="pagination">
+                                {Array.from({ length: totalPages }, (_, index) => (
+                                    <li
+                                        key={index + 1}
+                                        className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}
+                                    >
+                                        <button
+                                            className="page-link"
+                                            onClick={() => handlePageChange(index + 1)}
+                                        >
+                                            {index + 1}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
             )}
         </div>

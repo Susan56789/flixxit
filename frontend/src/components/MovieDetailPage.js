@@ -63,9 +63,9 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`);
         const allMovies = response.data;
-        const currentMovieID = movie._id;
-        const sortedMovies = allMovies.sort((a, b) => b._id - a._id);
-        const filteredMovies = sortedMovies.filter((m) => m._id !== currentMovieID);
+        const currentMovieID = parseInt(movie._id, 10);
+        const sortedMovies = allMovies.sort((a, b) => parseInt(b._id, 10) - parseInt(a._id, 10));
+        const filteredMovies = sortedMovies.filter((m) => parseInt(m._id, 10) !== currentMovieID);
         setRecommendedMovies(filteredMovies.slice(0, 4));
       } catch (error) {
         console.error('Error fetching recommended movies:', error);
