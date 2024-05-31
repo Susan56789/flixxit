@@ -17,12 +17,9 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [alertMessage, setAlertMessage] = useState('');
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
-  const [filteredComments, setFilteredComments] = useState([]);
   const [users, setUsers] = useState([]);
-  const [username, setUsername] = useState(null);
 
-
-  // Fetch movie details and recommended movies
+  // Fetch movie details, recommended movies, comments, and users
   useEffect(() => {
     const fetchMovieDetail = async () => {
       setLoading(true);
@@ -78,16 +75,11 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     const fetchComments = async (movieId) => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
-        if (response.data.length > 0) {
-          setComments(response.data);
-        } else {
-          setComments([]);
-        }
+        setComments(response.data);
       } catch (error) {
         console.error('Error fetching comments:', error);
       }
     };
-
 
     const fetchUsers = async () => {
       try {
@@ -99,97 +91,22 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     };
 
     fetchUsers();
-
     fetchMovieDetail();
   }, [id, user]);
 
+  // Map usernames to comments
   useEffect(() => {
-
-    const findUserByUserId = async () => {
-      if (comments && comments.length > 0) {
-        comments.map((comment) => {
-          const idUser = comment.useId
-          if (users && Array.isArray(users)) {
-
-            for (const user of users) {
-              if (user._id === idUser) {
-                setUsername(user.username);
-                let filtComment = { username: user.username, text: comment.text, id: comment.id }
-                setFilteredComments(...filteredComments, filtComment)
-                console.log(filteredComments, filtComment)
-                // return
-              }
-            }
-          } else {
-
-            console.error('users is not an iterable object');
-          }
-        }
-
-        )
-      } else {
-        console.log('No comments or userId available yet');
-      }
-
-      // if (comments && comments.length > 0 && comments[0].userId) {
-      //   const userId = comments[0].userId;
-
-      //   if (users && Array.isArray(users)) {
-
-      //     for (const user of users) {
-      //       if (user._id === userId) {
-      //         setUsername(user.username);
-      //         return;
-      //       }
-      //     }
-      //   } else {
-
-      //     console.error('users is not an iterable object');
-      //   }
-      // } else {
-      //   console.log('No comments or userId available yet');
-      // }
-
-
-      return null;
-    };
-    findUserByUserId();
-  }, [users, comments]);
-
-  useEffect(() => {
-
-    const findUserByUserId = async () => {
-      if (comments && comments.length > 0) {
-        comments.map((comment) => {
-          const idUser = comment.useId
-          if (users && Array.isArray(users)) {
-
-            for (const user of users) {
-              if (user._id === idUser) {
-                setUsername(user.username);
-                let filtComment = { username: user.username, text: comment.text, id: comment.id }
-                setFilteredComments(...filteredComments, filtComment)
-                console.log(filteredComments, filtComment)
-                // return
-              }
-            }
-          } else {
-
-            console.error('users is not an iterable object');
-          }
-        }
-
-        )
-      } else {
-        console.log('No comments or userId available yet');
-      }
-
-      return null;
-    };
-    findUserByUserId();
-  }, []);
-
-
+    if (comments.length > 0 && users.length > 0) {
+      const updatedComments = comments.map(comment => {
+        const user = users.find(user => user._id === comment.userId);
+        return {
+          ...comment,
+          username: user ? user.username : 'Unknown'
+        };
+      });
+      setComments(updatedComments);
+    }
+  }, [comments, users]);
 
   const handleWatchClick = () => {
     setShowPlayer(true);
@@ -267,7 +184,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
   };
 
-
   // Handle comment submission
   const handleCommentSubmit = async () => {
     if (!user) {
@@ -309,7 +225,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       setAlertMessage('Error posting comment.');
     }
   };
-
 
   // Handle loading and error states
   if (error) {
@@ -395,49 +310,47 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             </button>
           </div>
         </div>
+      </div>
 
-        <hr />
-        <div className="mt-4">
+      <hr />
 
-          <h3>Comments</h3>
-          {filteredComments?.length > 0 ? (
-            comments.map((comment) => (
-              <div className="mb-2" key={comment.id}>
-                <strong>
-                  {comment.username}:
-                </strong>{" "}
-                {comment.text}
-              </div>
-            ))
-          ) : (
-            <p>No comments yet.</p>
-          )}
-          <div className="mt-3">
-            <textarea
-              className="form-control mb-2"
-              placeholder="Write a comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            ></textarea>
-            <button className="btn btn-primary" onClick={handleCommentSubmit}>
-              Post Comment
-            </button>
-          </div>
-        </div>
-        <hr />
-        <h3>Recommended Movies</h3>
-        <div className="row">
-          {recommendedMovies.map(recommendedMovie => (
-            <div className="col-md-3" key={recommendedMovie._id}>
-              <Link to={`/movies/${recommendedMovie._id}`}>
-                <img src={recommendedMovie.imageUrl} className="img-fluid" alt={recommendedMovie.title} />
-                <p className="mt-2">{recommendedMovie.title}</p>
-              </Link>
+      <div className="mt-4">
+        <h3>Comments</h3>
+        {comments.length > 0 ? (
+          comments.map((comment) => (
+            <div className="mb-2" key={comment.id}>
+              <strong>{comment.username}:</strong> {comment.text}
             </div>
-          ))}
+          ))
+        ) : (
+          <p>No comments yet.</p>
+        )}
+        <div className="mt-3">
+          <textarea
+            className="form-control mb-2"
+            placeholder="Write a comment..."
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+          ></textarea>
+          <button className="btn btn-primary" onClick={handleCommentSubmit}>
+            Post Comment
+          </button>
         </div>
       </div>
 
+      <hr />
+
+      <h3>Recommended Movies</h3>
+      <div className="row">
+        {recommendedMovies.map(recommendedMovie => (
+          <div className="col-md-3" key={recommendedMovie._id}>
+            <Link to={`/movies/${recommendedMovie._id}`}>
+              <img src={recommendedMovie.imageUrl} className="img-fluid" alt={recommendedMovie.title} />
+              <p className="mt-2">{recommendedMovie.title}</p>
+            </Link>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
