@@ -15,13 +15,8 @@ const HomePage = () => {
                 const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
                 const movies = response.data;
 
-
                 // Sort movies based on different criteria
-                const newArrivals = [...movies].sort((a, b) => {
-                    const yearA = parseInt(a._id, 10) || 0;
-                    const yearB = parseInt(b._id, 10) || 0;
-                    return yearB - yearA;
-                });
+                const newArrivals = [...movies].sort((a, b) => b._id.localeCompare(a._id));
 
                 const mostPopular = [...movies].sort((a, b) => {
                     const likesCountA = parseInt(a.likeCount, 10) || 0;
@@ -30,10 +25,11 @@ const HomePage = () => {
                 });
 
                 const recommended = [...movies].sort((a, b) => {
-                    const ratingA = parseInt(a.rating, 10) || 0;
-                    const ratingB = parseInt(b.rating, 10) || 0;
+                    const ratingA = parseFloat(a.rating) || 0;
+                    const ratingB = parseFloat(b.rating) || 0;
                     return ratingB - ratingA;
                 });
+
                 setNewArrivals(newArrivals);
                 setMostPopular(mostPopular);
                 setRecommended(recommended);
@@ -53,8 +49,8 @@ const HomePage = () => {
                         interval={5000}
                         pause={false}
                         indicators={false}
-                        prevIcon={<span className="carousel-control-prev-icon" />}
-                        nextIcon={<span className="carousel-control-next-icon" />}
+                        prevIcon={null}
+                        nextIcon={null}
                     >
                         {newArrivals.map((movie) => (
                             <Carousel.Item key={movie._id}>
@@ -63,7 +59,12 @@ const HomePage = () => {
                                         className="d-block w-100"
                                         src={movie.imageUrl}
                                         alt={movie.title}
-                                        style={{ maxHeight: '400px', objectFit: 'cover' }}
+                                        style={{
+                                            maxHeight: '400px',
+                                            objectFit: 'cover',
+                                            width: '100%',
+                                            height: 'auto'
+                                        }}
                                     />
                                 </Link>
                                 <Carousel.Caption>

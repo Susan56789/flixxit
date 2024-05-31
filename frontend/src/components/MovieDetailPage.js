@@ -59,14 +59,19 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchRecommendedMovies = async (movie) => {
+    const fetchRecommendedMovies = async (currentMovie) => {
       try {
+        // Fetch all movies from the API
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`);
         const allMovies = response.data;
-        const currentMovieID = parseInt(movie._id, 10);
-        const sortedMovies = allMovies.sort((a, b) => parseInt(b._id, 10) - parseInt(a._id, 10));
-        const filteredMovies = sortedMovies.filter((m) => parseInt(m._id, 10) !== currentMovieID);
-        setRecommendedMovies(filteredMovies.slice(0, 4));
+
+        // Filter movies by the same genre and exclude the current movie
+        const recommendedMovies = allMovies
+          .filter(movie => movie.genre === currentMovie.genre && movie._id !== currentMovie._id)
+          .sort((a, b) => b.rating - a.rating) // Sort by rating in descending order
+          .slice(0, 4); // Limit to top 4 recommended movies
+
+        setRecommendedMovies(recommendedMovies);
       } catch (error) {
         console.error('Error fetching recommended movies:', error);
       }
