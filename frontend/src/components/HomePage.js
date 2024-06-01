@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MovieList from './MovieList';
-import { Carousel } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import '../styles/HomePage.css';
 
 const HomePage = () => {
     const [newArrivals, setNewArrivals] = useState([]);
     const [mostPopular, setMostPopular] = useState([]);
     const [recommended, setRecommended] = useState([]);
+    const [movies, setMovies] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
 
     useEffect(() => {
         const fetchMovies = async () => {
@@ -15,24 +17,14 @@ const HomePage = () => {
                 const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
                 const movies = response.data;
 
-                // Sort movies based on different criteria
                 const newArrivals = [...movies].sort((a, b) => b._id.localeCompare(a._id));
-
-                const mostPopular = [...movies].sort((a, b) => {
-                    const likesCountA = parseInt(a.likeCount, 10) || 0;
-                    const likesCountB = parseInt(b.likeCount, 10) || 0;
-                    return likesCountB - likesCountA;
-                });
-
-                const recommended = [...movies].sort((a, b) => {
-                    const ratingA = parseFloat(a.rating) || 0;
-                    const ratingB = parseFloat(b.rating) || 0;
-                    return ratingB - ratingA;
-                });
+                const mostPopular = [...movies].sort((a, b) => (parseInt(b.likeCount, 10) || 0) - (parseInt(a.likeCount, 10) || 0));
+                const recommended = [...movies].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
 
                 setNewArrivals(newArrivals);
                 setMostPopular(mostPopular);
                 setRecommended(recommended);
+                setMovies(movies);
             } catch (error) {
                 console.error('Error fetching movies:', error);
             }
@@ -41,43 +33,40 @@ const HomePage = () => {
         fetchMovies();
     }, []);
 
+    const handlePrev = () => {
+        setCurrentIndex((prevIndex) => (prevIndex === 0 ? movies.length - 1 : prevIndex - 1));
+    };
+
+    const handleNext = () => {
+        setCurrentIndex((prevIndex) => (prevIndex === movies.length - 1 ? 0 : prevIndex + 1));
+    };
+
     return (
-        <div>
+        <div className="home-page">
             <div className="container mt-3">
-                <section>
-                    <Carousel
-                        interval={5000}
-                        pause={false}
-                        indicators={false}
-                        prevIcon={null}
-                        nextIcon={null}
-                    >
-                        {newArrivals.map((movie) => (
-                            <Carousel.Item key={movie._id}>
-                                <Link to={`/movies/${movie._id}`}>
-                                    <img
-                                        className="d-block w-100"
-                                        src={movie.imageUrl}
-                                        alt={movie.title}
-                                        style={{
-                                            maxHeight: '400px',
-                                            objectFit: 'cover',
-                                            width: '100%',
-                                            height: 'auto'
-                                        }}
-                                    />
-                                </Link>
-                                <Carousel.Caption>
-                                    <h3>{movie.title}</h3>
-                                </Carousel.Caption>
-                            </Carousel.Item>
+                <div className="carousel">
+                    <div className="slides-container" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+                        {movies.map((movie) => (
+                            <div className="slide" key={movie._id} style={{ backgroundImage: `url(${movie.imageUrl})` }}>
+                                <div className="overlay">
+                                    <div className="play-button">
+                                        <span className="detail-span">{movie.title}</span>
+                                        <br /><br />
+                                        <Link to={`/movies/${movie._id}`} className="btn">
+                                            <span className="play-icon">▶</span> Watch Now
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
                         ))}
-                    </Carousel>
-                    <br />
-                    <h2>New Arrivals</h2>
-                    <hr />
-                    <MovieList movies={newArrivals} type="newArrivals" />
-                </section>
+                    </div>
+                    <button className="prev-button" onClick={handlePrev}>❮</button>
+                    <button className="next-button" onClick={handleNext}>❯</button>
+                </div>
+                <br />
+                <h2>New Arrivals</h2>
+                <hr />
+                <MovieList movies={newArrivals} type="newArrivals" />
                 <section>
                     <h2>Most Popular</h2>
                     <hr />

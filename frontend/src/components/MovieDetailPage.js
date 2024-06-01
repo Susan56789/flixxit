@@ -290,7 +290,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             {movie.videoUrl && (
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-danger"
                 onClick={handleWatchClick}
               >
                 <FaPlay className="mr-2" />
@@ -307,7 +307,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             </button>
             <button
               type="button"
-              className={`btn ${likeStatus === -1 ? "btn-primary" : "btn-outline-primary"}`}
+              className={`btn ${likeStatus === -1 ? "btn-danger" : "btn-outline-danger"}`}
               onClick={handleDislikeClick}
             >
               <FaThumbsDown className="mr-2" />
@@ -337,7 +337,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
           ></textarea>
-          <button className="btn btn-primary" onClick={handleCommentSubmit}>
+          <button className="btn btn-danger" onClick={handleCommentSubmit}>
             Post Comment
           </button>
         </div>

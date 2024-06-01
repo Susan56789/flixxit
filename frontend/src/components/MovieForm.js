@@ -67,7 +67,7 @@ const MovieForm = ({ handleSubmit }) => {
             onChange={(e) => setYear(e.target.value)}
           />
         </div>
-        <button type="submit" className="btn btn-primary">Add Movie</button>
+        <button type="submit" className="btn btn-danger">Add Movie</button>
       </form>
     </div>
   );

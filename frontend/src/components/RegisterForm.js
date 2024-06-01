@@ -18,7 +18,7 @@ const RegisterForm = ({ handleRegister }) => {
             <div className="col-lg-6 mb-5 mb-lg-0">
               <h1 className="my-5 display-3 fw-bold ls-tight">
                 Flixxit <br />
-                <span className="text-primary">Action.Drama</span>
+                <span className="text-danger">Action.Drama</span>
               </h1>
               <p style={{ color: 'hsl(217, 10%, 50.8%)' }}>
                 Flixxit is your ultimate destination for endless cinematic entertainment. As a premier online movie streaming platform,
@@ -70,7 +70,7 @@ const RegisterForm = ({ handleRegister }) => {
                       <label className="form-label" htmlFor="password">Password</label>
                     </div>
 
-                    <button type="submit" className="btn btn-primary btn-block mb-4">
+                    <button type="submit" className="btn btn-danger btn-block mb-4">
                       Sign up
                     </button>
 

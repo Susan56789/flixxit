@@ -70,7 +70,7 @@ const Header = ({ handleLogout }) => {
                   </li>
                 </ul>
               ) : (
-                <Link className="btn btn-primary me-2 hover-scale-animation" to="/login">Login</Link>
+                <Link className="btn btn-danger me-2 hover-scale-animation" to="/login">Login</Link>
               )}
             </div>
           </div>

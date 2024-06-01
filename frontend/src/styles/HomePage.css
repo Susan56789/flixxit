@@ -1,0 +1,86 @@
+.carousel {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+.slides-container {
+    display: flex;
+    transition: transform 0.5s ease;
+}
+
+.slide {
+    min-width: 100%;
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    /* Add an overlay to make text more readable */
+    display: flex;
+    align-items: center;
+    /* Position the content at the center */
+    justify-content: center;
+    /* Center the content horizontally */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.play-button {
+    color: white;
+    text-align: center;
+}
+
+.play-button .detail-span {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 20px;
+}
+
+.play-button .btn {
+    font-size: 1.2rem;
+    background-color: #e50914;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.play-button .play-icon {
+    margin-right: 8px;
+}
+
+.prev-button,
+.next-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 2;
+    padding: 10px;
+}
+
+.prev-button {
+    left: 10px;
+}
+
+.next-button {
+    right: 10px;
+}

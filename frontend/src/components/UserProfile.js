@@ -225,7 +225,7 @@ const UserProfile = () => {
                     </option>
                   ))}
                 </select>
-                <button className="btn btn-primary" onClick={handleSaveGenre}>
+                <button className="btn btn-danger" onClick={handleSaveGenre}>
                   Save Genre
                 </button>
               </div>

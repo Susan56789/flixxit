@@ -34,21 +34,21 @@ const LoginForm = ({ handleLogin }) => {
                 <p className="lead fw-normal mb-0 me-3">Sign in with</p>
                 <button
                   type="button"
-                  className="btn btn-primary btn-floating mx-1"
+                  className="btn btn-danger btn-floating mx-1"
                 >
                   <i className="fab fa-facebook-f"></i>
                 </button>
 
                 <button
                   type="button"
-                  className="btn btn-primary btn-floating mx-1"
+                  className="btn btn-danger btn-floating mx-1"
                 >
                   <i className="fab fa-twitter"></i>
                 </button>
 
                 <button
                   type="button"
-                  className="btn btn-primary btn-floating mx-1"
+                  className="btn btn-danger btn-floating mx-1"
                 >
                   <i className="fab fa-linkedin-in"></i>
                 </button>
@@ -111,7 +111,7 @@ const LoginForm = ({ handleLogin }) => {
               <div className="text-center text-lg-start mt-4 pt-2">
                 <button
                   type="submit"
-                  className="btn btn-primary btn-lg"
+                  className="btn btn-danger btn-lg"
                   style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
                 >
                   Login
