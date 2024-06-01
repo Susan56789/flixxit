@@ -19,11 +19,19 @@ body.light {
         color: #a80f0f !important;
     }
 
+    p {
+        color: black !important;
+    }
+
 }
 
 body.dark {
     i {
         color: #a80f0f !important;
+    }
+
+    p {
+        color: white !important;
     }
 
     background-color: black !important;

@@ -48,8 +48,8 @@
 
 .play-button .btn {
     font-size: 1.2rem;
-    background-color: #e50914;
-    color: white;
+    background-color: #e50914 !important;
+    color: white !important;
     border: none;
     padding: 10px 20px;
     text-decoration: none;
