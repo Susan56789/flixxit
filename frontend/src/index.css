@@ -23,9 +23,18 @@ body.light {
         color: black !important;
     }
 
+    .card,
+    .card-body {
+        background-color: white !important;
+        color: black !important;
+    }
+
 }
 
 body.dark {
+    background-color: black !important;
+    color: white !important;
+
     i {
         color: #a80f0f !important;
     }
@@ -34,8 +43,13 @@ body.dark {
         color: white !important;
     }
 
-    background-color: black !important;
-    color: white !important;
+    .card,
+    .card-body {
+        background-color: black !important;
+        color: white !important;
+    }
+
+
 
 }
 

@@ -34,6 +34,16 @@ const HomePage = () => {
         fetchMovies();
     }, []);
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentIndex((prevIndex) => (prevIndex === movies.length - 1 ? 0 : prevIndex + 1));
+        }, 5000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [movies]);
+
     const handlePrev = () => {
         setCurrentIndex((prevIndex) => (prevIndex === 0 ? movies.length - 1 : prevIndex - 1));
     };
@@ -53,7 +63,7 @@ const HomePage = () => {
                                     <div className="play-button">
                                         <span className="detail-span">{movie.title}</span>
                                         <br /><br />
-                                        <Link to={`/movies/${movie._id}`} className="btn">
+                                        <Link to={`/movies/${movie._id}`} className="btn home">
                                             <span className="play-icon">▶</span> Watch Now
                                         </Link>
                                     </div>
@@ -65,16 +75,16 @@ const HomePage = () => {
                     <button className="next-button" onClick={handleNext}>❯</button>
                 </div>
                 <br />
-                <h2>New Arrivals</h2>
+                <h2 className='Movie-title'>New Arrivals</h2>
                 <hr />
                 <MovieList movies={newArrivals} type="newArrivals" />
                 <section>
-                    <h2>Most Popular</h2>
+                    <h2 className='Movie-title'>Most Popular</h2>
                     <hr />
                     <MovieList movies={mostPopular} type="mostPopular" />
                 </section>
                 <section>
-                    <h2>Recommended</h2>
+                    <h2 className='Movie-title'>Recommended</h2>
                     <hr />
                     <MovieList movies={recommended} type="recommended" />
                 </section>
