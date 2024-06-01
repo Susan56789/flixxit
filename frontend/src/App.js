@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AllRouters from "./AllRouters";
 import { AuthContext } from './AuthContext';
 import { clearCache } from "./utils/helpers";
+import { ThemeProvider } from './themeContext';
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem("flixxItToken") || "");
@@ -126,14 +127,16 @@ const App = () => {
   };
 
   return (
-    <AllRouters
-      isLoggedIn={isLoggedIn}
-      handleLogout={handleLogout}
-      handleLogin={handleLogin}
-      handleRegister={handleRegister}
-      handleLike={handleLike}
-      handleDislike={handleDislike}
-    />
+    <ThemeProvider>
+      <AllRouters
+        isLoggedIn={isLoggedIn}
+        handleLogout={handleLogout}
+        handleLogin={handleLogin}
+        handleRegister={handleRegister}
+        handleLike={handleLike}
+        handleDislike={handleDislike}
+      />
+    </ThemeProvider>
   );
 };
 

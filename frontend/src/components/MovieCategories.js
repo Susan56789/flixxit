@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { ThemeContext } from "../themeContext";
 
 const MovieCategories = () => {
     const [selectedGenre, setSelectedGenre] = useState('');
@@ -9,6 +10,8 @@ const MovieCategories = () => {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const moviesPerPage = 12;
+
+    const { theme } = useContext(ThemeContext);
 
     useEffect(() => {
         const fetchMovies = async () => {
@@ -70,7 +73,7 @@ const MovieCategories = () => {
                     </label>
                     <select
                         id="genre-select"
-                        className="form-select d-inline-block"
+                        className={`form-select d-inline-block ${theme === 'dark' ? 'bg-dark text-light' : ''}`}
                         value={selectedGenre}
                         onChange={handleGenreChange}
                     >
@@ -121,7 +124,7 @@ const MovieCategories = () => {
                                         className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}
                                     >
                                         <button
-                                            className="page-link"
+                                            className={`page-link ${theme === 'dark' ? 'bg-dark text-light' : ''}`}
                                             onClick={() => handlePageChange(index + 1)}
                                         >
                                             {index + 1}

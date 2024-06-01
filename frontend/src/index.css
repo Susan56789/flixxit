@@ -10,6 +10,44 @@ body {
     height: 100%;
 }
 
+body.light {
+
+    background-color: white !important;
+    color: black !important;
+
+    i {
+        color: #a80f0f !important;
+    }
+
+}
+
+body.dark {
+    i {
+        color: #a80f0f !important;
+    }
+
+    background-color: black !important;
+    color: white !important;
+
+}
+
+body.light .navbar-nav .nav-link {
+    color: black !important;
+}
+
+body.dark .navbar-nav .nav-link {
+    color: white !important;
+}
+
+body.light .navbar-nav .nav-link:hover {
+    color: red !important;
+}
+
+body.dark .navbar-nav .nav-link:hover {
+    color: red !important;
+}
+
+
 /* Footer */
 .footer {
     clear: both;
@@ -33,14 +71,6 @@ a {
     color: black !important;
     font-weight: bold;
 }
-
-/* Hover effect for links */
-/* a:hover {
-    color: red !important;
-
-} */
-
-
 
 /* Underline Animation */
 .hover-underline-animation {

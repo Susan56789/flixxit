@@ -17,24 +17,12 @@ const MovieList = ({ movies, type }) => {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
-  const backgroundColor = () => {
-    switch (type) {
-      case "newArrivals":
-        return "#f0f0f0";
-      case "mostPopular":
-        return "#f5f5f5";
-      case "recommended":
-        return "#fafafa";
-      default:
-        return "#fff";
-    }
-  };
 
   const addToWatchlist = async (movieId) => {
     try {
       const token = getUserToken();
       if (!token) {
-        console.log("Please log in to add movies to your watchlist.");
+        setAlertMessage("Please log in to add movies to your watchlist.");
         return;
       }
 
@@ -93,7 +81,6 @@ const MovieList = ({ movies, type }) => {
       <div
         className="row"
         style={{
-          backgroundColor: backgroundColor(),
           padding: "10px",
           borderRadius: "5px",
           marginBottom: "20px",

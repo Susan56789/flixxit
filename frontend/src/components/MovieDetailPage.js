@@ -132,6 +132,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
+
   // Handle like button click
   const handleLikeClick = async () => {
     if (!user) {
@@ -322,14 +323,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       <div className="mt-4">
         <h3>Comments</h3>
         {comments.length > 0 ? (
-          comments.map((comment) => (
-            <div className="mb-2" key={comment.id}>
+          comments.map((comment, index) => (
+            <div className="mb-2" key={comment.id || index}>
               <strong>{comment.username}:</strong> {comment.text}
             </div>
           ))
-        ) : (
-          <p>No comments yet.</p>
-        )}
+        )
+          : (
+            <p>No comments yet.</p>
+          )}
         <div className="mt-3">
           <textarea
             className="form-control mb-2"

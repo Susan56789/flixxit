@@ -11,6 +11,7 @@ const HomePage = () => {
     const [movies, setMovies] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
 
+
     useEffect(() => {
         const fetchMovies = async () => {
             try {

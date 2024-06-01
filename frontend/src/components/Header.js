@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getUserToken } from "../utils/helpers";
+import { ThemeContext } from "../themeContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
 
 const Header = ({ handleLogout }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -9,6 +12,7 @@ const Header = ({ handleLogout }) => {
   const location = useLocation();
 
   const token = getUserToken();
+  const { theme, toggleTheme } = useContext(ThemeContext);
 
   useEffect(() => {
     const userData = localStorage.getItem("flixxItUser")
@@ -26,8 +30,8 @@ const Header = ({ handleLogout }) => {
   };
 
   return (
-    <div className="container">
-      <nav className="navbar navbar-expand-lg">
+    <div className={`container-fluid p-0 ${theme}`} style={{ boxShadow: '0 4px 2px -2px gray' }}>
+      <nav className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark bg-dark' : 'navbar-light bg-light'}`}>
         <div className="container-fluid">
           <Link className="navbar-brand" to="/">Flixxit</Link>
           <button
@@ -73,6 +77,9 @@ const Header = ({ handleLogout }) => {
                 <Link className="btn btn-danger me-2 hover-scale-animation" to="/login">Login</Link>
               )}
             </div>
+            <button className="btn btn-secondary ms-3" onClick={toggleTheme}>
+              {theme === 'light' ? <FontAwesomeIcon icon={faMoon} /> : <FontAwesomeIcon icon={faSun} />}
+            </button>
           </div>
         </div>
       </nav>
