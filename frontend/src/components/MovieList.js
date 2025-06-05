@@ -1,10 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { getUserToken } from "../utils/helpers";
+import { useTheme } from "../themeContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHeart, faShare, faPlus, faStar, faCalendar } from "@fortawesome/free-solid-svg-icons";
 
-const MovieList = ({ movies, type }) => {
+const MovieList = ({ movies, type, showCount = 4 }) => {
   const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState('warning');
+  const [watchlistStatus, setWatchlistStatus] = useState({});
+  const [loadingStates, setLoadingStates] = useState({});
+
+  const { theme, isDark } = useTheme();
 
   // Hide alert message after 3 seconds
   useEffect(() => {
@@ -12,19 +20,59 @@ const MovieList = ({ movies, type }) => {
     if (alertMessage) {
       timeout = setTimeout(() => {
         setAlertMessage('');
+        setAlertType('warning');
       }, 3000);
     }
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
+  // Check watchlist status for all movies
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      const token = getUserToken();
+      if (!token || !movies.length) return;
 
-  const addToWatchlist = async (movieId) => {
+      try {
+        const response = await axios.get(
+          'https://flixxit-h9fa.onrender.com/api/watchlist',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const watchlistMovieIds = response.data.map(item => item.movieId || item._id);
+        const statusMap = {};
+        movies.forEach(movie => {
+          statusMap[movie._id] = watchlistMovieIds.includes(movie._id);
+        });
+        setWatchlistStatus(statusMap);
+      } catch (error) {
+        console.error("Error checking watchlist status:", error);
+      }
+    };
+
+    checkWatchlistStatus();
+  }, [movies]);
+
+  const showAlert = useCallback((message, type = 'warning') => {
+    setAlertMessage(message);
+    setAlertType(type);
+  }, []);
+
+  const addToWatchlist = async (movieId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     try {
       const token = getUserToken();
       if (!token) {
-        setAlertMessage("Please log in to add movies to your watchlist.");
+        showAlert("Please log in to add movies to your watchlist.", 'warning');
         return;
       }
+
+      setLoadingStates(prev => ({ ...prev, [movieId]: true }));
 
       const response = await axios.post(
         'https://flixxit-h9fa.onrender.com/api/watchlist',
@@ -36,38 +84,93 @@ const MovieList = ({ movies, type }) => {
           },
         }
       );
-      setAlertMessage(response.data.message);
 
+      setWatchlistStatus(prev => ({ ...prev, [movieId]: true }));
+      showAlert(response.data.message || 'Added to watchlist!', 'success');
 
     } catch (error) {
-      console.error("Error adding to watchlist:", error.response ? error.response.data : error.message);
-      setAlertMessage('Movie Already in Watchlist')
+      console.error("Error adding to watchlist:", error);
+      if (error.response?.status === 409) {
+        showAlert('Movie already in watchlist', 'info');
+      } else {
+        showAlert('Failed to add to watchlist. Please try again.', 'danger');
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [movieId]: false }));
     }
   };
 
-  const shareMovie = (title, id) => {
-    if (navigator.share) {
-      navigator.share({
-        title: `Check out this movie: ${title}`,
-        text: `I found this interesting movie titled "${title}". You can check it out here:`,
-        url: `https://flixxit-h9fa.onrender.com/movies/${id}`,
-      })
-        .then(() => console.log('Successfully shared'))
-        .catch((error) => console.error('Error sharing:', error));
+  const shareMovie = (movie, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const shareData = {
+      title: `Check out: ${movie.title}`,
+      text: `I found this great movie "${movie.title}" (${movie.year}). ${movie.genre ? `Genre: ${movie.genre}` : ''}`,
+      url: `${window.location.origin}/movies/${movie._id}`,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      navigator.share(shareData)
+        .then(() => showAlert('Shared successfully!', 'success'))
+        .catch((error) => {
+          if (error.name !== 'AbortError') {
+            console.error('Error sharing:', error);
+            copyToClipboard(shareData.url);
+          }
+        });
     } else {
-      alert('Web Share API is not supported in your browser.');
+      copyToClipboard(shareData.url);
     }
   };
 
-  // Ensure movies is an array before sorting
-  const sortedMovies = Array.isArray(movies) ? movies.sort((a, b) => b._id - a._id) : [];
+  const copyToClipboard = (url) => {
+    navigator.clipboard.writeText(url)
+      .then(() => showAlert('Link copied to clipboard!', 'success'))
+      .catch(() => showAlert('Failed to copy link', 'danger'));
+  };
+
+  // Sort movies based on type
+  const getSortedMovies = useCallback(() => {
+    if (!Array.isArray(movies)) return [];
+
+    const moviesCopy = [...movies];
+
+    switch (type) {
+      case 'newArrivals':
+        return moviesCopy.sort((a, b) =>
+          new Date(b.createdAt || b._id).getTime() - new Date(a.createdAt || a._id).getTime()
+        );
+      case 'mostPopular':
+        return moviesCopy.sort((a, b) =>
+          (parseInt(b.likeCount, 10) || 0) - (parseInt(a.likeCount, 10) || 0)
+        );
+      case 'recommended':
+        return moviesCopy.sort((a, b) =>
+          (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0)
+        );
+      default:
+        return moviesCopy;
+    }
+  }, [movies, type]);
+
+  const sortedMovies = getSortedMovies();
+  const displayMovies = sortedMovies.slice(0, showCount);
 
   return (
-    <div>
+    <div className="movie-list-container">
+      {/* Alert Message */}
       {alertMessage && (
         <div
-          className="alert alert-warning alert-dismissible fade show position-fixed top-0 start-0 m-3"
+          className={`alert alert-${alertType} alert-dismissible fade show position-fixed`}
           role="alert"
+          style={{
+            top: '80px',
+            right: '20px',
+            zIndex: 1050,
+            maxWidth: '350px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}
         >
           {alertMessage}
           <button
@@ -78,53 +181,100 @@ const MovieList = ({ movies, type }) => {
           />
         </div>
       )}
-      <div
-        className="row"
-        style={{
-          padding: "10px",
-          borderRadius: "5px",
-          marginBottom: "20px",
-        }}
-      >
-        {sortedMovies.length > 0 ? (
-          sortedMovies.slice(0, 4).map((movie, index) => ( // Display only the latest four movies
-            <div key={index} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
-              <Link
-                to={`/movies/${movie._id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div className="card h-100">
-                  <div className="card-header d-flex align-items-center">
-                    <div className="ms-3">
-                      <h6 className="mb-0 fs-sm">{movie.title}</h6>
-                      <span className="text-muted fs-sm">{movie.year}</span>
+
+      {/* Movie Grid */}
+      <div className="row g-4">
+        {displayMovies.length > 0 ? (
+          displayMovies.map((movie) => (
+            <div key={movie._id} className="col-lg-3 col-md-4 col-sm-6 col-12">
+              <div className="movie-card h-100 position-relative overflow-hidden rounded-3 shadow-sm hover-scale-animation"
+                style={{
+                  backgroundColor: 'var(--secondary-bg)',
+                  border: `1px solid var(--border-color)`,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }}>
+                <Link
+                  to={`/movies/${movie._id}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <div className="position-relative">
+                    <img
+                      src={movie.imageUrl}
+                      className="card-img-top"
+                      alt={movie.title}
+                      style={{
+                        height: '300px',
+                        objectFit: 'cover',
+                        borderRadius: '12px 12px 0 0'
+                      }}
+                      loading="lazy"
+                    />
+
+                    {/* Rating Badge */}
+                    {movie.rating && (
+                      <div className="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75">
+                        <FontAwesomeIcon icon={faStar} className="text-warning me-1" />
+                        {parseFloat(movie.rating).toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="card-body">
+                    <h6 className="card-title fw-bold mb-1"
+                      style={{
+                        color: 'var(--primary-text)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                      {movie.title}
+                    </h6>
+                    <div className="d-flex align-items-center text-muted small">
+                      <FontAwesomeIcon icon={faCalendar} className="me-1" style={{ fontSize: '0.8rem' }} />
+                      <span>{movie.year}</span>
+                      {movie.genre && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span>{movie.genre}</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <img
-                    src={movie.imageUrl}
-                    className="card-img-top"
-                    alt={movie.title}
-                  />
+                </Link>
+
+                {/* Action Buttons */}
+                <div className="card-footer bg-transparent border-0 d-flex justify-content-around p-2">
+                  <button
+                    className={`btn btn-sm ${watchlistStatus[movie._id] ? 'btn-danger' : 'btn-outline-danger'} flex-fill me-1`}
+                    onClick={(e) => addToWatchlist(movie._id, e)}
+                    disabled={loadingStates[movie._id] || watchlistStatus[movie._id]}
+                    title={watchlistStatus[movie._id] ? "In watchlist" : "Add to watchlist"}
+                  >
+                    {loadingStates[movie._id] ? (
+                      <span className="spinner-border spinner-border-sm" role="status" />
+                    ) : (
+                      <FontAwesomeIcon
+                        icon={watchlistStatus[movie._id] ? faHeart : faPlus}
+                        className={watchlistStatus[movie._id] ? "text-white" : ""}
+                      />
+                    )}
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-secondary flex-fill ms-1"
+                    onClick={(e) => shareMovie(movie, e)}
+                    title="Share movie"
+                  >
+                    <FontAwesomeIcon icon={faShare} />
+                  </button>
                 </div>
-              </Link>
-              <div className="card-footer d-flex justify-content-between"> {/* Improved button alignment */}
-                <button
-                  className="btn btn-subtle me-2"
-                  onClick={() => addToWatchlist(movie._id)}
-                >
-                  <i className="fas fa-heart fa-lg"></i>
-                </button>
-                <button
-                  className="btn btn-subtle"
-                  onClick={() => shareMovie(movie.title, movie._id)}
-                >
-                  <i className="fas fa-share fa-lg"></i>
-                </button>
               </div>
             </div>
           ))
         ) : (
-          <p>No movies found</p>
+          <div className="col-12 text-center py-5">
+            <p className="text-muted">No movies found in this category</p>
+          </div>
         )}
       </div>
     </div>
