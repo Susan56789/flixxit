@@ -29,7 +29,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
-
+console.log('Fetched movie data:', movieData);
         // Fetch likes and dislikes with proper error handling
         try {
           const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
@@ -96,7 +96,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const allMovies = response.data;
 
         const recommendedMovies = allMovies
-          .filter(movie => movie.genre === currentMovie.genre && movie._id !== currentMovie._id)
+          .filter(movie => movie.genres === currentMovie.genres && movie._id !== currentMovie._id)
           .sort((a, b) => b.rating - a.rating)
           .slice(0, 4);
 
@@ -450,20 +450,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
               <div className="row g-3">
                 <div className="col-sm-6">
                   <div className="meta-item p-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                    <strong className="text-warning">Genre:</strong>
-                    <div className="text-light fs-6">{movie.genre}</div>
+                    <strong className="text-warning">genres:</strong>
+                    <div className="text-light fs-6">{movie.genres}</div>
                   </div>
                 </div>
-                <div className="col-sm-6">
-                  <div className="meta-item p-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                    <strong className="text-warning">Duration:</strong>
-                    <div className="text-light fs-6">{movie.duration} minutes</div>
-                  </div>
-                </div>
+                
                 <div className="col-sm-6">
                   <div className="meta-item p-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                     <strong className="text-warning">Release Year:</strong>
-                    <div className="text-light fs-6">{movie.releaseYear}</div>
+                    <div className="text-light fs-6">{movie.year}</div>
                   </div>
                 </div>
                 {movie.director && (
@@ -702,10 +697,10 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                           <div className="recommended-movie-meta d-flex align-items-center text-muted mb-2">
                             <i className="fas fa-calendar me-2" style={{ fontSize: '0.8rem' }}></i>
                             <span>{recMovie.year || recMovie.releaseYear}</span>
-                            {recMovie.genre && (
+                            {recMovie.genres && (
                               <>
                                 <span className="mx-2">•</span>
-                                <span className="d-none d-sm-inline">{recMovie.genre}</span>
+                                <span className="d-none d-sm-inline">{recMovie.genres}</span>
                               </>
                             )}
                           </div>
