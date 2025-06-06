@@ -1,335 +1,384 @@
-/* HomePage.css - Theme-aware styles for HomePage component */
+/* HomePage.css */
 
-/* Base HomePage Container */
+/* CSS Variables for Theme Support - Red & Black Theme */
 .home-page {
-    min-height: 100vh;
-    background-color: var(--primary-bg);
-    color: var(--primary-text);
-    transition: var(--theme-transition);
+  --primary-bg: #000000;
+  --secondary-bg: #1a1a1a;
+  --primary-text: #ffffff;
+  --secondary-text: #cccccc;
+  --accent-color: #ff0000;
+  --accent-hover: #cc0000;
+  --border-color: #333333;
+  --shadow-color: rgba(255, 0, 0, 0.2);
+  --overlay-gradient: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 100%);
 }
 
-/* Hero Carousel Styles */
+.home-page.dark {
+  --primary-bg: #000000;
+  --secondary-bg: #0a0a0a;
+  --primary-text: #ffffff;
+  --secondary-text: #b0b0b0;
+  --accent-color: #ff0000;
+  --accent-hover: #cc0000;
+  --border-color: #2a2a2a;
+  --shadow-color: rgba(255, 0, 0, 0.3);
+  --overlay-gradient: linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 100%);
+}
+
+/* General Styles */
+.home-page {
+  min-height: 100vh;
+  background-color: var(--primary-bg);
+  color: var(--primary-text);
+  transition: all 0.3s ease;
+}
+
+/* Carousel Styles */
 .carousel {
-    position: relative;
-    width: 100%;
-    height: 70vh;
-    overflow: hidden;
-    background-color: var(--secondary-bg);
+  position: relative;
+  overflow: hidden;
+  background-color: var(--secondary-bg);
 }
 
-/* Slides Container */
 .slides-container {
-    display: flex;
-    transition: transform 0.5s ease-in-out;
-    height: 100%;
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+  height: 100%;
 }
 
-/* Individual Slide */
 .slide {
-    flex-shrink: 0;
-    width: 100%;
-    height: 100%;
-    position: relative;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1a1a1a;
 }
 
-/* Slide Overlay */
-.slide .overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to right,
-            rgba(0, 0, 0, 0.8) 0%,
-            rgba(0, 0, 0, 0.4) 50%,
-            transparent 100%);
-    display: flex;
-    align-items: center;
-    padding: 0 5%;
-}
-
-/* Dark theme overlay adjustment */
-[data-theme="dark"] .slide .overlay {
-    background: linear-gradient(to right,
-            rgba(0, 0, 0, 0.9) 0%,
-            rgba(0, 0, 0, 0.6) 50%,
-            rgba(0, 0, 0, 0.3) 100%);
-}
-
-/* Carousel Navigation Buttons */
+/* Carousel Controls - Red & Black Theme */
 .carousel-control-prev,
 .carousel-control-next {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 50px;
-    height: 50px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 2;
-}
-
-.carousel-control-prev {
-    left: 20px;
-}
-
-.carousel-control-next {
-    right: 20px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(255, 0, 0, 0.2);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: all 0.3s ease;
 }
 
 .carousel-control-prev:hover,
 .carousel-control-next:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: translateY(-50%) scale(1.1);
+  background-color: rgba(255, 0, 0, 0.8);
+  border-color: #ff0000;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+}
+
+.carousel-control-prev {
+  left: 20px;
+}
+
+.carousel-control-next {
+  right: 20px;
 }
 
 /* Carousel Indicators */
 .carousel-indicators {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 8px;
-    z-index: 2;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2rem;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
 }
 
-.carousel-indicators .indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: none;
-    background-color: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
+.indicator {
+  height: 10px;
+  border-radius: 5px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.carousel-indicators .indicator.active {
-    width: 30px;
-    border-radius: 5px;
-    background-color: var(--accent-color);
+.indicator.active {
+  background-color: var(--accent-color);
+  width: 30px;
 }
 
-.carousel-indicators .indicator:hover:not(.active) {
-    background-color: rgba(255, 255, 255, 0.8);
+.indicator:not(.active) {
+  width: 10px;
+}
+
+.indicator:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Overlay Content */
+.overlay {
+  background: var(--overlay-gradient);
+  padding: 2rem;
+}
+
+.overlay h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.overlay p {
+  font-size: 1.1rem;
+  opacity: 0.9;
 }
 
 /* Movie Sections */
 .Movie-title {
-    color: var(--primary-text);
-    font-weight: 700;
-    font-size: 1.75rem;
-    margin-bottom: 0.5rem;
-    letter-spacing: -0.5px;
+  color: var(--primary-text);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
-/* Section Divider */
-.home-page hr {
-    border-color: var(--border-color);
-    opacity: 0.3;
-    margin-bottom: 1.5rem;
+/* Hover Animation */
+.hover-scale-animation {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Movie Card Hover Effects */
+.hover-scale-animation:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px var(--shadow-color);
+}
+
+/* Movie Card Enhancements - Red & Black Theme */
 .movie-card {
-    transition: all 0.3s ease;
-    cursor: pointer;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background-color: #1a1a1a !important;
+  border: 1px solid #333333 !important;
 }
 
 .movie-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(255, 0, 0, 0.3);
+  border-color: rgba(255, 0, 0, 0.5) !important;
 }
 
-[data-theme="dark"] .movie-card:hover {
-    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1) !important;
+/* Button Styles - Red Theme */
+.btn-danger {
+  background-color: #ff0000;
+  border-color: #ff0000;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 0.75rem 2rem;
+  color: #ffffff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Loading State */
+.btn-danger:hover {
+  background-color: #cc0000;
+  border-color: #cc0000;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+/* Loading State - Red Theme */
 .spinner-border {
-    color: var(--accent-color);
+  width: 3rem;
+  height: 3rem;
+  border-width: 0.3rem;
+  color: #ff0000 !important;
 }
 
-/* Alert Positioning */
-.alert {
-    animation: slideInRight 0.3s ease-out;
+/* Section Dividers - Red accent */
+hr {
+  border-color: #333333 !important;
+  border-top: 2px solid #333333;
+  margin: 1rem 0;
+  position: relative;
 }
 
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
+/* Red accent line on section titles */
+.Movie-title {
+  color: var(--primary-text);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  position: relative;
+  display: inline-block;
+}
 
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
+.Movie-title::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 50px;
+  height: 3px;
+  background-color: #ff0000;
+}
+
+/* View All Links - Red Theme */
+a[href*="/categories"] {
+  color: #ff0000 !important;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+a[href*="/categories"]:hover {
+  color: #cc0000 !important;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-    .carousel {
-        height: 60vh;
-    }
-}
-
-@media (max-width: 992px) {
-    .carousel {
-        height: 50vh;
-    }
-
-    .slide .overlay {
-        padding: 0 3%;
-    }
-
-    .carousel-control-prev,
-    .carousel-control-next {
-        width: 40px;
-        height: 40px;
-    }
-
-    .carousel-control-prev {
-        left: 10px;
-    }
-
-    .carousel-control-next {
-        right: 10px;
-    }
-}
-
 @media (max-width: 768px) {
-    .carousel {
-        height: 40vh;
-    }
+  .carousel {
+    height: 50vh !important;
+  }
 
-    .Movie-title {
-        font-size: 1.5rem;
-    }
+  .overlay h1 {
+    font-size: 2rem;
+  }
 
-    .slide .overlay h1 {
-        font-size: 1.75rem !important;
-    }
+  .overlay p {
+    font-size: 0.9rem;
+  }
 
-    .slide .overlay p {
-        font-size: 0.9rem !important;
-    }
+  .carousel-control-prev,
+  .carousel-control-next {
+    width: 40px;
+    height: 40px;
+  }
 
-    .slide .overlay .btn-lg {
-        padding: 0.5rem 1.5rem;
-        font-size: 1rem;
-    }
+  .carousel-control-prev {
+    left: 10px;
+  }
 
-    .carousel-indicators {
-        bottom: 15px;
-    }
+  .carousel-control-next {
+    right: 10px;
+  }
+
+  .btn-danger {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .Movie-title {
+    font-size: 1.5rem;
+  }
 }
 
 @media (max-width: 576px) {
-    .carousel {
-        height: 35vh;
-    }
+  .carousel {
+    height: 40vh !important;
+  }
 
-    .slide .overlay {
-        background: linear-gradient(to top,
-                rgba(0, 0, 0, 0.9) 0%,
-                rgba(0, 0, 0, 0.5) 100%);
-        align-items: flex-end;
-        padding-bottom: 60px;
-    }
+  .overlay {
+    padding: 1rem;
+  }
 
-    .slide .overlay h1 {
-        font-size: 1.5rem !important;
-    }
+  .overlay h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
 
-    .slide .overlay p:not(.mb-4) {
-        display: none;
-    }
+  .overlay p {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
 
-    .carousel-control-prev,
-    .carousel-control-next {
-        width: 35px;
-        height: 35px;
-        font-size: 0.875rem;
-    }
+  .carousel-indicators {
+    margin-bottom: 1rem;
+  }
+
+  .indicator {
+    height: 8px;
+  }
+
+  .indicator.active {
+    width: 25px;
+  }
+
+  .indicator:not(.active) {
+    width: 8px;
+  }
 }
 
-/* Smooth Scrolling */
-html {
-    scroll-behavior: smooth;
+/* Large Screens */
+@media (min-width: 1200px) {
+  .carousel {
+    height: 80vh !important;
+  }
+
+  .overlay h1 {
+    font-size: 4rem;
+  }
+
+  .overlay p {
+    font-size: 1.25rem;
+  }
 }
 
-/* Section Spacing */
-section {
-    margin-bottom: 3rem;
+/* Ultra Wide Screens */
+@media (min-width: 1600px) {
+  .container {
+    max-width: 1400px;
+  }
+
+  .overlay .col-lg-6 {
+    max-width: 600px;
+  }
 }
 
-/* View All Link Styling */
-.home-page a[href*="/categories"] {
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .slides-container {
+    transition: none;
+  }
+
+  .hover-scale-animation:hover {
+    transform: none;
+  }
+
+  .movie-card:hover {
+    transform: none;
+  }
+
+  .carousel-control-prev:hover,
+  .carousel-control-next:hover {
+    transform: translateY(-50%);
+  }
 }
 
-.home-page a[href*="/categories"]:hover {
-    transform: translateX(5px);
-}
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .home-page {
+    --accent-color: #ff0000;
+    --border-color: #000000;
+  }
 
-/* Accessibility - Focus States */
-.carousel-control-prev:focus,
-.carousel-control-next:focus,
-.carousel-indicators .indicator:focus {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
-}
-
-/* Performance - GPU Acceleration */
-.slides-container,
-.movie-card {
-    will-change: transform;
-}
-
-/* Skeleton Loading (if needed) */
-.skeleton {
-    background: linear-gradient(90deg,
-            var(--secondary-bg) 25%,
-            var(--border-color) 50%,
-            var(--secondary-bg) 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-    0% {
-        background-position: 200% 0;
-    }
-
-    100% {
-        background-position: -200% 0;
-    }
+  .home-page.dark {
+    --accent-color: #ff6b6b;
+    --border-color: #ffffff;
+  }
 }
 
 /* Print Styles */
 @media print {
+  .carousel,
+  .carousel-control-prev,
+  .carousel-control-next,
+  .carousel-indicators {
+    display: none;
+  }
 
-    .carousel,
-    .carousel-control-prev,
-    .carousel-control-next,
-    .carousel-indicators {
-        display: none;
-    }
-
-    .home-page {
-        background: white;
-        color: black;
-    }
+  .movie-card {
+    break-inside: avoid;
+  }
 }
