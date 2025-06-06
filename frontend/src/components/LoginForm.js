@@ -1,19 +1,34 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
 const LoginForm = ({ handleLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/profile";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const user = await handleLogin(email, password);
-    if (user) {
-      navigate(from); // Redirect to the page where the login was requested
+    setIsLoading(true);
+    
+    try {
+      const result = await handleLogin(email, password);
+      if (result && result.success) {
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -68,6 +83,7 @@ const LoginForm = ({ handleLogin }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
                 <label className="form-label" htmlFor="email">
                   Email address
@@ -75,16 +91,35 @@ const LoginForm = ({ handleLogin }) => {
               </div>
 
               {/* Password input */}
-              <div className="form-outline mb-3">
+              <div className="form-outline mb-3 position-relative">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   className="form-control form-control-lg"
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
+                  style={{ paddingRight: '50px' }}
                 />
+                <button
+                  type="button"
+                  className="btn position-absolute"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#6c757d',
+                    zIndex: 10
+                  }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
                 <label className="form-label" htmlFor="password">
                   Password
                 </label>
@@ -113,8 +148,9 @@ const LoginForm = ({ handleLogin }) => {
                   type="submit"
                   className="btn btn-danger btn-lg"
                   style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
+                  disabled={isLoading}
                 >
-                  Login
+                  {isLoading ? "Logging in..." : "Login"}
                 </button>
                 <p className="small fw-bold mt-2 pt-1 mb-0">
                   Don't have an account?{" "}

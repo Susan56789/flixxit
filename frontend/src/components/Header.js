@@ -5,27 +5,14 @@ import { useTheme } from "../themeContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMoon, faSun, faBars, faSearch } from "@fortawesome/free-solid-svg-icons";
 
-const Header = ({ handleLogout }) => {
+const Header = ({ handleLogout, isLoggedIn, user }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [user, setUser] = useState(null);
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
   const token = getUserToken();
   const { theme, toggleTheme, isDark } = useTheme();
-
-  useEffect(() => {
-    try {
-      const userData = localStorage.getItem("flixxItUser");
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      setUser(null);
-    }
-  }, []);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -38,7 +25,7 @@ const Header = ({ handleLogout }) => {
     if (trimmedQuery) {
       navigate(`/search/${encodeURIComponent(trimmedQuery)}`);
       setSearchQuery("");
-      setIsNavCollapsed(true); // Close mobile menu after search
+      setIsNavCollapsed(true);
     }
   };
 
@@ -110,7 +97,8 @@ const Header = ({ handleLogout }) => {
 
             {/* User Navigation */}
             <div className="d-flex align-items-center gap-2 flex-column flex-lg-row">
-              {token && user ? (
+              {/* Show protected routes only when logged in */}
+              {isLoggedIn && user ? (
                 <>
                   <Link
                     className={`nav-link hover-underline-animation ${isActive("/watchlist") ? "active" : ""}`}

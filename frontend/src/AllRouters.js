@@ -14,16 +14,28 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminLogin from "./components/Admin/AdminLogin";
 import PasswordReset from "./components/PasswordReset";
 import ProtectedRoute from "./components/ProtectedRoute";
-// import AdminRoute from "./components/AdminRoute";
 import { AuthContext } from './AuthContext';
 import Footer from "./components/Footer";
 
-const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, isAdmin, handleLogin, handleLogout }) => {
+const AllRouters = ({ 
+  handleRegister, 
+  handleSearch, 
+  handleLike, 
+  handleDislike, 
+  isAdmin, 
+  handleLogin, 
+  handleLogout 
+}) => {
   const { isLoggedIn, user } = useContext(AuthContext);
 
   return (
     <div className="App">
-      <Header isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
+      {/* Pass isLoggedIn to Header */}
+      <Header 
+        isLoggedIn={isLoggedIn} 
+        handleLogout={handleLogout} 
+        user={user}
+      />
       <div className="main">
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -48,9 +60,7 @@ const AllRouters = ({ handleRegister, handleSearch, handleLike, handleDislike, i
           <Route path="/reset-password" element={<PasswordReset />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={
-            // <AdminRoute isAdmin={isAdmin}>
             <AdminDashboard />
-            // </AdminRoute>
           } />
         </Routes>
       </div>

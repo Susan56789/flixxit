@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { getUser } from './utils/helpers';
+import { getUser, getUserToken } from './utils/helpers';
 
 export const AuthContext = createContext();
 
@@ -8,26 +8,23 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        // Fetch user data asynchronously when the component mounts
-        const fetchUserData = async () => {
+        // Check for existing user data on mount
+        const checkAuth = () => {
             try {
-                const userData = await getUser();
-                if (userData) {
+                const userData = getUser(); // This is synchronous based on your helpers
+                const token = getUserToken();
+                
+                if (userData && token) {
                     setIsLoggedIn(true);
                     setUser(userData);
                 }
             } catch (error) {
-                console.error('Error fetching user data:', error);
+                console.error('Error checking auth:', error);
             }
         };
 
-        fetchUserData();
-
-        // Clean up function
-        return () => {
-            // Perform any cleanup if needed
-        };
-    }, []); // Empty dependency array ensures the effect runs only once
+        checkAuth();
+    }, []);
 
     const login = (userData) => {
         setIsLoggedIn(true);
