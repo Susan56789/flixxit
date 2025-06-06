@@ -106,7 +106,7 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
 
     const shareData = {
       title: `Check out: ${movie.title}`,
-      text: `I found this great movie "${movie.title}" (${movie.year}). ${movie.genre ? `Genre: ${movie.genre}` : ''}`,
+      text: `I found this great movie "${movie.title}" (${movie.year}). ${movie.genres ? `genres: ${movie.genres}` : ''}`,
       url: `${window.location.origin}/movies/${movie._id}`,
     };
 
@@ -258,10 +258,10 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
                       style={{ fontSize: '0.75rem' }}>
                       <FontAwesomeIcon icon={faCalendar} className="me-1" style={{ fontSize: '0.7rem' }} />
                       <span>{movie.year}</span>
-                      {movie.genre && (
+                      {movie.genres && (
                         <>
                           <span className="mx-1">•</span>
-                          <span className="d-none d-sm-inline">{movie.genre}</span>
+                          <span className="d-none d-sm-inline">{movie.genres}</span>
                         </>
                       )}
                     </div>

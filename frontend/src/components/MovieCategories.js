@@ -141,9 +141,9 @@ const MovieCategories = () => {
         const uniqueYears = new Set();
 
         movies.forEach(movie => {
-            if (movie.genre) {
+            if (movie.genres) {
                 // Handle multiple genres separated by comma
-                movie.genre.split(',').forEach(g => uniqueGenres.add(g.trim()));
+                movie.genres.split(',').forEach(g => uniqueGenres.add(g.trim()));
             }
             if (movie.year) {
                 uniqueYears.add(movie.year);
@@ -165,7 +165,7 @@ const MovieCategories = () => {
             const query = searchQuery.toLowerCase().trim();
             filtered = filtered.filter(movie =>
                 (movie.title && movie.title.toLowerCase().includes(query)) ||
-                (movie.genre && movie.genre.toLowerCase().includes(query)) ||
+                (movie.genres && movie.genres.toLowerCase().includes(query)) ||
                 (movie.description && movie.description.toLowerCase().includes(query)) ||
                 (movie.director && movie.director.toLowerCase().includes(query)) ||
                 (movie.cast && movie.cast.some && movie.cast.some(actor => 
@@ -177,7 +177,7 @@ const MovieCategories = () => {
         // Apply genre filter
         if (selectedGenre) {
             filtered = filtered.filter(movie =>
-                movie.genre && movie.genre.includes(selectedGenre)
+                movie.genres && movie.genres.includes(selectedGenre)
             );
         }
 
@@ -755,7 +755,7 @@ const MovieCategories = () => {
                                         </h6>
                                         <small className="text-muted d-block">
                                             {movie.year && `${movie.year} • `}
-                                            {movie.genre}
+                                            {movie.genres}
                                         </small>
                                         {movie.likeCount && (
                                             <small className="text-muted">
@@ -824,9 +824,9 @@ const MovieCategories = () => {
                                                                 {movie.year}
                                                             </span>
                                                         )}
-                                                        {movie.genre && (
+                                                        {movie.genres && (
                                                             <span className="badge bg-info">
-                                                                {movie.genre}
+                                                                {movie.genres}
                                                             </span>
                                                         )}
                                                         {movie.likeCount && (

@@ -29,7 +29,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}`);
         const movieData = response.data;
         setMovie(movieData);
-console.log('Fetched movie data:', movieData);
+
         // Fetch likes and dislikes with proper error handling
         try {
           const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);

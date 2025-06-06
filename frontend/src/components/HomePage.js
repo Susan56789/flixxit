@@ -53,6 +53,8 @@ const HomePage = () => {
             const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
             const moviesData = response.data;
 
+           
+
             // Filter out movies without required data
             const validMovies = moviesData.filter(movie => movie && movie._id);
 
@@ -88,14 +90,7 @@ const HomePage = () => {
             // If no movies have ratings, fall back to all movies
             const finalMostRated = mostRatedData.length > 0 ? mostRatedData : [...validMovies];
 
-            console.log('Categories breakdown:', {
-                total: validMovies.length,
-                newArrivals: newArrivalsData.length,
-                mostPopular: finalMostPopular.length,
-                mostRated: finalMostRated.length,
-                sampleLikeCounts: mostPopularData.slice(0, 3).map(m => ({ title: m.title, likes: m.likeCount })),
-                sampleRatings: mostRatedData.slice(0, 3).map(m => ({ title: m.title, rating: m.rating }))
-            });
+            
 
             setNewArrivals(newArrivalsData);
             setMostPopular(finalMostPopular);
@@ -245,7 +240,7 @@ const HomePage = () => {
                                                     </h1>
                                                     <p className="text-white mb-4" style={{ fontSize: '1.1rem' }}>
                                                         {movie.year || 'Year N/A'}
-                                                        {movie.genre && ` • ${movie.genre}`}
+                                                        {movie.genres && ` • ${movie.genres}`}
                                                         {movie.rating && ` • ⭐ ${movie.rating}`}
                                                     </p>
                                                     {movie.description && (
