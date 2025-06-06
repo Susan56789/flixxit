@@ -138,17 +138,27 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
 
     switch (type) {
       case 'newArrivals':
-        return moviesCopy.sort((a, b) =>
-          new Date(b.createdAt || b._id).getTime() - new Date(a.createdAt || a._id).getTime()
-        );
+        return moviesCopy.sort((a, b) => {
+          // Sort by createdAt or ObjectId timestamp
+          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(parseInt(a._id.substring(0, 8), 16) * 1000);
+          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(parseInt(b._id.substring(0, 8), 16) * 1000);
+          return dateB.getTime() - dateA.getTime();
+        });
       case 'mostPopular':
-        return moviesCopy.sort((a, b) =>
-          (parseInt(b.likeCount, 10) || 0) - (parseInt(a.likeCount, 10) || 0)
-        );
-      case 'recommended':
-        return moviesCopy.sort((a, b) =>
-          (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0)
-        );
+        return moviesCopy.sort((a, b) => {
+          const likesA = parseInt(a.likeCount, 10) || 0;
+          const likesB = parseInt(b.likeCount, 10) || 0;
+          return likesB - likesA;
+        });
+      case 'mostRated':
+      case 'recommended': // Keep compatibility with old naming
+        return moviesCopy
+          .filter(movie => movie.rating && !isNaN(parseFloat(movie.rating)))
+          .sort((a, b) => {
+            const ratingA = parseFloat(a.rating) || 0;
+            const ratingB = parseFloat(b.rating) || 0;
+            return ratingB - ratingA;
+          });
       default:
         return moviesCopy;
     }
@@ -209,6 +219,9 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
                         borderRadius: '12px 12px 0 0'
                       }}
                       loading="lazy"
+                      onError={(e) => {
+                        e.target.src = '/placeholder-movie.jpg'; // Fallback image
+                      }}
                     />
 
                     {/* Rating Badge - Responsive sizing */}
@@ -217,6 +230,15 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
                         style={{ fontSize: '0.7rem' }}>
                         <FontAwesomeIcon icon={faStar} className="text-warning me-1" />
                         {parseFloat(movie.rating).toFixed(1)}
+                      </div>
+                    )}
+
+                    {/* Show popularity indicator for mostPopular type */}
+                    {type === 'mostPopular' && movie.likeCount !== undefined && (
+                      <div className="position-absolute top-0 start-0 m-1 m-md-2 badge bg-danger bg-opacity-75"
+                        style={{ fontSize: '0.7rem' }}>
+                        <FontAwesomeIcon icon={faHeart} className="me-1" />
+                        {movie.likeCount}
                       </div>
                     )}
                   </div>
@@ -278,44 +300,14 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
           ))
         ) : (
           <div className="col-12 text-center py-5">
-            <p className="text-muted">No movies found in this category</p>
+            <div className="text-muted">
+              <FontAwesomeIcon icon={faStar} size="3x" className="mb-3 opacity-50" />
+              <h5>No movies found</h5>
+              <p>Try adjusting your filters or check back later for new content.</p>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Custom styles for smaller screens */}
-      <style jsx>{`
-        @media (max-width: 576px) {
-          .movie-card img {
-            height: 180px !important;
-          }
-          
-          .card-title {
-            font-size: 0.85rem !important;
-          }
-          
-          .card-body {
-            padding: 0.5rem !important;
-          }
-          
-          .btn-sm {
-            font-size: 0.7rem !important;
-            padding: 0.2rem 0.4rem !important;
-          }
-        }
-        
-        @media (min-width: 768px) and (max-width: 991px) {
-          .movie-card img {
-            height: 220px !important;
-          }
-        }
-        
-        @media (min-width: 992px) {
-          .movie-card img {
-            height: 300px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

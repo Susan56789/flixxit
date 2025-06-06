@@ -13,7 +13,7 @@ const FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/
 const HomePage = () => {
     const [newArrivals, setNewArrivals] = useState([]);
     const [mostPopular, setMostPopular] = useState([]);
-    const [recommended, setRecommended] = useState([]);
+    const [mostRated, setMostRated] = useState([]);
     const [movies, setMovies] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -56,22 +56,50 @@ const HomePage = () => {
             // Filter out movies without required data
             const validMovies = moviesData.filter(movie => movie && movie._id);
 
-            // Sort movies for different categories
-            const newArrivalsData = [...validMovies].sort((a, b) =>
-                new Date(b.createdAt || b._id).getTime() - new Date(a.createdAt || a._id).getTime()
-            );
+            // NEW ARRIVALS: Sort by MongoDB ObjectId (which contains timestamp) or createdAt
+            const newArrivalsData = [...validMovies].sort((a, b) => {
+                // Try createdAt first, then fall back to ObjectId timestamp
+                const dateA = a.createdAt ? new Date(a.createdAt) : new Date(parseInt(a._id.substring(0, 8), 16) * 1000);
+                const dateB = b.createdAt ? new Date(b.createdAt) : new Date(parseInt(b._id.substring(0, 8), 16) * 1000);
+                return dateB.getTime() - dateA.getTime();
+            });
 
-            const mostPopularData = [...validMovies].sort((a, b) =>
-                (parseInt(b.likeCount, 10) || 0) - (parseInt(a.likeCount, 10) || 0)
-            );
+            // MOST POPULAR: Sort by likeCount (from API aggregation)
+            const mostPopularData = [...validMovies]
+                .filter(movie => movie.likeCount !== undefined) // Only include movies with likeCount
+                .sort((a, b) => {
+                    const likesA = parseInt(a.likeCount, 10) || 0;
+                    const likesB = parseInt(b.likeCount, 10) || 0;
+                    return likesB - likesA;
+                });
 
-            const recommendedData = [...validMovies].sort((a, b) =>
-                (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0)
-            );
+            // If no movies have likeCount, fall back to all movies sorted by a default criteria
+            const finalMostPopular = mostPopularData.length > 0 ? mostPopularData : [...validMovies];
+
+            // MOST RATED: Sort by highest rating
+            const mostRatedData = [...validMovies]
+                .filter(movie => movie.rating && !isNaN(parseFloat(movie.rating))) // Only movies with valid ratings
+                .sort((a, b) => {
+                    const ratingA = parseFloat(a.rating) || 0;
+                    const ratingB = parseFloat(b.rating) || 0;
+                    return ratingB - ratingA;
+                });
+
+            // If no movies have ratings, fall back to all movies
+            const finalMostRated = mostRatedData.length > 0 ? mostRatedData : [...validMovies];
+
+            console.log('Categories breakdown:', {
+                total: validMovies.length,
+                newArrivals: newArrivalsData.length,
+                mostPopular: finalMostPopular.length,
+                mostRated: finalMostRated.length,
+                sampleLikeCounts: mostPopularData.slice(0, 3).map(m => ({ title: m.title, likes: m.likeCount })),
+                sampleRatings: mostRatedData.slice(0, 3).map(m => ({ title: m.title, rating: m.rating }))
+            });
 
             setNewArrivals(newArrivalsData);
-            setMostPopular(mostPopularData);
-            setRecommended(recommendedData);
+            setMostPopular(finalMostPopular);
+            setMostRated(finalMostRated);
             setMovies(validMovies);
             setError(null);
         } catch (error) {
@@ -355,18 +383,18 @@ const HomePage = () => {
                         <MovieList movies={mostPopular} type="mostPopular" />
                     </section>
 
-                    {/* Recommended */}
+                    {/* Most Rated */}
                     <section className="mb-5">
                         <div className="d-flex justify-content-between align-items-center mb-3">
                             <h2 className="Movie-title h3 fw-bold" style={{ color: 'var(--primary-text)' }}>
-                                Recommended
+                                Most Rated
                             </h2>
-                            <Link to="/categories?filter=recommended" className="text-decoration-none" style={{ color: 'var(--accent-color)' }}>
+                            <Link to="/categories?filter=rated" className="text-decoration-none" style={{ color: 'var(--accent-color)' }}>
                                 View All →
                             </Link>
                         </div>
                         <hr style={{ borderColor: 'var(--border-color)' }} />
-                        <MovieList movies={recommended} type="recommended" />
+                        <MovieList movies={mostRated} type="mostRated" />
                     </section>
                 </div>
             </div>
