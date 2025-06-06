@@ -29,25 +29,52 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         const movieData = response.data;
         setMovie(movieData);
 
-        // Fetch likes and dislikes
-        const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
-        const likesCount = likesResponse.data.likes;
-        const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
-        const dislikesCount = dislikesResponse.data.dislikes;
+        // Fetch likes and dislikes with proper error handling
+        try {
+          const likesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/likes`);
+          const likesCount = likesResponse.data.data ? likesResponse.data.data.likes : likesResponse.data.likes || 0;
+          
+          const dislikesResponse = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${id}/dislikes`);
+          const dislikesCount = dislikesResponse.data.data ? dislikesResponse.data.data.dislikes : dislikesResponse.data.dislikes || 0;
 
-        movieData.likes = likesCount;
-        movieData.dislikes = dislikesCount;
+          movieData.likes = likesCount;
+          movieData.dislikes = dislikesCount;
+        } catch (likeDislikeError) {
+          console.warn('Error fetching likes/dislikes:', likeDislikeError);
+          movieData.likes = 0;
+          movieData.dislikes = 0;
+        }
 
-        // Set like status based on user
-        setLikeStatus(
-          user
-            ? movieData.likesBy?.includes(user._id)
-              ? 1
-              : movieData.dislikesBy?.includes(user._id)
+        // Set like status based on user - check both API and local arrays
+        if (user) {
+          try {
+            // Check like status from API
+            const likeStatusResponse = await axios.get(
+              `https://flixxit-h9fa.onrender.com/api/movies/${id}/like/status`,
+              { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            );
+            const hasLiked = likeStatusResponse.data.data?.hasLiked;
+
+            // Check dislike status from API
+            const dislikeStatusResponse = await axios.get(
+              `https://flixxit-h9fa.onrender.com/api/movies/${id}/dislike/status`,
+              { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            );
+            const hasDisliked = dislikeStatusResponse.data.data?.hasDisliked;
+
+            setLikeStatus(hasLiked ? 1 : hasDisliked ? -1 : null);
+          } catch (statusError) {
+            console.warn('Error checking like/dislike status:', statusError);
+            // Fallback to checking arrays if they exist
+            setLikeStatus(
+              movieData.likesBy?.includes(user._id)
+                ? 1
+                : movieData.dislikesBy?.includes(user._id)
                 ? -1
                 : null
-            : null
-        );
+            );
+          }
+        }
 
         fetchRecommendedMovies(movieData);
         fetchComments(movieData._id);
@@ -61,15 +88,13 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
 
     const fetchRecommendedMovies = async (currentMovie) => {
       try {
-        // Fetch all movies from the API
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies`);
         const allMovies = response.data;
 
-        // Filter movies by the same genre and exclude the current movie
         const recommendedMovies = allMovies
           .filter(movie => movie.genre === currentMovie.genre && movie._id !== currentMovie._id)
-          .sort((a, b) => b.rating - a.rating) // Sort by rating in descending order
-          .slice(0, 4); // Limit to top 4 recommended movies
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 4);
 
         setRecommendedMovies(recommendedMovies);
       } catch (error) {
@@ -80,9 +105,12 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     const fetchComments = async (movieId) => {
       try {
         const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
-        setComments(response.data);
+        // Handle both response formats
+        const commentsData = response.data.comments || response.data || [];
+        setComments(commentsData);
       } catch (error) {
         console.error('Error fetching comments:', error);
+        setComments([]);
       }
     };
 
@@ -99,19 +127,28 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     fetchMovieDetail();
   }, [id, user]);
 
-  // Map usernames to comments
+  // Map usernames to comments - fixed to avoid infinite loop
   useEffect(() => {
     if (comments.length > 0 && users.length > 0) {
-      const updatedComments = comments.map(comment => {
-        const user = users.find(user => user._id === comment.userId);
-        return {
-          ...comment,
-          username: user ? user.username : 'Unknown'
-        };
-      });
-      setComments(updatedComments);
+      // Only update if comments don't already have usernames
+      const needsUsernames = comments.some(comment => !comment.username && !comment.userName);
+      
+      if (needsUsernames) {
+        const updatedComments = comments.map(comment => {
+          if (comment.username || comment.userName) {
+            return comment; // Already has username
+          }
+          
+          const user = users.find(user => user._id === comment.userId);
+          return {
+            ...comment,
+            username: user ? (user.username || user.name) : 'Unknown'
+          };
+        });
+        setComments(updatedComments);
+      }
     }
-  }, [comments, users]);
+  }, [users]); // Only depend on users, not comments
 
   const handleWatchClick = () => {
     setShowPlayer(true);
@@ -132,65 +169,125 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
-
-  // Handle like button click
+  // Improved like handler
   const handleLikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to like the movie.');
       return;
     }
-    if (likeStatus === -1) {
-      setAlertMessage('You have already disliked this movie.');
-      return;
-    }
+    
     if (likeStatus === 1) {
       setAlertMessage('You have already liked this movie.');
       return;
     }
+
     try {
-      const updatedMovie = await handleLike(movie._id, user._id);
-      setMovie(prevMovie => ({
-        ...prevMovie,
-        ...updatedMovie,
-        likesBy: updatedMovie.likesBy,
-      }));
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setAlertMessage('Please log in to like the movie.');
+        return;
+      }
+
+      // If using the parent handleLike function
+      if (handleLike) {
+        const updatedMovie = await handleLike(movie._id, user._id);
+        setMovie(prevMovie => ({
+          ...prevMovie,
+          ...updatedMovie,
+          likes: (updatedMovie.likes || prevMovie.likes || 0) + (likeStatus === -1 ? 2 : 1),
+          dislikes: likeStatus === -1 ? Math.max(0, (prevMovie.dislikes || 0) - 1) : (prevMovie.dislikes || 0)
+        }));
+      } else {
+        // Direct API call
+        const response = await axios.post(
+          `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/like`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (response.data.success) {
+          setMovie(prevMovie => ({
+            ...prevMovie,
+            likes: response.data.data.likes,
+            dislikes: response.data.data.dislikes
+          }));
+        }
+      }
+      
       setLikeStatus(1);
       setAlertMessage('You have liked this movie.');
     } catch (err) {
-      console.error(err);
-      setAlertMessage('Error liking the movie.');
+      console.error('Error liking movie:', err);
+      if (err.response?.status === 409) {
+        setAlertMessage('You have already liked this movie.');
+      } else if (err.response?.status === 401) {
+        setAlertMessage('Please log in to like the movie.');
+      } else {
+        setAlertMessage('Error liking the movie. Please try again.');
+      }
     }
   };
 
-  // Handle dislike button click
+  // Improved dislike handler
   const handleDislikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to dislike the movie.');
       return;
     }
-    if (likeStatus === 1) {
-      setAlertMessage('You have already liked this movie.');
-      return;
-    }
+    
     if (likeStatus === -1) {
       setAlertMessage('You have already disliked this movie.');
       return;
     }
+
     try {
-      const updatedDislikesBy = await handleDislike(movie._id, user._id);
-      setMovie(prevMovie => ({
-        ...prevMovie,
-        dislikesBy: updatedDislikesBy,
-      }));
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setAlertMessage('Please log in to dislike the movie.');
+        return;
+      }
+
+      // If using the parent handleDislike function
+      if (handleDislike) {
+        const updatedDislikesBy = await handleDislike(movie._id, user._id);
+        setMovie(prevMovie => ({
+          ...prevMovie,
+          dislikesBy: updatedDislikesBy,
+          dislikes: (prevMovie.dislikes || 0) + (likeStatus === 1 ? 2 : 1),
+          likes: likeStatus === 1 ? Math.max(0, (prevMovie.likes || 0) - 1) : (prevMovie.likes || 0)
+        }));
+      } else {
+        // Direct API call
+        const response = await axios.post(
+          `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/dislike`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (response.data.success) {
+          setMovie(prevMovie => ({
+            ...prevMovie,
+            likes: response.data.data.likes,
+            dislikes: response.data.data.dislikes
+          }));
+        }
+      }
+      
       setLikeStatus(-1);
       setAlertMessage('You have disliked this movie.');
     } catch (err) {
-      console.error(err);
-      setAlertMessage('Error disliking the movie.');
+      console.error('Error disliking movie:', err);
+      if (err.response?.status === 409) {
+        setAlertMessage('You have already disliked this movie.');
+      } else if (err.response?.status === 401) {
+        setAlertMessage('Please log in to dislike the movie.');
+      } else {
+        setAlertMessage('Error disliking the movie. Please try again.');
+      }
     }
   };
 
-  // Handle comment submission
+  // Improved comment submission
   const handleCommentSubmit = async () => {
     if (!user) {
       setAlertMessage('Please log in to post a comment.');
@@ -203,18 +300,27 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
 
     // Check if the user has already commented
-    const hasCommented = comments.some(comment => comment.userId === user._id);
+    const hasCommented = comments.some(comment => 
+      comment.userId === user._id || comment.userId.toString() === user._id.toString()
+    );
+    
     if (hasCommented) {
       setAlertMessage('You have already posted a comment for this movie.');
       return;
     }
 
     // Limit the comment text to 300 words
-    const maxLength = 300;
-    const trimmedCommentText = commentText.trim().split(' ').slice(0, maxLength).join(' ');
+    const words = commentText.trim().split(/\s+/);
+    const maxWords = 300;
+    const trimmedCommentText = words.slice(0, maxWords).join(' ');
 
     const commentPayload = { text: trimmedCommentText };
     const token = localStorage.getItem('token');
+
+    if (!token) {
+      setAlertMessage('Please log in to post a comment.');
+      return;
+    }
 
     try {
       const response = await axios.post(
@@ -223,22 +329,43 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setComments(prevComments => [...prevComments, response.data]);
+      // Add the new comment to the list
+      const newComment = {
+        ...response.data,
+        username: response.data.userName || user.username || user.name || 'Anonymous'
+      };
+      
+      setComments(prevComments => [newComment, ...prevComments]);
       setCommentText('');
       setAlertMessage('Comment posted successfully.');
     } catch (err) {
       console.error('Error posting comment:', err);
-      setAlertMessage('Error posting comment.');
+      if (err.response?.status === 401) {
+        setAlertMessage('Please log in to post a comment.');
+      } else if (err.response?.status === 400) {
+        setAlertMessage(err.response.data.message || 'Invalid comment data.');
+      } else {
+        setAlertMessage('Error posting comment. Please try again.');
+      }
     }
   };
 
   // Handle loading and error states
   if (error) {
-    return <div>Error fetching movie details: {error}</div>;
+    return <div className="container mt-4">
+      <div className="alert alert-danger">Error fetching movie details: {error}</div>
+    </div>;
   }
 
   if (loading || !movie) {
-    return <div>Loading...</div>;
+    return <div className="container mt-4">
+      <div className="text-center">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2">Loading movie details...</p>
+      </div>
+    </div>;
   }
 
   return (
@@ -247,6 +374,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         <div
           className="alert alert-warning alert-dismissible fade show position-fixed top-0 start-0 m-3"
           role="alert"
+          style={{ zIndex: 1050 }}
         >
           {alertMessage}
           <button
@@ -257,61 +385,74 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           />
         </div>
       )}
+      
       {showPlayer && (
-        <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block" }}>
+        <div className="modal d-flex justify-content-center align-items-center" style={{ display: "block", zIndex: 1055 }}>
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
+                <h5 className="modal-title">{movie.title} - Trailer</h5>
                 <button type="button" className="btn btn-secondary" onClick={handleClosePlayer}>
-                  Back to Details
+                  Close
                 </button>
               </div>
               <div className="modal-body">
-                <ReactPlayer url={movie.videoUrl} playing controls width="100%" />
+                <ReactPlayer url={movie.videoUrl} playing controls width="100%" height="400px" />
               </div>
             </div>
           </div>
         </div>
       )}
+      
       <div className="row">
         <div className="col-md-4">
           <img
             src={movie.imageUrl}
             alt={movie.title}
             className="img-fluid mb-3"
+            style={{ maxHeight: '600px', objectFit: 'cover' }}
           />
         </div>
         <div className="col-md-8">
           <h2>{movie.title}</h2>
-          <p>{movie.description}</p>
-          <p>Genre: {movie.genre}</p>
-          <p>Rating: {movie.rating}</p>
-          <p>Year: {movie.year}</p>
+          <p className="lead">{movie.description}</p>
+          <div className="row mb-3">
+            <div className="col-sm-6">
+              <p><strong>Genre:</strong> {movie.genre}</p>
+              <p><strong>Rating:</strong> {movie.rating}</p>
+            </div>
+            <div className="col-sm-6">
+              <p><strong>Year:</strong> {movie.year}</p>
+            </div>
+          </div>
+          
           <div className="btn-group" role="group">
             {movie.videoUrl && (
               <button
                 type="button"
-                className="btn btn-danger"
+                className="btn btn-danger me-2"
                 onClick={handleWatchClick}
               >
-                <FaPlay className="mr-2" />
-                Trailer
+                <FaPlay className="me-2" />
+                Watch Trailer
               </button>
             )}
             <button
               type="button"
-              className={`btn ${likeStatus === 1 ? "btn-danger" : "btn-outline-danger"}`}
+              className={`btn me-2 ${likeStatus === 1 ? "btn-success" : "btn-outline-success"}`}
               onClick={handleLikeClick}
+              disabled={loading}
             >
-              <FaThumbsUp className="mr-2" />
+              <FaThumbsUp className="me-2" />
               Like ({movie.likes || 0})
             </button>
             <button
               type="button"
               className={`btn ${likeStatus === -1 ? "btn-danger" : "btn-outline-danger"}`}
               onClick={handleDislikeClick}
+              disabled={loading}
             >
-              <FaThumbsDown className="mr-2" />
+              <FaThumbsDown className="me-2" />
               Dislike ({movie.dislikes || 0})
             </button>
           </div>
@@ -321,43 +462,93 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       <hr />
 
       <div className="mt-4">
-        <h3>Comments</h3>
-        {comments.length > 0 ? (
-          comments.map((comment, index) => (
-            <div className="mb-2" key={comment.id || index}>
-              <strong>{comment.username}:</strong> {comment.text}
+        <h3>Comments ({comments.length})</h3>
+        
+        {/* Comment form */}
+        <div className="mb-4">
+          <div className="form-group mb-3">
+            <textarea
+              className="form-control"
+              rows="3"
+              placeholder="Write a comment... (maximum 300 words)"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              maxLength="2000"
+            />
+            <div className="form-text">
+              {commentText.trim().split(/\s+/).filter(word => word.length > 0).length} / 300 words
             </div>
-          ))
-        )
-          : (
-            <p>No comments yet.</p>
-          )}
-        <div className="mt-3">
-          <textarea
-            className="form-control mb-2"
-            placeholder="Write a comment..."
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-          ></textarea>
-          <button className="btn btn-danger" onClick={handleCommentSubmit}>
+          </div>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleCommentSubmit}
+            disabled={!commentText.trim() || loading}
+          >
             Post Comment
           </button>
         </div>
+
+        {/* Comments display */}
+        {comments.length > 0 ? (
+          <div className="comments-section">
+            {comments.map((comment, index) => (
+              <div className="card mb-3" key={comment._id || comment.id || index}>
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div>
+                      <h6 className="card-title mb-1">
+                        {comment.username || comment.userName || 'Anonymous'}
+                      </h6>
+                      <p className="card-text">{comment.text}</p>
+                    </div>
+                    {comment.createdAt && (
+                      <small className="text-muted">
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </small>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="alert alert-info">
+            <p className="mb-0">No comments yet. Be the first to share your thoughts!</p>
+          </div>
+        )}
       </div>
 
       <hr />
 
       <h3>Recommended Movies</h3>
-      <div className="row">
-        {recommendedMovies.map(recommendedMovie => (
-          <div className="col-md-3" key={recommendedMovie._id}>
-            <Link to={`/movies/${recommendedMovie._id}`}>
-              <img src={recommendedMovie.imageUrl} className="img-fluid" alt={recommendedMovie.title} />
-              <p className="mt-2">{recommendedMovie.title}</p>
-            </Link>
-          </div>
-        ))}
-      </div>
+      {recommendedMovies.length > 0 ? (
+        <div className="row">
+          {recommendedMovies.map(recommendedMovie => (
+            <div className="col-md-3 col-sm-6 mb-4" key={recommendedMovie._id}>
+              <div className="card h-100">
+                <Link to={`/movies/${recommendedMovie._id}`} className="text-decoration-none">
+                  <img 
+                    src={recommendedMovie.imageUrl} 
+                    className="card-img-top" 
+                    alt={recommendedMovie.title}
+                    style={{ height: '300px', objectFit: 'cover' }}
+                  />
+                  <div className="card-body">
+                    <h6 className="card-title text-dark">{recommendedMovie.title}</h6>
+                    <p className="card-text text-muted">
+                      <small>Rating: {recommendedMovie.rating} | {recommendedMovie.year}</small>
+                    </p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="alert alert-info">
+          <p className="mb-0">No recommended movies available.</p>
+        </div>
+      )}
     </div>
   );
 };
