@@ -182,11 +182,11 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
         </div>
       )}
 
-      {/* Movie Grid */}
-      <div className="row g-4">
+      {/* Movie Grid - Updated responsive classes */}
+      <div className="row g-3 g-md-4">
         {displayMovies.length > 0 ? (
           displayMovies.map((movie) => (
-            <div key={movie._id} className="col-lg-3 col-md-4 col-sm-6 col-12">
+            <div key={movie._id} className="col-6 col-md-4 col-lg-3">
               <div className="movie-card h-100 position-relative overflow-hidden rounded-3 shadow-sm hover-scale-animation"
                 style={{
                   backgroundColor: 'var(--secondary-bg)',
@@ -204,52 +204,56 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
                       className="card-img-top"
                       alt={movie.title}
                       style={{
-                        height: '300px',
+                        height: '200px',
                         objectFit: 'cover',
                         borderRadius: '12px 12px 0 0'
                       }}
                       loading="lazy"
                     />
 
-                    {/* Rating Badge */}
+                    {/* Rating Badge - Responsive sizing */}
                     {movie.rating && (
-                      <div className="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75">
+                      <div className="position-absolute top-0 end-0 m-1 m-md-2 badge bg-dark bg-opacity-75"
+                        style={{ fontSize: '0.7rem' }}>
                         <FontAwesomeIcon icon={faStar} className="text-warning me-1" />
                         {parseFloat(movie.rating).toFixed(1)}
                       </div>
                     )}
                   </div>
 
-                  <div className="card-body">
+                  <div className="card-body p-2 p-md-3">
                     <h6 className="card-title fw-bold mb-1"
                       style={{
                         color: 'var(--primary-text)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.9rem'
                       }}>
                       {movie.title}
                     </h6>
-                    <div className="d-flex align-items-center text-muted small">
-                      <FontAwesomeIcon icon={faCalendar} className="me-1" style={{ fontSize: '0.8rem' }} />
+                    <div className="d-flex align-items-center text-muted small"
+                      style={{ fontSize: '0.75rem' }}>
+                      <FontAwesomeIcon icon={faCalendar} className="me-1" style={{ fontSize: '0.7rem' }} />
                       <span>{movie.year}</span>
                       {movie.genre && (
                         <>
-                          <span className="mx-2">•</span>
-                          <span>{movie.genre}</span>
+                          <span className="mx-1">•</span>
+                          <span className="d-none d-sm-inline">{movie.genre}</span>
                         </>
                       )}
                     </div>
                   </div>
                 </Link>
 
-                {/* Action Buttons */}
-                <div className="card-footer bg-transparent border-0 d-flex justify-content-around p-2">
+                {/* Action Buttons - Responsive sizing */}
+                <div className="card-footer bg-transparent border-0 d-flex justify-content-around p-1 p-md-2">
                   <button
                     className={`btn btn-sm ${watchlistStatus[movie._id] ? 'btn-danger' : 'btn-outline-danger'} flex-fill me-1`}
                     onClick={(e) => addToWatchlist(movie._id, e)}
                     disabled={loadingStates[movie._id] || watchlistStatus[movie._id]}
                     title={watchlistStatus[movie._id] ? "In watchlist" : "Add to watchlist"}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                   >
                     {loadingStates[movie._id] ? (
                       <span className="spinner-border spinner-border-sm" role="status" />
@@ -264,6 +268,7 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
                     className="btn btn-sm btn-outline-secondary flex-fill ms-1"
                     onClick={(e) => shareMovie(movie, e)}
                     title="Share movie"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                   >
                     <FontAwesomeIcon icon={faShare} />
                   </button>
@@ -277,6 +282,40 @@ const MovieList = ({ movies, type, showCount = 4 }) => {
           </div>
         )}
       </div>
+
+      {/* Custom styles for smaller screens */}
+      <style jsx>{`
+        @media (max-width: 576px) {
+          .movie-card img {
+            height: 180px !important;
+          }
+          
+          .card-title {
+            font-size: 0.85rem !important;
+          }
+          
+          .card-body {
+            padding: 0.5rem !important;
+          }
+          
+          .btn-sm {
+            font-size: 0.7rem !important;
+            padding: 0.2rem 0.4rem !important;
+          }
+        }
+        
+        @media (min-width: 768px) and (max-width: 991px) {
+          .movie-card img {
+            height: 220px !important;
+          }
+        }
+        
+        @media (min-width: 992px) {
+          .movie-card img {
+            height: 300px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
