@@ -1,384 +1,336 @@
-/* HomePage.css */
+/* HomePage Specific Styles */
 
-/* CSS Variables for Theme Support - Red & Black Theme */
+/* Home page container */
 .home-page {
-  --primary-bg: #000000;
-  --secondary-bg: #1a1a1a;
-  --primary-text: #ffffff;
-  --secondary-text: #cccccc;
-  --accent-color: #ff0000;
-  --accent-hover: #cc0000;
-  --border-color: #333333;
-  --shadow-color: rgba(255, 0, 0, 0.2);
-  --overlay-gradient: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 100%);
+    background-color: var(--primary-bg);
+    color: var(--primary-text);
+    min-height: 100vh;
 }
 
-.home-page.dark {
-  --primary-bg: #000000;
-  --secondary-bg: #0a0a0a;
-  --primary-text: #ffffff;
-  --secondary-text: #b0b0b0;
-  --accent-color: #ff0000;
-  --accent-hover: #cc0000;
-  --border-color: #2a2a2a;
-  --shadow-color: rgba(255, 0, 0, 0.3);
-  --overlay-gradient: linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 100%);
-}
-
-/* General Styles */
-.home-page {
-  min-height: 100vh;
-  background-color: var(--primary-bg);
-  color: var(--primary-text);
-  transition: all 0.3s ease;
-}
-
-/* Carousel Styles */
+/* Hero Carousel Styles */
 .carousel {
-  position: relative;
-  overflow: hidden;
-  background-color: var(--secondary-bg);
+    position: relative;
+    height: 70vh;
+    overflow: hidden;
+    background-color: var(--secondary-bg);
 }
 
 .slides-container {
-  display: flex;
-  transition: transform 0.5s ease-in-out;
-  height: 100%;
+    display: flex;
+    height: 100%;
+    transition: transform 0.5s ease-in-out;
 }
 
 .slide {
-  position: relative;
-  flex-shrink: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #1a1a1a;
+    position: relative;
+    flex-shrink: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
 }
 
-/* Carousel Controls - Red & Black Theme */
+.slide .overlay {
+    background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%);
+    z-index: 1;
+}
+
+/* Carousel Navigation */
 .carousel-control-prev,
 .carousel-control-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(255, 0, 0, 0.2);
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 2;
-  transition: all 0.3s ease;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0,0,0,0.5);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.carousel-control-prev {
+    left: 20px;
+}
+
+.carousel-control-next {
+    right: 20px;
 }
 
 .carousel-control-prev:hover,
 .carousel-control-next:hover {
-  background-color: rgba(255, 0, 0, 0.8);
-  border-color: #ff0000;
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
-}
-
-.carousel-control-prev {
-  left: 20px;
-}
-
-.carousel-control-next {
-  right: 20px;
+    background-color: rgba(0,0,0,0.8);
+    transform: translateY(-50%) scale(1.1);
 }
 
 /* Carousel Indicators */
 .carousel-indicators {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 2rem;
-  z-index: 2;
-  display: flex;
-  gap: 10px;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 1rem;
+    z-index: 2;
+    display: flex;
+    gap: 10px;
 }
 
 .indicator {
-  height: 10px;
-  border-radius: 5px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.5);
-  transition: all 0.3s ease;
-  cursor: pointer;
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    border: none;
+    background-color: rgba(255,255,255,0.5);
+    margin: 0 5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .indicator.active {
-  background-color: var(--accent-color);
-  width: 30px;
+    width: 30px;
+    background-color: var(--accent-color);
 }
 
-.indicator:not(.active) {
-  width: 10px;
+.indicator:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.2);
 }
 
-.indicator:hover:not(.active) {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
-/* Overlay Content */
-.overlay {
-  background: var(--overlay-gradient);
-  padding: 2rem;
-}
-
-.overlay h1 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.overlay p {
-  font-size: 1.1rem;
-  opacity: 0.9;
-}
-
-/* Movie Sections */
+/* Movie Section Headers */
 .Movie-title {
-  color: var(--primary-text);
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+    color: var(--primary-text) !important;
+    font-weight: bold;
 }
 
-/* Hover Animation */
-.hover-scale-animation {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+.Movie-title + hr {
+    border-color: var(--border-color);
+    margin: 20px 0;
 }
 
-.hover-scale-animation:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 30px var(--shadow-color);
+/* Section Links */
+section a {
+    color: var(--accent-color) !important;
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--theme-transition);
 }
 
-/* Movie Card Enhancements - Red & Black Theme */
-.movie-card {
-  transition: all 0.3s ease;
-  cursor: pointer;
-  background-color: #1a1a1a !important;
-  border: 1px solid #333333 !important;
+section a:hover {
+    color: var(--accent-hover) !important;
+    text-decoration: underline;
 }
 
-.movie-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(255, 0, 0, 0.3);
-  border-color: rgba(255, 0, 0, 0.5) !important;
+/* Movie List Specific Styles */
+.movie-list-container {
+    padding: 0;
 }
 
-/* Button Styles - Red Theme */
-.btn-danger {
-  background-color: #ff0000;
-  border-color: #ff0000;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  padding: 0.75rem 2rem;
-  color: #ffffff;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+.movie-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
 }
 
-.btn-danger:hover {
-  background-color: #cc0000;
-  border-color: #cc0000;
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+.movie-item {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    position: relative;
 }
 
-/* Loading State - Red Theme */
-.spinner-border {
-  width: 3rem;
-  height: 3rem;
-  border-width: 0.3rem;
-  color: #ff0000 !important;
+.movie-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px var(--shadow-color);
 }
 
-/* Section Dividers - Red accent */
-hr {
-  border-color: #333333 !important;
-  border-top: 2px solid #333333;
-  margin: 1rem 0;
-  position: relative;
+.movie-item img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
 }
 
-/* Red accent line on section titles */
-.Movie-title {
-  color: var(--primary-text);
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  position: relative;
-  display: inline-block;
+.movie-item:hover img {
+    transform: scale(1.05);
 }
 
-.Movie-title::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 0;
-  width: 50px;
-  height: 3px;
-  background-color: #ff0000;
+.movie-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.9));
+    color: white;
+    padding: 1rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
 }
 
-/* View All Links - Red Theme */
-a[href*="/categories"] {
-  color: #ff0000 !important;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
+.movie-item:hover .movie-info-overlay {
+    transform: translateY(0);
 }
 
-a[href*="/categories"]:hover {
-  color: #cc0000 !important;
-  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+/* Hero Section Text */
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 1rem;
 }
 
-/* Responsive Design */
+.hero-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.hero-meta {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.hero-meta span {
+    background-color: rgba(0,0,0,0.5);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+/* Watch Now Button */
+.btn-watch-hero {
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+    color: white !important;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-watch-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.6);
+    background: linear-gradient(135deg, var(--accent-hover), var(--accent-dark));
+}
+
+/* Loading and Error States for HomePage */
+.home-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+}
+
+.home-error {
+    margin-top: 2rem;
+}
+
+/* Responsive Design for HomePage */
 @media (max-width: 768px) {
-  .carousel {
-    height: 50vh !important;
-  }
-
-  .overlay h1 {
-    font-size: 2rem;
-  }
-
-  .overlay p {
-    font-size: 0.9rem;
-  }
-
-  .carousel-control-prev,
-  .carousel-control-next {
-    width: 40px;
-    height: 40px;
-  }
-
-  .carousel-control-prev {
-    left: 10px;
-  }
-
-  .carousel-control-next {
-    right: 10px;
-  }
-
-  .btn-danger {
-    padding: 0.5rem 1.5rem;
-    font-size: 0.9rem;
-  }
-
-  .Movie-title {
-    font-size: 1.5rem;
-  }
+    .carousel {
+        height: 50vh;
+    }
+    
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .hero-description {
+        font-size: 1rem;
+    }
+    
+    .hero-meta {
+        font-size: 0.9rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .btn-watch-hero {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .carousel-control-prev,
+    .carousel-control-next {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .carousel-control-prev {
+        left: 10px;
+    }
+    
+    .carousel-control-next {
+        right: 10px;
+    }
+    
+    .movie-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .movie-item img {
+        height: 250px;
+    }
 }
 
 @media (max-width: 576px) {
-  .carousel {
-    height: 40vh !important;
-  }
-
-  .overlay {
-    padding: 1rem;
-  }
-
-  .overlay h1 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .overlay p {
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .carousel-indicators {
-    margin-bottom: 1rem;
-  }
-
-  .indicator {
-    height: 8px;
-  }
-
-  .indicator.active {
-    width: 25px;
-  }
-
-  .indicator:not(.active) {
-    width: 8px;
-  }
+    .carousel {
+        height: 40vh;
+    }
+    
+    .hero-title {
+        font-size: 1.5rem;
+    }
+    
+    .movie-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .container {
+        padding: 0 1rem;
+    }
 }
 
-/* Large Screens */
-@media (min-width: 1200px) {
-  .carousel {
-    height: 80vh !important;
-  }
-
-  .overlay h1 {
-    font-size: 4rem;
-  }
-
-  .overlay p {
-    font-size: 1.25rem;
-  }
+/* Dark mode specific adjustments for HomePage */
+[data-theme="dark"] .slide {
+    background-color: #0a0a0a;
 }
 
-/* Ultra Wide Screens */
-@media (min-width: 1600px) {
-  .container {
-    max-width: 1400px;
-  }
-
-  .overlay .col-lg-6 {
-    max-width: 600px;
-  }
+[data-theme="dark"] .movie-item {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
 }
 
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .slides-container {
-    transition: none;
-  }
-
-  .hover-scale-animation:hover {
-    transform: none;
-  }
-
-  .movie-card:hover {
-    transform: none;
-  }
-
-  .carousel-control-prev:hover,
-  .carousel-control-next:hover {
-    transform: translateY(-50%);
-  }
+/* Smooth scrolling for section navigation */
+html {
+    scroll-behavior: smooth;
 }
 
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-  .home-page {
-    --accent-color: #ff0000;
-    --border-color: #000000;
-  }
-
-  .home-page.dark {
-    --accent-color: #ff6b6b;
-    --border-color: #ffffff;
-  }
+/* Section spacing */
+.container section {
+    margin-bottom: 3rem;
 }
 
-/* Print Styles */
-@media print {
-  .carousel,
-  .carousel-control-prev,
-  .carousel-control-next,
-  .carousel-indicators {
-    display: none;
-  }
-
-  .movie-card {
-    break-inside: avoid;
-  }
+.container section:last-child {
+    margin-bottom: 2rem;
 }

@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../themeContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faChevronLeft, faChevronRight, faFilm } from '@fortawesome/free-solid-svg-icons';
-import '../styles/HomePage.css';
 
 // Fallback image for when movie images fail to load
 const FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"%3E%3Crect width="800" height="600" fill="%23333"%2F%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="30" fill="%23666"%3ENo Image Available%3C%2Ftext%3E%3C%2Fsvg%3E';

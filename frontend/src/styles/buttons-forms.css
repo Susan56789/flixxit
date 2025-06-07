@@ -1,0 +1,184 @@
+/* Button styles */
+.btn {
+    font-weight: 500;
+    transition: var(--theme-transition);
+    border: none;
+}
+
+.btn-danger {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+    border-color: var(--accent-color) !important;
+}
+
+.btn-danger:hover {
+    background-color: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-outline-danger {
+    color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-danger:hover {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+}
+
+.btn-outline-secondary {
+    color: var(--secondary-text) !important;
+    border-color: var(--border-color) !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--secondary-bg) !important;
+    color: var(--primary-text) !important;
+}
+
+/* Form controls */
+.form-control {
+    background-color: var(--input-bg) !important;
+    color: var(--primary-text) !important;
+    border: 1px solid var(--border-color) !important;
+    transition: var(--theme-transition);
+}
+
+.form-control:focus {
+    background-color: var(--input-bg) !important;
+    color: var(--primary-text) !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.form-control::placeholder {
+    color: var(--secondary-text) !important;
+    opacity: 0.7;
+}
+
+.form-label {
+    color: var(--primary-text) !important;
+    font-weight: 500;
+}
+
+/* Search bar specific */
+.input-group .form-control {
+    border-right: none !important;
+}
+
+.input-group .btn {
+    border-left: none !important;
+}
+
+/* Badge styles */
+.badge {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+}
+
+/* Alert styles */
+.alert-danger {
+    background-color: var(--danger-light) !important;
+    border-color: var(--accent-color) !important;
+    color: var(--danger-dark) !important;
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    color: var(--primary-text) !important;
+    border-left: 4px solid #ffc107;
+}
+
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+    color: var(--primary-text) !important;
+    border-left: 4px solid #28a745;
+}
+
+.alert-error {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: var(--primary-text) !important;
+    border-left: 4px solid var(--accent-color);
+}
+
+.alert-custom {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1060;
+    max-width: 400px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+/* Loading states */
+.loading {
+    color: var(--secondary-text);
+    text-align: center;
+    padding: 2rem;
+}
+
+.spinner-border {
+    color: var(--accent-color) !important;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    min-height: 50vh;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 0.3rem solid var(--border-color);
+    border-top: 0.3rem solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: var(--secondary-text);
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error states */
+.error-container {
+    text-align: center;
+    padding: 4rem 2rem;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin: 2rem 0;
+}
+
+.error-message {
+    color: var(--accent-color) !important;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .alert-custom {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}

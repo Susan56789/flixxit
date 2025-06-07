@@ -1,0 +1,218 @@
+/* Footer styles */
+.footer {
+    background-color: var(--footer-bg) !important;
+    color: var(--footer-text) !important;
+    border-top: 1px solid var(--border-color);
+    margin-top: auto; /* Push footer to bottom */
+    padding: 2rem 0;
+    flex-shrink: 0; /* Prevent footer from shrinking */
+    position: relative;
+    z-index: 10; /* Ensure footer stays on top */
+}
+
+.footer a {
+    color: var(--footer-text) !important;
+}
+
+.footer a:hover {
+    color: var(--accent-color) !important;
+}
+
+/* Modern footer specific styles - matches your component */
+footer {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    margin-top: auto;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    /* Override Bootstrap bg-dark */
+    color: #f8f9fa !important;
+}
+
+/* Sticky footer solution */
+.sticky-footer-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sticky-footer-content {
+    flex: 1;
+    padding-bottom: 2rem;
+}
+
+.sticky-footer {
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+/* Footer hover effects */
+.hover-effect {
+    transition: all 0.3s ease;
+}
+
+.hover-effect:hover {
+    color: #0d6efd !important;
+    transform: translateY(-2px);
+}
+
+/* Pulse animation for brand icon */
+.fa-film {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Gradient text effect for brand */
+.text-primary {
+    background: linear-gradient(45deg, #0d6efd, #6f42c1) !important;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Footer responsive design */
+@media (max-width: 768px) {
+    .col-12 {
+        text-align: center !important;
+    }
+    
+    .justify-content-md-start,
+    .justify-content-md-end {
+        justify-content: center !important;
+    }
+    
+    footer {
+        padding: 1.5rem 0 !important;
+        margin-bottom: 0 !important;
+        position: static !important;
+    }
+    
+    /* Fix mobile overlap by adding more space */
+    .main {
+        padding-bottom: 3rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Ensure footer doesn't float on mobile */
+    .app-container {
+        min-height: 100vh;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Mobile sticky footer fix */
+    .sticky-footer {
+        margin-top: auto !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Extra small screens - more padding */
+    .main {
+        padding-bottom: 4rem !important;
+    }
+    
+    footer {
+        padding: 1rem 0 !important;
+    }
+    
+    /* Compact footer on very small screens */
+    footer .row {
+        margin-bottom: 0.5rem;
+    }
+    
+    footer .d-flex {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    /* Stack creator info vertically on small screens */
+    .creator-info {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0.25rem !important;
+    }
+}
+
+/* Theme-based footer styling */
+[data-theme="light"] footer {
+    background: linear-gradient(135deg, var(--footer-bg) 0%, #e9ecef 100%) !important;
+    border-top: 1px solid var(--border-color) !important;
+    color: var(--footer-text) !important;
+}
+
+[data-theme="dark"] footer {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #f8f9fa !important;
+}
+
+/* Ensure footer text colors work with themes */
+footer .text-muted {
+    color: rgba(248, 249, 250, 0.7) !important;
+}
+
+[data-theme="light"] footer .text-muted {
+    color: var(--secondary-text) !important;
+}
+
+footer .text-light {
+    color: #f8f9fa !important;
+}
+
+[data-theme="light"] footer .text-light {
+    color: var(--primary-text) !important;
+}
+
+/* Footer links styling */
+footer a {
+    transition: all 0.3s ease;
+}
+
+footer a:hover {
+    color: var(--accent-color) !important;
+    text-decoration: none;
+}
+
+/* Divider styling */
+footer .border-secondary {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] footer .border-secondary {
+    border-color: var(--border-color) !important;
+}
+
+/* Social icons */
+footer .fab,
+footer .fas {
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+footer .fab:hover,
+footer .fas:hover {
+    transform: scale(1.2) translateY(-2px);
+    color: var(--accent-color) !important;
+}
+
+/* External link icon */
+footer .fa-external-link-alt {
+    font-size: 0.8rem !important;
+    opacity: 0.8;
+}

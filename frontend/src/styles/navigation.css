@@ -1,0 +1,80 @@
+/* Navigation styles */
+.navbar {
+    background-color: var(--primary-bg) !important;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.navbar-brand {
+    color: var(--accent-color) !important;
+    font-weight: bold;
+    font-size: 1.5rem !important;
+}
+
+.navbar-brand:hover {
+    color: var(--accent-hover) !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--nav-text) !important;
+    font-weight: 500;
+    padding: 0.5rem 1rem !important;
+    transition: var(--theme-transition);
+    position: relative;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--nav-hover) !important;
+}
+
+.navbar-nav .nav-link.active {
+    color: var(--nav-active-text) !important;
+    background-color: var(--nav-active-bg) !important;
+    border-radius: 4px;
+}
+
+/* Theme toggle button (if using custom one) */
+.theme-toggle-btn {
+    background-color: var(--secondary-bg) !important;
+    color: var(--primary-text) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--theme-transition);
+}
+
+.theme-toggle-btn:hover {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+    border-color: var(--accent-color) !important;
+}
+
+/* Mobile responsive navigation */
+@media (max-width: 768px) {
+    .navbar-collapse {
+        background-color: var(--secondary-bg);
+        padding: 1rem;
+        margin-top: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .navbar-nav {
+        gap: 0.5rem;
+    }
+    
+    .navbar-nav .nav-link {
+        padding: 0.75rem 1rem !important;
+        border-radius: 4px;
+    }
+    
+    .navbar-nav .nav-link:hover {
+        background-color: var(--accent-color);
+        color: white !important;
+    }
+}

@@ -1,0 +1,375 @@
+/* Watchlist Specific Styles */
+
+/* Watchlist page container */
+.watchlist-page {
+    background-color: var(--primary-bg);
+    color: var(--primary-text);
+    min-height: 80vh;
+    padding-top: 20px;
+}
+
+/* Watchlist header */
+.watchlist-page .display-5 {
+    color: var(--primary-text);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.watchlist-page .display-5 .fa-bookmark {
+    color: var(--accent-color);
+    margin-right: 1rem;
+}
+
+/* Empty state styles */
+.watchlist-empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.watchlist-empty-content {
+    text-align: center;
+    max-width: 400px;
+}
+
+.watchlist-empty-icon {
+    color: var(--accent-color);
+    margin-bottom: 30px;
+    opacity: 0.5;
+}
+
+.watchlist-empty h2 {
+    color: var(--primary-text);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.watchlist-empty p {
+    color: var(--secondary-text);
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.watchlist-empty .btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.watchlist-empty .btn:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4);
+}
+
+/* Movie cards in watchlist */
+.watchlist-page .movie-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    height: 100%;
+}
+
+.watchlist-page .movie-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+/* Movie poster in watchlist */
+.watchlist-page .card-img-top {
+    height: 300px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.watchlist-page .movie-card:hover .card-img-top {
+    transform: scale(1.05);
+}
+
+/* Movie overlay */
+.watchlist-page .movie-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.8) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: flex-end;
+    padding: 20px;
+    z-index: 2;
+}
+
+.watchlist-page .movie-card:hover .movie-overlay {
+    opacity: 1;
+}
+
+/* Movie info in cards */
+.watchlist-page .card-body {
+    padding: 16px;
+    background-color: var(--card-bg);
+    color: var(--primary-text);
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    flex-grow: 1;
+}
+
+.watchlist-page .card-title {
+    color: var(--primary-text);
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Movie metadata badges */
+.watchlist-page .movie-meta {
+    margin-bottom: 12px;
+}
+
+.watchlist-page .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 4px 8px;
+    margin-right: 8px;
+    border-radius: 12px;
+}
+
+.watchlist-page .badge .fa-calendar,
+.watchlist-page .badge .fa-star {
+    margin-right: 4px;
+    font-size: 0.7rem;
+}
+
+/* Genre text */
+.watchlist-page .movie-genres {
+    color: var(--secondary-text);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
+}
+
+/* Action buttons */
+.watchlist-page .btn {
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.watchlist-page .btn:hover {
+    transform: translateY(-1px);
+}
+
+.watchlist-page .btn-outline-danger {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    background-color: transparent;
+}
+
+.watchlist-page .btn-outline-danger:hover {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.watchlist-page .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.watchlist-page .btn .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Loading state */
+.watchlist-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    flex-direction: column;
+}
+
+.watchlist-loading .fa-spinner {
+    color: var(--accent-color);
+    margin-bottom: 20px;
+    animation: spin 1s linear infinite;
+}
+
+.watchlist-loading h4 {
+    color: var(--primary-text);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.watchlist-loading p {
+    color: var(--secondary-text);
+    font-size: 1rem;
+}
+
+/* Error state */
+.watchlist-error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.watchlist-error .card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--accent-color);
+    border-radius: 12px;
+    max-width: 500px;
+    width: 100%;
+}
+
+.watchlist-error .card-body {
+    text-align: center;
+    padding: 2rem;
+}
+
+.watchlist-error .fa-exclamation-triangle {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.watchlist-error .card-title {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.watchlist-error .card-text {
+    color: var(--secondary-text);
+    margin-bottom: 1.5rem;
+}
+
+.watchlist-error .btn-danger {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+}
+
+.watchlist-error .btn-danger:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+/* Alert positioning */
+.watchlist-page .alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 400px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+.watchlist-page .alert .btn-close {
+    background-color: transparent;
+    border: none;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+}
+
+/* Grid layout */
+.watchlist-page .row {
+    margin: 0 -15px;
+}
+
+.watchlist-page .row > [class*="col-"] {
+    padding: 0 15px;
+    margin-bottom: 2rem;
+}
+
+/* Responsive design for watchlist */
+@media (max-width: 768px) {
+    .watchlist-page .display-5 {
+        font-size: 2rem;
+        text-align: center;
+    }
+    
+    .watchlist-page .container {
+        padding: 0 15px;
+    }
+    
+    .watchlist-page .alert {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .watchlist-page .card-img-top {
+        height: 280px;
+    }
+    
+    .watchlist-empty-content {
+        padding: 0 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .watchlist-page .card-img-top {
+        height: 250px;
+    }
+    
+    .watchlist-page .display-5 {
+        font-size: 1.75rem;
+    }
+    
+    .watchlist-page .row > [class*="col-"] {
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Dark mode specific adjustments */
+[data-theme="dark"] .watchlist-page .movie-card {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .watchlist-page .card-body {
+    background-color: var(--card-bg);
+}
+
+[data-theme="dark"] .watchlist-error .card {
+    background-color: var(--card-bg);
+    border-color: var(--accent-color);
+}

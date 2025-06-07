@@ -1,0 +1,236 @@
+/* Base styles and font */
+* {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+/* Theme CSS Variables */
+:root {
+    /* Light theme colors - Red accent on white */
+    --primary-bg: #ffffff;
+    --secondary-bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --primary-text: #212529;
+    --secondary-text: #6c757d;
+    --accent-color: #dc3545;
+    --accent-hover: #c82333;
+    --accent-dark: #bd2130;
+    --nav-text: #212529;
+    --nav-hover: #dc3545;
+    --nav-active-bg: #dc3545;
+    --nav-active-text: #ffffff;
+    --icon-color: #dc3545;
+    --footer-bg: #f8f9fa;
+    --footer-text: #6c757d;
+    --border-color: #dee2e6;
+    --input-bg: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    
+    /* Danger variations */
+    --danger-light: #f8d7da;
+    --danger-dark: #721c24;
+    
+    /* Transitions */
+    --theme-transition: all 0.3s ease;
+}
+
+[data-theme="dark"] {
+    /* Dark theme colors - Red accent on black */
+    --primary-bg: #000000;
+    --secondary-bg: #1a1a1a;
+    --card-bg: #212121;
+    --primary-text: #ffffff;
+    --secondary-text: #9ca3af;
+    --accent-color: #dc3545;
+    --accent-hover: #ff4757;
+    --accent-dark: #c82333;
+    --nav-text: #ffffff;
+    --nav-hover: #dc3545;
+    --nav-active-bg: #dc3545;
+    --nav-active-text: #ffffff;
+    --icon-color: #dc3545;
+    --footer-bg: #1a1a1a;
+    --footer-text: #9ca3af;
+    --border-color: #333333;
+    --input-bg: #1a1a1a;
+    --shadow-color: rgba(220, 53, 69, 0.2);
+    
+    /* Danger variations */
+    --danger-light: #2b0f12;
+    --danger-dark: #f8d7da;
+}
+
+/* Body styles with theme support */
+body {
+    background-color: var(--primary-bg) !important;
+    color: var(--primary-text) !important;
+    transition: var(--theme-transition);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+/* Root app container - add this class to your main app div */
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main content area */
+.main {
+    flex: 1;
+    padding-bottom: 2rem; /* Add space before footer */
+}
+
+/* Mobile-specific main content spacing */
+@media (max-width: 768px) {
+    .main {
+        padding-bottom: 3rem !important;
+        margin-bottom: 1rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .main {
+        padding-bottom: 4rem !important;
+    }
+}
+
+/* Page content wrapper */
+.page-content {
+    flex: 1;
+    min-height: calc(100vh - 250px); /* Adjusted for mobile */
+    padding-bottom: 2rem;
+}
+
+/* Mobile page content adjustments */
+@media (max-width: 768px) {
+    .page-content {
+        min-height: calc(100vh - 300px);
+        padding-bottom: 3rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .page-content {
+        min-height: calc(100vh - 350px);
+        padding-bottom: 4rem;
+    }
+}
+
+/* Text color utilities */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-text) !important;
+}
+
+p {
+    color: var(--primary-text) !important;
+}
+
+.text-muted {
+    color: var(--secondary-text) !important;
+    opacity: 1 !important;
+}
+
+/* Specific fix for Bootstrap's text-muted in dark mode */
+[data-theme="dark"] .text-muted {
+    color: #9ca3af !important;
+}
+
+.text-muted.fs-sm {
+    color: var(--footer-text) !important;
+}
+
+/* Icon styles */
+i, .icon {
+    color: var(--icon-color) !important;
+}
+
+/* Links */
+a {
+    color: var(--accent-color) !important;
+    text-decoration: none !important;
+    transition: var(--theme-transition);
+}
+
+a:hover {
+    color: var(--accent-hover) !important;
+}
+
+/* Utility classes */
+.bg-danger {
+    background-color: var(--accent-color) !important;
+}
+
+.text-danger {
+    color: var(--accent-color) !important;
+}
+
+.border-danger {
+    border-color: var(--accent-color) !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--secondary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Custom focus styles */
+*:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+button:focus,
+a:focus {
+    outline-offset: 4px;
+}
+
+/* Smooth transitions for theme switching */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Print styles */
+@media print {
+    :root {
+        --primary-bg: #ffffff;
+        --primary-text: #000000;
+        --accent-color: #dc3545;
+    }
+    
+    body {
+        background-color: white !important;
+        color: black !important;
+    }
+}
