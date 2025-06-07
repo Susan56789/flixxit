@@ -43,6 +43,12 @@ const Watchlist = () => {
         }
         if (movie.imageUrl) {
             let url = movie.imageUrl.trim();
+            
+            // Handle base64 images - return as is
+            if (url.startsWith('data:image/')) {
+                return url;
+            }
+            
             // Handle relative URLs
             if (url.startsWith('//')) {
                 url = 'https:' + url;
@@ -481,8 +487,8 @@ const Watchlist = () => {
                                         }}
                                     />
                                     
-                                    {/* Loading placeholder for images */}
-                                    {!imageErrors[movie._id] && (
+                                    {/* Loading placeholder for images - only show for non-base64 images */}
+                                    {!imageErrors[movie._id] && !movie.imageUrl?.startsWith('data:image/') && (
                                         <div 
                                             style={{
                                                 position: 'absolute',
