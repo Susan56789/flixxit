@@ -359,6 +359,39 @@
     }
 }
 
+/* Watchlist movie card specific styles */
+.watchlist-page .movie-card {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.watchlist-page .movie-card:hover .movie-overlay {
+    opacity: 1 !important;
+}
+
+.watchlist-page .btn:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.watchlist-page .badge {
+    font-weight: 500;
+}
+
+/* Additional responsive styles for watchlist */
+@media (max-width: 768px) {
+    .watchlist-page .display-5 {
+        font-size: 2rem;
+    }
+    
+    .watchlist-page .container {
+        padding: 0 15px;
+    }
+    
+    .watchlist-page .d-flex.flex-wrap > * {
+        margin-bottom: 0.5rem;
+    }
+}
+
 /* Dark mode specific adjustments */
 [data-theme="dark"] .watchlist-page .movie-card {
     background-color: var(--card-bg);

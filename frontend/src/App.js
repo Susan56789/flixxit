@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, { useState, useContext, useEffect, useCallback, useRef } from "react";
 import AllRouters from "./AllRouters";
 import { AuthContext } from './AuthContext';
 import { clearCache } from './utils/helpers';
@@ -31,6 +31,18 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  
+  // Use refs to avoid stale closures
+  const tokenRefreshTimeoutRef = useRef(null);
+  const loginRef = useRef(login);
+  const userRef = useRef(user);
+
+  // Update refs when context values change
+  useEffect(() => {
+    loginRef.current = login;
+    userRef.current = user;
+  }, [login, user]);
 
   // Notification helper
   const showNotification = useCallback((message, type = 'error') => {
@@ -38,40 +50,8 @@ function App() {
     setTimeout(() => setNotification(null), 5000);
   }, []);
 
-  // Check token validity on app start
-  useEffect(() => {
-    const checkAuthStatus = () => {
-      const token = localStorage.getItem("flixxItToken");
-      const userData = localStorage.getItem("flixxItUser");
-      
-      if (token && userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          // Check if token is expired (basic check)
-          const tokenData = JSON.parse(atob(token.split('.')[1]));
-          const currentTime = Date.now() / 1000;
-          
-          if (tokenData.exp && tokenData.exp < currentTime) {
-            // Token expired
-            handleLogout();
-            showNotification("Session expired. Please login again.", 'warning');
-          } else {
-            // Token still valid
-            login(parsedUser);
-            setIsAdmin(parsedUser.role === 'admin' || parsedUser.isAdmin);
-          }
-        } catch (error) {
-          console.error("Error checking auth status:", error);
-          handleLogout();
-        }
-      }
-    };
-
-    checkAuthStatus();
-  }, [login]);
-
   // API helper with auth token
-  const apiCall = async (url, options = {}) => {
+  const apiCall = useCallback(async (url, options = {}) => {
     const token = localStorage.getItem("flixxItToken");
     const defaultHeaders = {
       "Content-Type": "application/json",
@@ -101,9 +81,115 @@ function App() {
       }
       throw error;
     }
-  };
+  }, [showNotification]);
 
-  const handleLogin = async (email, password) => {
+  // Check token validity on app start
+  useEffect(() => {
+    if (authChecked) return; // Prevent multiple checks
+
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem("flixxItToken");
+      const userData = localStorage.getItem("flixxItUser");
+      
+      if (token && userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          // Check if token is expired (basic check)
+          const tokenParts = token.split('.');
+          if (tokenParts.length === 3) {
+            const tokenData = JSON.parse(atob(tokenParts[1]));
+            const currentTime = Date.now() / 1000;
+            
+            if (tokenData.exp && tokenData.exp < currentTime) {
+              // Token expired
+              handleLogout();
+              showNotification("Session expired. Please login again.", 'warning');
+            } else {
+              // Token still valid
+              loginRef.current(parsedUser);
+              setIsAdmin(parsedUser.role === 'admin' || parsedUser.isAdmin);
+            }
+          } else {
+            // Invalid token format
+            handleLogout();
+          }
+        } catch (error) {
+          console.error("Error checking auth status:", error);
+          handleLogout();
+        }
+      }
+      setAuthChecked(true);
+    };
+
+    checkAuthStatus();
+  }, [authChecked, showNotification]);
+
+  // Token refresh function
+  const refreshToken = useCallback(async () => {
+    try {
+      const response = await apiCall(
+        "https://flixxit-h9fa.onrender.com/api/refresh-token",
+        { method: "POST" }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.token) {
+        localStorage.setItem("flixxItToken", data.token);
+        return { success: true };
+      } else {
+        handleLogout();
+        return { success: false };
+      }
+    } catch (error) {
+      console.error("Token refresh error:", error);
+      handleLogout();
+      return { success: false };
+    }
+  }, [apiCall]);
+
+  // Setup token refresh
+  useEffect(() => {
+    // Clear any existing timeout
+    if (tokenRefreshTimeoutRef.current) {
+      clearTimeout(tokenRefreshTimeoutRef.current);
+      tokenRefreshTimeoutRef.current = null;
+    }
+
+    const token = localStorage.getItem("flixxItToken");
+    if (!token || !userRef.current) return;
+
+    try {
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) return;
+
+      const tokenData = JSON.parse(atob(tokenParts[1]));
+      const expirationTime = tokenData.exp * 1000; // Convert to milliseconds
+      const currentTime = Date.now();
+      const timeUntilExpiration = expirationTime - currentTime;
+      
+      // Refresh token 5 minutes before expiration
+      const refreshTime = timeUntilExpiration - (5 * 60 * 1000);
+      
+      if (refreshTime > 0 && refreshTime < 24 * 60 * 60 * 1000) { // Only if less than 24 hours
+        tokenRefreshTimeoutRef.current = setTimeout(() => {
+          refreshToken();
+        }, refreshTime);
+      }
+    } catch (error) {
+      console.error("Error setting up token refresh:", error);
+    }
+
+    // Cleanup function
+    return () => {
+      if (tokenRefreshTimeoutRef.current) {
+        clearTimeout(tokenRefreshTimeoutRef.current);
+        tokenRefreshTimeoutRef.current = null;
+      }
+    };
+  }, [user, refreshToken]); // Only depend on user and refreshToken
+
+  const handleLogin = useCallback(async (email, password) => {
     setIsLoading(true);
     try {
       const response = await fetch("https://flixxit-h9fa.onrender.com/api/login", {
@@ -138,9 +224,15 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [login, showNotification]);
 
   const handleLogout = useCallback(() => {
+    // Clear timeout
+    if (tokenRefreshTimeoutRef.current) {
+      clearTimeout(tokenRefreshTimeoutRef.current);
+      tokenRefreshTimeoutRef.current = null;
+    }
+
     // Clear all stored data
     clearCache();
     localStorage.removeItem("flixxItToken");
@@ -159,7 +251,7 @@ function App() {
     }, 1000);
   }, [logout, showNotification]);
 
-  const handleRegister = async (username, email, password) => {
+  const handleRegister = useCallback(async (username, email, password) => {
     setIsLoading(true);
     try {
       const response = await fetch("https://flixxit-h9fa.onrender.com/api/register", {
@@ -186,9 +278,9 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showNotification]);
 
-  const handleSearch = async (query) => {
+  const handleSearch = useCallback(async (query) => {
     if (!query?.trim()) {
       showNotification("Please enter a search term", 'warning');
       return { success: false, results: [] };
@@ -218,9 +310,9 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiCall, showNotification]);
 
-  const handleLike = async (movieId) => {
+  const handleLike = useCallback(async (movieId) => {
     if (!movieId) {
       showNotification("Invalid movie ID", 'error');
       return { success: false };
@@ -248,9 +340,9 @@ function App() {
       }
       return { success: false };
     }
-  };
+  }, [apiCall, showNotification]);
 
-  const handleDislike = async (movieId) => {
+  const handleDislike = useCallback(async (movieId) => {
     if (!movieId) {
       showNotification("Invalid movie ID", 'error');
       return { success: false };
@@ -278,57 +370,7 @@ function App() {
       }
       return { success: false };
     }
-  };
-
-  // Token refresh function
-  const refreshToken = async () => {
-    try {
-      const response = await apiCall(
-        "https://flixxit-h9fa.onrender.com/api/refresh-token",
-        { method: "POST" }
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.token) {
-        localStorage.setItem("flixxItToken", data.token);
-        return { success: true };
-      } else {
-        handleLogout();
-        return { success: false };
-      }
-    } catch (error) {
-      console.error("Token refresh error:", error);
-      handleLogout();
-      return { success: false };
-    }
-  };
-
-  // Auto-refresh token before expiration
-  useEffect(() => {
-    const token = localStorage.getItem("flixxItToken");
-    if (!token) return;
-
-    try {
-      const tokenData = JSON.parse(atob(token.split('.')[1]));
-      const expirationTime = tokenData.exp * 1000; // Convert to milliseconds
-      const currentTime = Date.now();
-      const timeUntilExpiration = expirationTime - currentTime;
-      
-      // Refresh token 5 minutes before expiration
-      const refreshTime = timeUntilExpiration - (5 * 60 * 1000);
-      
-      if (refreshTime > 0) {
-        const refreshTimeout = setTimeout(() => {
-          refreshToken();
-        }, refreshTime);
-
-        return () => clearTimeout(refreshTimeout);
-      }
-    } catch (error) {
-      console.error("Error setting up token refresh:", error);
-    }
-  }, [user]);
+  }, [apiCall, showNotification]);
 
   return (
     <>
