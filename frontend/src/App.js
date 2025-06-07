@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect, useCallback, useRef } from "react";
+import { HelmetProvider } from 'react-helmet-async';
 import AllRouters from "./AllRouters";
 import { AuthContext } from './AuthContext';
 import { clearCache } from './utils/helpers';
@@ -373,7 +374,7 @@ function App() {
   }, [apiCall, showNotification]);
 
   return (
-    <>
+    <HelmetProvider>
       <Notification 
         notification={notification} 
         onClose={() => setNotification(null)} 
@@ -389,7 +390,7 @@ function App() {
         isLoading={isLoading}
         refreshToken={refreshToken}
       />
-    </>
+    </HelmetProvider>
   );
 }
 
