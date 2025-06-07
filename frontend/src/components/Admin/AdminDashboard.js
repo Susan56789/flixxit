@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -14,11 +14,18 @@ const AdminDashboard = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [movieToDelete, setMovieToDelete] = useState(null);
   const [imageErrors, setImageErrors] = useState({});
+  const [subscriptionStats, setSubscriptionStats] = useState(null);
+  const [userStats, setUserStats] = useState(null);
+  const [revenueStats, setRevenueStats] = useState(null);
+  const [expiringUsers, setExpiringUsers] = useState([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [selectedMovies, setSelectedMovies] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    genres: '',  // Changed from 'genre' to 'genres'
+    genres: '',
     rating: '',
     year: '',
     imageUrl: '',
@@ -27,6 +34,9 @@ const AdminDashboard = () => {
   
   const [message, setMessage] = useState({ type: '', text: '' });
   const [formError, setFormError] = useState({});
+
+  // API base URL
+  const API_BASE_URL = 'https://flixxit-h9fa.onrender.com';
 
   // Genre options
   const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Documentary', 'Animation'];
@@ -39,15 +49,19 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
-  // Fetch movies on component mount
+  // Fetch initial data
   useEffect(() => {
     fetchMovies();
+    fetchUserStats();
+    fetchSubscriptionStats();
+    fetchRevenueStats();
+    fetchExpiringUsers();
   }, []);
 
   const fetchMovies = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('https://flixxit-h9fa.onrender.com/api/movies');
+      const response = await axios.get(`${API_BASE_URL}/api/movies`);
       setMovies(response.data);
     } catch (error) {
       console.error('Error fetching movies:', error);
@@ -57,13 +71,88 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchUserStats = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setUserStats(response.data);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      // Fallback data for development
+      setUserStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        newUsersThisMonth: 0,
+        premiumUsers: 0
+      });
+    }
+  };
+
+  const fetchSubscriptionStats = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/subscription-stats`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setSubscriptionStats(response.data);
+    } catch (error) {
+      console.error('Error fetching subscription stats:', error);
+      // Fallback data
+      setSubscriptionStats({
+        totalSubscriptions: 0,
+        activeSubscriptions: 0,
+        expiringSoon: 0,
+        subscriptionBreakdown: {
+          monthly: 0,
+          quarterly: 0,
+          yearly: 0
+        },
+        planBreakdown: {
+          free: 0,
+          premium: 0
+        }
+      });
+    }
+  };
+
+  const fetchRevenueStats = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/revenue-stats`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setRevenueStats(response.data);
+    } catch (error) {
+      console.error('Error fetching revenue stats:', error);
+      // Fallback data
+      setRevenueStats({
+        monthlyRevenue: 0,
+        totalRevenue: 0,
+        averageRevenuePerUser: 0,
+        revenueGrowth: 0
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchExpiringUsers = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/expiring-users`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setExpiringUsers(response.data.users || []);
+    } catch (error) {
+      console.error('Error fetching expiring users:', error);
+      setExpiringUsers([]);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => ({
       ...prevState,
       [name]: value
     }));
-    // Clear error for this field
     if (formError[name]) {
       setFormError(prev => ({ ...prev, [name]: '' }));
     }
@@ -101,13 +190,15 @@ const AdminDashboard = () => {
     };
 
     try {
+      const config = {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      };
+
       if (editingMovie) {
-        // Update existing movie
-        await axios.put(`https://flixxit-h9fa.onrender.com/api/movies/${editingMovie._id}`, formattedData);
+        await axios.put(`${API_BASE_URL}/api/movies/${editingMovie._id}`, formattedData, config);
         setMessage({ type: 'success', text: 'Movie updated successfully!' });
       } else {
-        // Add new movie
-        await axios.post('https://flixxit-h9fa.onrender.com/api/movies', formattedData);
+        await axios.post(`${API_BASE_URL}/api/movies`, formattedData, config);
         setMessage({ type: 'success', text: 'Movie added successfully!' });
       }
       
@@ -115,7 +206,11 @@ const AdminDashboard = () => {
       fetchMovies();
       setActiveTab('manage');
     } catch (error) {
-      setMessage({ type: 'error', text: `Failed to ${editingMovie ? 'update' : 'add'} movie. Please try again.` });
+      console.error('Error saving movie:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || `Failed to ${editingMovie ? 'update' : 'add'} movie. Please try again.`
+      });
     } finally {
       setLoading(false);
     }
@@ -125,7 +220,7 @@ const AdminDashboard = () => {
     setFormData({
       title: '',
       description: '',
-      genres: '',  // Changed from 'genre' to 'genres'
+      genres: '',
       rating: '',
       year: '',
       imageUrl: '',
@@ -139,7 +234,7 @@ const AdminDashboard = () => {
     setFormData({
       title: movie.title,
       description: movie.description,
-      genres: movie.genres || movie.genre || '',  // Handle both 'genres' and 'genre' fields
+      genres: movie.genres || movie.genre || '',
       rating: movie.rating.toString(),
       year: movie.year.toString(),
       imageUrl: movie.imageUrl,
@@ -154,22 +249,92 @@ const AdminDashboard = () => {
     
     setLoading(true);
     try {
-      await axios.delete(`https://flixxit-h9fa.onrender.com/api/movies/${movieToDelete._id}`);
+      const config = {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      };
+      await axios.delete(`${API_BASE_URL}/api/movies/${movieToDelete._id}`, config);
       setMessage({ type: 'success', text: 'Movie deleted successfully!' });
       fetchMovies();
       setShowDeleteModal(false);
       setMovieToDelete(null);
     } catch (error) {
+      console.error('Error deleting movie:', error);
       setMessage({ type: 'error', text: 'Failed to delete movie' });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedMovies.length === 0) return;
+    
+    setLoading(true);
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      };
+      await Promise.all(selectedMovies.map(id => 
+        axios.delete(`${API_BASE_URL}/api/movies/${id}`, config)
+      ));
+      setMessage({ type: 'success', text: `${selectedMovies.length} movies deleted successfully!` });
+      setSelectedMovies([]);
+      fetchMovies();
+    } catch (error) {
+      console.error('Error deleting movies:', error);
+      setMessage({ type: 'error', text: 'Failed to delete selected movies' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectMovie = (movieId) => {
+    setSelectedMovies(prev => 
+      prev.includes(movieId) 
+        ? prev.filter(id => id !== movieId)
+        : [...prev, movieId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedMovies(
+      selectedMovies.length === filteredMovies.length 
+        ? [] 
+        : filteredMovies.map(movie => movie._id)
+    );
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminToken');
     navigate('/admin/login');
+  };
+
+  const sendExpirationReminders = async () => {
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      };
+      await axios.post(`${API_BASE_URL}/api/admin/send-expiration-reminders`, { days: 7 }, config);
+      setMessage({ type: 'success', text: 'Expiration reminders sent successfully!' });
+    } catch (error) {
+      console.error('Error sending reminders:', error);
+      setMessage({ type: 'error', text: 'Failed to send reminders' });
+    }
+  };
+
+  const cleanupExpiredSubscriptions = async () => {
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      };
+      await axios.post(`${API_BASE_URL}/api/admin/cleanup-expired`, {}, config);
+      setMessage({ type: 'success', text: 'Expired subscriptions cleaned up successfully!' });
+      fetchSubscriptionStats();
+      fetchUserStats();
+    } catch (error) {
+      console.error('Error cleaning up subscriptions:', error);
+      setMessage({ type: 'error', text: 'Failed to cleanup expired subscriptions' });
+    }
   };
 
   // Filter and sort movies
@@ -177,7 +342,7 @@ const AdminDashboard = () => {
     .filter(movie => {
       const matchesSearch = movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           movie.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const movieGenre = movie.genres || movie.genre || '';  // Handle both fields
+      const movieGenre = movie.genres || movie.genre || '';
       const matchesGenre = selectedGenre === 'all' || movieGenre === selectedGenre;
       return matchesSearch && matchesGenre;
     })
@@ -196,18 +361,16 @@ const AdminDashboard = () => {
       }
     });
 
-  // Handle image error
   const handleImageError = (movieId) => {
     setImageErrors(prev => ({ ...prev, [movieId]: true }));
   };
 
-  // Get unique genres from movies
   const movieGenres = [...new Set(movies.map(movie => movie.genres || movie.genre).filter(Boolean))];
 
   return (
-    <div className="min-vh-100" style={{ backgroundColor: '#000' }}>
+    <div className="min-vh-100 bg-black text-white">
       {/* Header */}
-      <nav className="navbar navbar-dark" style={{ backgroundColor: '#1a1a1a', borderBottom: '3px solid #ff0000' }}>
+      <nav className="navbar navbar-dark" style={{ backgroundColor: '#1a1a1a', borderBottom: '3px solid #dc3545' }}>
         <div className="container-fluid">
           <span className="navbar-brand mb-0 h1">
             <i className="fas fa-film text-danger me-2"></i>
@@ -216,7 +379,7 @@ const AdminDashboard = () => {
           <div className="d-flex align-items-center">
             <span className="text-white me-3">
               <i className="fas fa-user-shield me-2"></i>
-              {localStorage.getItem('adminEmail')}
+              admin@flixxit.com
             </span>
             <button className="btn btn-outline-danger btn-sm" onClick={handleLogout}>
               <i className="fas fa-sign-out-alt me-1"></i>
@@ -238,51 +401,107 @@ const AdminDashboard = () => {
         )}
 
         {/* Stats Cards */}
+        {statsLoading ? (
+          <div className="text-center py-3">
+            <div className="spinner-border text-danger" role="status">
+              <span className="visually-hidden">Loading stats...</span>
+            </div>
+          </div>
+        ) : (
+          <div className="row mb-4">
+            <div className="col-md-3 mb-3">
+              <div className="card bg-dark text-white border-danger">
+                <div className="card-body">
+                  <h5 className="card-title">
+                    <i className="fas fa-film me-2"></i>Total Movies
+                  </h5>
+                  <h2 className="mb-0 text-danger">{movies.length}</h2>
+                  <small className="text-muted">Active in catalog</small>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-3 mb-3">
+              <div className="card bg-dark text-white border-danger">
+                <div className="card-body">
+                  <h5 className="card-title">
+                    <i className="fas fa-users me-2"></i>Total Users
+                  </h5>
+                  <h2 className="mb-0 text-danger">{userStats?.totalUsers || 0}</h2>
+                  <small className="text-muted">Registered users</small>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-3 mb-3">
+              <div className="card bg-dark text-white border-danger">
+                <div className="card-body">
+                  <h5 className="card-title">
+                    <i className="fas fa-crown me-2"></i>Premium Users
+                  </h5>
+                  <h2 className="mb-0 text-danger">
+                    {subscriptionStats?.planBreakdown?.premium || 0}
+                  </h2>
+                  <small className="text-muted">Active subscriptions</small>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-3 mb-3">
+              <div className="card bg-dark text-white border-danger">
+                <div className="card-body">
+                  <h5 className="card-title">
+                    <i className="fas fa-dollar-sign me-2"></i>Monthly Revenue
+                  </h5>
+                  <h2 className="mb-0 text-danger">
+                    ${revenueStats?.monthlyRevenue?.toLocaleString() || 0}
+                  </h2>
+                  <small className="text-muted">Current month</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions */}
         <div className="row mb-4">
-          <div className="col-md-3 mb-3">
-            <div className="card bg-dark text-white border-danger">
+          <div className="col-12">
+            <div className="card bg-dark border-danger">
               <div className="card-body">
-                <h5 className="card-title">
-                  <i className="fas fa-film me-2"></i>Total Movies
+                <h5 className="card-title text-danger">
+                  <i className="fas fa-bolt me-2"></i>Quick Actions
                 </h5>
-                <h2 className="mb-0">{movies.length}</h2>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3 mb-3">
-            <div className="card bg-dark text-white border-danger">
-              <div className="card-body">
-                <h5 className="card-title">
-                  <i className="fas fa-star me-2"></i>Avg Rating
-                </h5>
-                <h2 className="mb-0">
-                  {movies.length > 0 
-                    ? (movies.reduce((acc, m) => acc + m.rating, 0) / movies.length).toFixed(1)
-                    : '0.0'
-                  }
-                </h2>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3 mb-3">
-            <div className="card bg-dark text-white border-danger">
-              <div className="card-body">
-                <h5 className="card-title">
-                  <i className="fas fa-tags me-2"></i>Genres
-                </h5>
-                <h2 className="mb-0">{movieGenres.length}</h2>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3 mb-3">
-            <div className="card bg-dark text-white border-danger">
-              <div className="card-body">
-                <h5 className="card-title">
-                  <i className="fas fa-calendar me-2"></i>Latest Year
-                </h5>
-                <h2 className="mb-0">
-                  {movies.length > 0 ? Math.max(...movies.map(m => m.year)) : 'N/A'}
-                </h2>
+                <div className="row">
+                  <div className="col-md-6 mb-2">
+                    <div className="d-flex justify-content-between align-items-center p-3 bg-secondary rounded">
+                      <div>
+                        <strong>Expiring Soon</strong>
+                        <br />
+                        <small className="text-muted">{expiringUsers.length} users expire within 7 days</small>
+                      </div>
+                      <button 
+                        className="btn btn-warning btn-sm" 
+                        onClick={sendExpirationReminders}
+                        disabled={loading}
+                      >
+                        <i className="fas fa-envelope me-1"></i>Send Reminders
+                      </button>
+                    </div>
+                  </div>
+                  <div className="col-md-6 mb-2">
+                    <div className="d-flex justify-content-between align-items-center p-3 bg-secondary rounded">
+                      <div>
+                        <strong>Cleanup Needed</strong>
+                        <br />
+                        <small className="text-muted">{subscriptionStats?.expiredSubscriptions || 0} expired subscriptions</small>
+                      </div>
+                      <button 
+                        className="btn btn-info btn-sm" 
+                        onClick={cleanupExpiredSubscriptions}
+                        disabled={loading}
+                      >
+                        <i className="fas fa-broom me-1"></i>Clean Up
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -294,7 +513,7 @@ const AdminDashboard = () => {
             <button 
               className={`nav-link ${activeTab === 'add' ? 'active bg-danger text-white' : 'text-white'}`}
               onClick={() => setActiveTab('add')}
-              style={{ border: 'none', borderBottom: activeTab === 'add' ? '3px solid #ff0000' : 'none' }}
+              style={{ border: 'none', backgroundColor: activeTab === 'add' ? '#dc3545' : 'transparent' }}
             >
               <i className="fas fa-plus-circle me-2"></i>
               {editingMovie ? 'Edit Movie' : 'Add Movie'}
@@ -304,10 +523,30 @@ const AdminDashboard = () => {
             <button 
               className={`nav-link ${activeTab === 'manage' ? 'active bg-danger text-white' : 'text-white'}`}
               onClick={() => setActiveTab('manage')}
-              style={{ border: 'none', borderBottom: activeTab === 'manage' ? '3px solid #ff0000' : 'none' }}
+              style={{ border: 'none', backgroundColor: activeTab === 'manage' ? '#dc3545' : 'transparent' }}
             >
               <i className="fas fa-cog me-2"></i>
               Manage Movies ({filteredMovies.length})
+            </button>
+          </li>
+          <li className="nav-item">
+            <button 
+              className={`nav-link ${activeTab === 'users' ? 'active bg-danger text-white' : 'text-white'}`}
+              onClick={() => setActiveTab('users')}
+              style={{ border: 'none', backgroundColor: activeTab === 'users' ? '#dc3545' : 'transparent' }}
+            >
+              <i className="fas fa-users me-2"></i>
+              User Management
+            </button>
+          </li>
+          <li className="nav-item">
+            <button 
+              className={`nav-link ${activeTab === 'analytics' ? 'active bg-danger text-white' : 'text-white'}`}
+              onClick={() => setActiveTab('analytics')}
+              style={{ border: 'none', backgroundColor: activeTab === 'analytics' ? '#dc3545' : 'transparent' }}
+            >
+              <i className="fas fa-chart-bar me-2"></i>
+              Analytics
             </button>
           </li>
         </ul>
@@ -483,7 +722,7 @@ const AdminDashboard = () => {
               <div className="card-body">
                 {/* Search and Filter Bar */}
                 <div className="row mb-4">
-                  <div className="col-md-4 mb-2">
+                  <div className="col-md-3 mb-2">
                     <div className="input-group">
                       <span className="input-group-text bg-secondary border-secondary">
                         <i className="fas fa-search text-white"></i>
@@ -497,7 +736,7 @@ const AdminDashboard = () => {
                       />
                     </div>
                   </div>
-                  <div className="col-md-4 mb-2">
+                  <div className="col-md-3 mb-2">
                     <select
                       className="form-select bg-secondary text-white border-secondary"
                       value={selectedGenre}
@@ -509,7 +748,7 @@ const AdminDashboard = () => {
                       ))}
                     </select>
                   </div>
-                  <div className="col-md-4 mb-2">
+                  <div className="col-md-3 mb-2">
                     <select
                       className="form-select bg-secondary text-white border-secondary"
                       value={sortBy}
@@ -517,110 +756,340 @@ const AdminDashboard = () => {
                     >
                       <option value="newest">Newest First</option>
                       <option value="oldest">Oldest First</option>
-                      <option value="rating">Highest Rating</option>
-                      <option value="title">Alphabetical</option>
+                      <option value="rating">Highest Rated</option>
+                      <option value="title">A to Z</option>
                     </select>
+                  </div>
+                  <div className="col-md-3 mb-2">
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => setShowBulkActions(!showBulkActions)}
+                      >
+                        <i className="fas fa-tasks me-1"></i>
+                        Bulk Actions
+                      </button>
+                      {selectedMovies.length > 0 && (
+                        <button className="btn btn-danger btn-sm" onClick={handleBulkDelete}>
+                          <i className="fas fa-trash me-1"></i>
+                          Delete ({selectedMovies.length})
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Movies Table */}
+                {/* Bulk Actions */}
+                {showBulkActions && (
+                  <div className="alert alert-info">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="selectAll"
+                        checked={selectedMovies.length === filteredMovies.length && filteredMovies.length > 0}
+                        onChange={handleSelectAll}
+                      />
+                      <label className="form-check-label" htmlFor="selectAll">
+                        Select All ({filteredMovies.length} movies)
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Movies Grid */}
                 {loading ? (
                   <div className="text-center py-5">
                     <div className="spinner-border text-danger" role="status">
-                      <span className="visually-hidden">Loading...</span>
+                      <span className="visually-hidden">Loading movies...</span>
                     </div>
                   </div>
                 ) : filteredMovies.length === 0 ? (
                   <div className="text-center py-5">
                     <i className="fas fa-film fa-3x text-muted mb-3"></i>
-                    <p className="text-muted">No movies found</p>
+                    <h4 className="text-muted">No movies found</h4>
+                    <p className="text-muted">Try adjusting your search or filters</p>
                   </div>
                 ) : (
-                  <div className="table-responsive">
-                    <table className="table table-dark table-hover">
-                      <thead>
-                        <tr className="text-danger">
-                          <th>Poster</th>
-                          <th>Title</th>
-                          <th>Genre</th>
-                          <th>Year</th>
-                          <th>Rating</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredMovies.map(movie => (
-                          <tr key={movie._id}>
-                            <td>
-                              {imageErrors[movie._id] ? (
-                                <div 
-                                  style={{ 
-                                    width: '50px', 
-                                    height: '75px', 
-                                    backgroundColor: '#333', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center', 
-                                    borderRadius: '0.25rem',
-                                    fontSize: '20px',
-                                    color: '#666'
-                                  }}
-                                >
-                                  <i className="fas fa-film"></i>
-                                </div>
-                              ) : (
-                                <img 
-                                  src={movie.imageUrl} 
-                                  alt={movie.title}
-                                  style={{ 
-                                    width: '50px', 
-                                    height: '75px', 
-                                    objectFit: 'cover',
-                                    backgroundColor: '#333'
-                                  }}
-                                  className="rounded"
-                                  onError={() => handleImageError(movie._id)}
-                                />
-                              )}
-                            </td>
-                            <td className="align-middle">
-                              <strong>{movie.title}</strong>
-                              <br />
-                              <small className="text-muted">{movie.description.substring(0, 50)}...</small>
-                            </td>
-                            <td className="align-middle">{movie.genres || movie.genre || 'N/A'}</td>
-                            <td className="align-middle">{movie.year}</td>
-                            <td className="align-middle">
+                  <div className="row">
+                    {filteredMovies.map(movie => (
+                      <div key={movie._id} className="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div className="card bg-secondary text-white h-100 position-relative">
+                          {showBulkActions && (
+                            <div className="position-absolute top-0 start-0 p-2" style={{ zIndex: 10 }}>
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                checked={selectedMovies.includes(movie._id)}
+                                onChange={() => handleSelectMovie(movie._id)}
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="position-relative">
+                            {imageErrors[movie._id] ? (
+                              <div className="d-flex align-items-center justify-content-center bg-dark" style={{ height: '300px' }}>
+                                <i className="fas fa-image fa-3x text-muted"></i>
+                              </div>
+                            ) : (
+                              <img
+                                src={movie.imageUrl}
+                                className="card-img-top"
+                                alt={movie.title}
+                                style={{ height: '300px', objectFit: 'cover' }}
+                                onError={() => handleImageError(movie._id)}
+                              />
+                            )}
+                            <div className="position-absolute top-0 end-0 p-2">
                               <span className="badge bg-warning text-dark">
                                 <i className="fas fa-star me-1"></i>
                                 {movie.rating}
                               </span>
-                            </td>
-                            <td className="align-middle">
+                            </div>
+                          </div>
+                          
+                          <div className="card-body d-flex flex-column">
+                            <h6 className="card-title fw-bold">{movie.title}</h6>
+                            <p className="card-text small text-muted mb-2">
+                              {movie.genres || movie.genre} • {movie.year}
+                            </p>
+                            <p className="card-text flex-grow-1" style={{ fontSize: '0.85rem' }}>
+                              {movie.description.length > 100 
+                                ? `${movie.description.substring(0, 100)}...` 
+                                : movie.description}
+                            </p>
+                            
+                            <div className="d-flex gap-2 mt-auto">
                               <button
-                                className="btn btn-sm btn-outline-warning me-2"
+                                className="btn btn-outline-warning btn-sm flex-fill"
                                 onClick={() => handleEdit(movie)}
-                                title="Edit"
                               >
-                                <i className="fas fa-edit"></i>
+                                <i className="fas fa-edit me-1"></i>Edit
                               </button>
                               <button
-                                className="btn btn-sm btn-outline-danger"
+                                className="btn btn-outline-danger btn-sm flex-fill"
                                 onClick={() => {
                                   setMovieToDelete(movie);
                                   setShowDeleteModal(true);
                                 }}
-                                title="Delete"
                               >
-                                <i className="fas fa-trash"></i>
+                                <i className="fas fa-trash me-1"></i>Delete
                               </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* User Management Tab */}
+          {activeTab === 'users' && (
+            <div className="card bg-dark text-white border-danger">
+              <div className="card-body">
+                <h3 className="mb-4">
+                  <i className="fas fa-users text-danger me-2"></i>
+                  User Management
+                </h3>
+                
+                <div className="row mb-4">
+                  <div className="col-md-6">
+                    <div className="card bg-secondary">
+                      <div className="card-body">
+                        <h5 className="card-title">User Statistics</h5>
+                        <div className="row">
+                          <div className="col-6">
+                            <div className="text-center">
+                              <h3 className="text-danger">{userStats?.totalUsers || 0}</h3>
+                              <small>Total Users</small>
+                            </div>
+                          </div>
+                          <div className="col-6">
+                            <div className="text-center">
+                              <h3 className="text-success">{userStats?.activeUsers || 0}</h3>
+                              <small>Active Users</small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="card bg-secondary">
+                      <div className="card-body">
+                        <h5 className="card-title">Subscription Breakdown</h5>
+                        <div className="row">
+                          <div className="col-6">
+                            <div className="text-center">
+                              <h3 className="text-info">{subscriptionStats?.planBreakdown?.free || 0}</h3>
+                              <small>Free Users</small>
+                            </div>
+                          </div>
+                          <div className="col-6">
+                            <div className="text-center">
+                              <h3 className="text-warning">{subscriptionStats?.planBreakdown?.premium || 0}</h3>
+                              <small>Premium Users</small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card bg-secondary">
+                  <div className="card-body">
+                    <h5 className="card-title">Users Expiring Soon</h5>
+                    {expiringUsers.length === 0 ? (
+                      <p className="text-muted">No users expiring within the next 7 days.</p>
+                    ) : (
+                      <div className="table-responsive">
+                        <table className="table table-dark table-striped">
+                          <thead>
+                            <tr>
+                              <th>Email</th>
+                              <th>Plan</th>
+                              <th>Expires</th>
+                              <th>Days Left</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {expiringUsers.map(user => (
+                              <tr key={user._id}>
+                                <td>{user.email}</td>
+                                <td>
+                                  <span className="badge bg-warning">
+                                    {user.subscriptionPlan || 'Premium'}
+                                  </span>
+                                </td>
+                                <td>{new Date(user.subscriptionExpiry).toLocaleDateString()}</td>
+                                <td>
+                                  <span className="badge bg-danger">
+                                    {Math.ceil((new Date(user.subscriptionExpiry) - new Date()) / (1000 * 60 * 60 * 24))}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Analytics Tab */}
+          {activeTab === 'analytics' && (
+            <div className="card bg-dark text-white border-danger">
+              <div className="card-body">
+                <h3 className="mb-4">
+                  <i className="fas fa-chart-bar text-danger me-2"></i>
+                  Analytics Dashboard
+                </h3>
+                
+                <div className="row mb-4">
+                  <div className="col-md-4">
+                    <div className="card bg-secondary">
+                      <div className="card-body text-center">
+                        <i className="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                        <h4>${revenueStats?.monthlyRevenue?.toLocaleString() || 0}</h4>
+                        <p className="mb-0">Monthly Revenue</p>
+                        <small className="text-muted">
+                          Growth: {revenueStats?.revenueGrowth || 0}%
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card bg-secondary">
+                      <div className="card-body text-center">
+                        <i className="fas fa-chart-line fa-2x text-info mb-2"></i>
+                        <h4>${revenueStats?.totalRevenue?.toLocaleString() || 0}</h4>
+                        <p className="mb-0">Total Revenue</p>
+                        <small className="text-muted">All time</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card bg-secondary">
+                      <div className="card-body text-center">
+                        <i className="fas fa-user-dollar fa-2x text-warning mb-2"></i>
+                        <h4>${revenueStats?.averageRevenuePerUser?.toFixed(2) || 0}</h4>
+                        <p className="mb-0">Avg Revenue/User</p>
+                        <small className="text-muted">Per month</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-md-6">
+                    <div className="card bg-secondary">
+                      <div className="card-body">
+                        <h5 className="card-title">Subscription Plans</h5>
+                        <div className="d-flex justify-content-around">
+                          <div className="text-center">
+                            <div className="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style={{ width: '60px', height: '60px' }}>
+                              <span className="fw-bold">
+                                {subscriptionStats?.subscriptionBreakdown?.monthly || 0}
+                              </span>
+                            </div>
+                            <p className="mt-2 mb-0">Monthly</p>
+                          </div>
+                          <div className="text-center">
+                            <div className="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style={{ width: '60px', height: '60px' }}>
+                              <span className="fw-bold">
+                                {subscriptionStats?.subscriptionBreakdown?.quarterly || 0}
+                              </span>
+                            </div>
+                            <p className="mt-2 mb-0">Quarterly</p>
+                          </div>
+                          <div className="text-center">
+                            <div className="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style={{ width: '60px', height: '60px' }}>
+                              <span className="fw-bold text-dark">
+                                {subscriptionStats?.subscriptionBreakdown?.yearly || 0}
+                              </span>
+                            </div>
+                            <p className="mt-2 mb-0">Yearly</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="card bg-secondary">
+                      <div className="card-body">
+                        <h5 className="card-title">Top Genres</h5>
+                        {movieGenres.slice(0, 5).map((genre, index) => {
+                          const count = movies.filter(m => (m.genres || m.genre) === genre).length;
+                          const percentage = movies.length > 0 ? (count / movies.length) * 100 : 0;
+                          return (
+                            <div key={genre} className="mb-3">
+                              <div className="d-flex justify-content-between">
+                                <span>{genre}</span>
+                                <span>{count} movies</span>
+                              </div>
+                              <div className="progress" style={{ height: '6px' }}>
+                                <div 
+                                  className="progress-bar bg-danger" 
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -629,48 +1098,40 @@ const AdminDashboard = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <>
-          <div className="modal-backdrop fade show"></div>
-          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content bg-dark text-white border-danger">
-                <div className="modal-header border-danger">
-                  <h5 className="modal-title">
-                    <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-                    Confirm Delete
-                  </h5>
-                  <button 
-                    type="button" 
-                    className="btn-close btn-close-white" 
-                    onClick={() => setShowDeleteModal(false)}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  Are you sure you want to delete <strong>{movieToDelete?.title}</strong>?
-                  <br />
-                  This action cannot be undone.
-                </div>
-                <div className="modal-footer border-danger">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setShowDeleteModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-danger" 
-                    onClick={handleDelete}
-                    disabled={loading}
-                  >
-                    {loading ? 'Deleting...' : 'Delete Movie'}
-                  </button>
-                </div>
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content bg-dark text-white">
+              <div className="modal-header border-secondary">
+                <h5 className="modal-title">
+                  <i className="fas fa-exclamation-triangle text-warning me-2"></i>
+                  Confirm Delete
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to delete "{movieToDelete?.title}"?</p>
+                <p className="text-muted">This action cannot be undone.</p>
+              </div>
+              <div className="modal-footer border-secondary">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={loading}>
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-trash me-2"></i>Delete
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
