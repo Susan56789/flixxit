@@ -1,3 +1,5 @@
+// Replace the existing dislikes.js backend file with this fixed version
+
 module.exports = (client, app, authenticate, ObjectId) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
@@ -239,7 +241,8 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 data: {
                     movieId: movieId,
                     dislikes: dislikeCount
-                }
+                },
+                dislikes: dislikeCount
             });
 
         } catch (err) {

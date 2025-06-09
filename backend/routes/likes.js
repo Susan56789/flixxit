@@ -239,7 +239,9 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 data: {
                     movieId: movieId,
                     likes: likeCount
-                }
+                },
+                // Also include direct likes property for backward compatibility
+                likes: likeCount
             });
 
         } catch (err) {
