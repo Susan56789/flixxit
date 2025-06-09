@@ -371,18 +371,12 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
-  // Fixed like handler
-  const handleLikeClick = async () => {
+ const handleLikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to like the movie.');
       return;
     }
     
-    if (likeStatus === 1) {
-      setAlertMessage('You have already liked this movie.');
-      return;
-    }
-
     try {
       const token = getUserToken();
       if (!token) {
@@ -390,55 +384,40 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         return;
       }
 
-      if (handleLike) {
-        const updatedMovie = await handleLike(movie._id, user._id);
+      // Use toggle endpoint for simpler logic
+      const response = await axios.post(
+        `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/like/toggle`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        const { action, likes, dislikes, hasLiked } = response.data.data;
+        
         setMovie(prevMovie => ({
           ...prevMovie,
-          ...updatedMovie,
-          likes: (updatedMovie.likes || prevMovie.likes || 0) + (likeStatus === -1 ? 2 : 1),
-          dislikes: likeStatus === -1 ? Math.max(0, (prevMovie.dislikes || 0) - 1) : (prevMovie.dislikes || 0)
+          likes: likes,
+          dislikes: dislikes
         }));
-      } else {
-        const response = await axios.post(
-          `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/like`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
         
-        if (response.data.success) {
-          setMovie(prevMovie => ({
-            ...prevMovie,
-            likes: response.data.data.likes,
-            dislikes: response.data.data.dislikes
-          }));
-        }
+        setLikeStatus(hasLiked ? 1 : null);
+        setAlertMessage(`Movie ${action} successfully.`);
       }
-      
-      setLikeStatus(1);
-      setAlertMessage('You have liked this movie.');
     } catch (err) {
-      console.error('Error liking movie:', err);
-      if (err.response?.status === 409) {
-        setAlertMessage('You have already liked this movie.');
-      } else if (err.response?.status === 401) {
+      console.error('Error toggling like:', err);
+      if (err.response?.status === 401) {
         setAlertMessage('Please log in to like the movie.');
       } else {
-        setAlertMessage('Error liking the movie. Please try again.');
+        setAlertMessage('Error processing your request. Please try again.');
       }
     }
   };
 
-  // Fixed dislike handler
   const handleDislikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to dislike the movie.');
       return;
     }
-    
-    if (likeStatus === -1) {
-      setAlertMessage('You have already disliked this movie.');
-      return;
-    }
 
     try {
       const token = getUserToken();
@@ -447,45 +426,35 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         return;
       }
 
-      if (handleDislike) {
-        const updatedDislikesBy = await handleDislike(movie._id, user._id);
+      // Use toggle endpoint for consistent behavior
+      const response = await axios.post(
+        `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/dislike/toggle`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        const { action, likes, dislikes, hasDisliked } = response.data.data;
+        
         setMovie(prevMovie => ({
           ...prevMovie,
-          dislikesBy: updatedDislikesBy,
-          dislikes: (prevMovie.dislikes || 0) + (likeStatus === 1 ? 2 : 1),
-          likes: likeStatus === 1 ? Math.max(0, (prevMovie.likes || 0) - 1) : (prevMovie.likes || 0)
+          likes: likes,
+          dislikes: dislikes
         }));
-      } else {
-        const response = await axios.post(
-          `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/dislike`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
         
-        if (response.data.success) {
-          setMovie(prevMovie => ({
-            ...prevMovie,
-            likes: response.data.data.likes,
-            dislikes: response.data.data.dislikes
-          }));
-        }
+        setLikeStatus(hasDisliked ? -1 : null);
+        setAlertMessage(`Movie ${action} successfully.`);
       }
-      
-      setLikeStatus(-1);
-      setAlertMessage('You have disliked this movie.');
     } catch (err) {
-      console.error('Error disliking movie:', err);
-      if (err.response?.status === 409) {
-        setAlertMessage('You have already disliked this movie.');
-      } else if (err.response?.status === 401) {
+      console.error('Error toggling dislike:', err);
+      if (err.response?.status === 401) {
         setAlertMessage('Please log in to dislike the movie.');
       } else {
-        setAlertMessage('Error disliking the movie. Please try again.');
+        setAlertMessage('Error processing your request. Please try again.');
       }
     }
   };
 
-  // Fixed comment submission
   const handleCommentSubmit = async () => {
     if (!user) {
       setAlertMessage('Please log in to post a comment.');
@@ -497,15 +466,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       return;
     }
 
-    const hasCommented = comments.some(comment => 
-      comment.userId === user._id || comment.userId.toString() === user._id.toString()
-    );
-    
-    if (hasCommented) {
-      setAlertMessage('You have already posted a comment for this movie.');
-      return;
-    }
-
+    // Remove the duplicate comment check since users should be able to comment multiple times
     const words = commentText.trim().split(/\s+/);
     const maxWords = 300;
     const trimmedCommentText = words.slice(0, maxWords).join(' ');
@@ -544,7 +505,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     }
   };
-
   // Handle loading and error states
   if (error) {
     return (

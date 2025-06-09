@@ -23,7 +23,10 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
             // Validate movieId
             if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ message: "Invalid movie ID format." });
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Invalid movie ID format." 
+                });
             }
 
             // Calculate pagination
@@ -51,7 +54,29 @@ module.exports = (client, app, authenticate, ObjectId) => {
                         userName: {
                             $cond: {
                                 if: { $gt: [{ $size: "$userDetails" }, 0] },
-                                then: { $arrayElemAt: ["$userDetails.name", 0] },
+                                then: {
+                                    $cond: {
+                                        if: { 
+                                            $and: [
+                                                { $ne: [{ $arrayElemAt: ["$userDetails.username", 0] }, null] },
+                                                { $ne: [{ $arrayElemAt: ["$userDetails.username", 0] }, ""] }
+                                            ]
+                                        },
+                                        then: { $arrayElemAt: ["$userDetails.username", 0] },
+                                        else: {
+                                            $cond: {
+                                                if: { 
+                                                    $and: [
+                                                        { $ne: [{ $arrayElemAt: ["$userDetails.name", 0] }, null] },
+                                                        { $ne: [{ $arrayElemAt: ["$userDetails.name", 0] }, ""] }
+                                                    ]
+                                                },
+                                                then: { $arrayElemAt: ["$userDetails.name", 0] },
+                                                else: "Anonymous User"
+                                            }
+                                        }
+                                    }
+                                },
                                 else: "Unknown User"
                             }
                         }
@@ -78,31 +103,25 @@ module.exports = (client, app, authenticate, ObjectId) => {
             // Get total count for pagination metadata
             const totalComments = await comments.countDocuments({ movieId: new ObjectId(movieId) });
 
-            if (!movieComments.length) {
-                return res.status(200).json({ 
-                    comments: [],
+            res.json({
+                success: true,
+                data: {
+                    comments: movieComments,
                     pagination: {
                         page: parseInt(page),
                         limit: limitNum,
                         total: totalComments,
                         totalPages: Math.ceil(totalComments / limitNum)
                     }
-                });
-            }
-
-            res.json({
-                comments: movieComments,
-                pagination: {
-                    page: parseInt(page),
-                    limit: limitNum,
-                    total: totalComments,
-                    totalPages: Math.ceil(totalComments / limitNum)
                 }
             });
 
         } catch (error) {
             console.error("Error fetching comments:", error);
-            res.status(500).json({ message: "Error fetching comments." });
+            res.status(500).json({ 
+                success: false,
+                message: "Error fetching comments." 
+            });
         }
     });
 
@@ -115,26 +134,38 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
             // Validate movieId
             if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ message: "Invalid movie ID format." });
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Invalid movie ID format." 
+                });
             }
 
             // Validate comment text
             if (!text || typeof text !== 'string' || text.trim().length === 0) {
-                return res.status(400).json({ message: 'Comment text is required and cannot be empty.' });
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Comment text is required and cannot be empty.' 
+                });
             }
 
             // Check text length (optional: set a reasonable limit)
             const trimmedText = text.trim();
             if (trimmedText.length > 1000) {
-                return res.status(400).json({ message: 'Comment text is too long. Maximum 1000 characters allowed.' });
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Comment text is too long. Maximum 1000 characters allowed.' 
+                });
             }
+
+            // Get the proper username from the authenticated user
+            const username = req.user.username || req.user.name || 'Anonymous';
 
             // Comment object
             const comment = {
                 _id: new ObjectId(),
                 userId: new ObjectId(userId),
                 movieId: new ObjectId(movieId),
-                userName: req.user.username || req.user.name || 'Anonymous',
+                userName: username, // Store username in comment for better performance
                 text: trimmedText,
                 createdAt: new Date(),
                 updatedAt: new Date()
@@ -144,7 +175,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
             const result = await comments.insertOne(comment);
 
             if (result.acknowledged) {
-                // Return the comment without internal database fields
+                // Return the comment with proper structure
                 const responseComment = {
                     _id: comment._id,
                     userId: comment.userId,
@@ -154,14 +185,24 @@ module.exports = (client, app, authenticate, ObjectId) => {
                     updatedAt: comment.updatedAt
                 };
                 
-                res.status(201).json(responseComment);
+                res.status(201).json({
+                    success: true,
+                    message: 'Comment posted successfully',
+                    data: responseComment
+                });
             } else {
-                res.status(500).json({ message: 'Failed to post comment.' });
+                res.status(500).json({ 
+                    success: false,
+                    message: 'Failed to post comment.' 
+                });
             }
 
         } catch (error) {
             console.error('Error posting comment:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            res.status(500).json({ 
+                success: false,
+                message: 'Internal server error' 
+            });
         }
     });
 
@@ -174,17 +215,26 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
             // Validate IDs
             if (!isValidObjectId(movieId) || !isValidObjectId(commentId)) {
-                return res.status(400).json({ message: "Invalid ID format." });
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Invalid ID format." 
+                });
             }
 
             // Validate text
             if (!text || typeof text !== 'string' || text.trim().length === 0) {
-                return res.status(400).json({ message: 'Comment text is required and cannot be empty.' });
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Comment text is required and cannot be empty.' 
+                });
             }
 
             const trimmedText = text.trim();
             if (trimmedText.length > 1000) {
-                return res.status(400).json({ message: 'Comment text is too long. Maximum 1000 characters allowed.' });
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Comment text is too long. Maximum 1000 characters allowed.' 
+                });
             }
 
             // Update comment (only if user owns it)
@@ -203,18 +253,30 @@ module.exports = (client, app, authenticate, ObjectId) => {
             );
 
             if (result.matchedCount === 0) {
-                return res.status(404).json({ message: 'Comment not found or you do not have permission to edit it.' });
+                return res.status(404).json({ 
+                    success: false,
+                    message: 'Comment not found or you do not have permission to edit it.' 
+                });
             }
 
             if (result.modifiedCount === 0) {
-                return res.status(400).json({ message: 'No changes were made to the comment.' });
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'No changes were made to the comment.' 
+                });
             }
 
-            res.json({ message: 'Comment updated successfully.' });
+            res.json({ 
+                success: true,
+                message: 'Comment updated successfully.' 
+            });
 
         } catch (error) {
             console.error('Error updating comment:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            res.status(500).json({ 
+                success: false,
+                message: 'Internal server error' 
+            });
         }
     });
 
@@ -226,7 +288,10 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
             // Validate IDs
             if (!isValidObjectId(movieId) || !isValidObjectId(commentId)) {
-                return res.status(400).json({ message: "Invalid ID format." });
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Invalid ID format." 
+                });
             }
 
             // Delete comment (only if user owns it)
@@ -237,14 +302,121 @@ module.exports = (client, app, authenticate, ObjectId) => {
             });
 
             if (result.deletedCount === 0) {
-                return res.status(404).json({ message: 'Comment not found or you do not have permission to delete it.' });
+                return res.status(404).json({ 
+                    success: false,
+                    message: 'Comment not found or you do not have permission to delete it.' 
+                });
             }
 
-            res.json({ message: 'Comment deleted successfully.' });
+            res.json({ 
+                success: true,
+                message: 'Comment deleted successfully.' 
+            });
 
         } catch (error) {
             console.error('Error deleting comment:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            res.status(500).json({ 
+                success: false,
+                message: 'Internal server error' 
+            });
+        }
+    });
+
+    // Get comments count for a movie
+    app.get('/api/movies/:movieId/comments/count', async (req, res) => {
+        try {
+            const { movieId } = req.params;
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Invalid movie ID format." 
+                });
+            }
+
+            const commentCount = await comments.countDocuments({ movieId: new ObjectId(movieId) });
+            
+            res.json({ 
+                success: true,
+                data: {
+                    movieId: movieId,
+                    commentCount: commentCount
+                }
+            });
+
+        } catch (err) {
+            console.error("Error fetching comment count:", err);
+            res.status(500).json({ 
+                success: false,
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Get user's comments (with pagination)
+    app.get("/api/users/comments", authenticate, async (req, res) => {
+        try {
+            const userId = req.user._id.toString();
+            const { page = 1, limit = 10 } = req.query;
+
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const limitNum = parseInt(limit);
+
+            // Aggregate to get movie details for user's comments
+            const pipeline = [
+                { $match: { userId: new ObjectId(userId) } },
+                {
+                    $lookup: {
+                        from: "movies",
+                        localField: "movieId",
+                        foreignField: "_id",
+                        as: "movieDetails"
+                    }
+                },
+                {
+                    $unwind: "$movieDetails"
+                },
+                {
+                    $project: {
+                        commentId: "$_id",
+                        movieId: 1,
+                        movieTitle: "$movieDetails.title",
+                        moviePoster: "$movieDetails.poster",
+                        movieYear: "$movieDetails.year",
+                        commentText: "$text",
+                        commentedAt: "$createdAt",
+                        updatedAt: 1
+                    }
+                },
+                { $sort: { commentedAt: -1 } },
+                { $skip: skip },
+                { $limit: limitNum }
+            ];
+
+            const userComments = await comments.aggregate(pipeline).toArray();
+            const totalComments = await comments.countDocuments({ userId: new ObjectId(userId) });
+
+            res.json({
+                success: true,
+                data: {
+                    userId: userId,
+                    comments: userComments,
+                    pagination: {
+                        page: parseInt(page),
+                        limit: limitNum,
+                        total: totalComments,
+                        totalPages: Math.ceil(totalComments / limitNum)
+                    }
+                }
+            });
+
+        } catch (err) {
+            console.error("Error fetching user's comments:", err);
+            res.status(500).json({ 
+                success: false,
+                message: "Internal server error" 
+            });
         }
     });
 

@@ -187,7 +187,6 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
             res.status(500).json({ message: err.message || "Error fetching users" });
         }
     });
-
     // Update user profile (protected endpoint)
     app.put("/api/user", authenticate, async (req, res) => {
         try {

@@ -2,7 +2,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
     const likes = database.collection("likes");
-    const dislikes = database.collection("dislikes"); // Assuming you have a dislikes collection
+    const dislikes = database.collection("dislikes");
 
     // Helper function to validate ObjectId
     const isValidObjectId = (id) => {
@@ -23,7 +23,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     app.post("/api/movies/:movieId/like", authenticate, async (req, res) => {
         try {
             const { movieId } = req.params;
-            const userId = req.user._id.toString(); // Get userId from authenticated user
+            const userId = req.user._id.toString();
 
             // Validate movieId
             if (!isValidObjectId(movieId)) {
@@ -83,7 +83,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
                             $pull: { dislikesBy: userId },
                             $inc: { 
                                 likesCount: 1,
-                                dislikesCount: -1 // Decrease dislikes count if user previously disliked
+                                dislikesCount: -1
                             }
                         },
                         { session }
@@ -113,6 +113,121 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
         } catch (err) {
             console.error("Error liking movie:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Toggle like (like if not liked, unlike if already liked)
+    app.post("/api/movies/:movieId/like/toggle", authenticate, async (req, res) => {
+        try {
+            const { movieId } = req.params;
+            const userId = req.user._id.toString();
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Invalid movie ID format" 
+                });
+            }
+
+            // Check if movie exists
+            if (!(await movieExists(movieId))) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: "Movie not found" 
+                });
+            }
+
+            const existingLike = await likes.findOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
+
+            const session = client.startSession();
+            let action = '';
+            let likeCount = 0;
+            let dislikeCount = 0;
+
+            try {
+                await session.withTransaction(async () => {
+                    if (existingLike) {
+                        // Remove like
+                        await likes.deleteOne({ 
+                            movieId: movieId, 
+                            userId: userId 
+                        }, { session });
+                        
+                        await movies.updateOne(
+                            { _id: new ObjectId(movieId) },
+                            {
+                                $pull: { likesBy: userId },
+                                $inc: { likesCount: -1 }
+                            },
+                            { session }
+                        );
+                        action = 'unliked';
+                    } else {
+                        // Add like
+                        const like = {
+                            _id: new ObjectId(),
+                            userId: userId,
+                            movieId: movieId,
+                            createdAt: new Date()
+                        };
+
+                        await likes.insertOne(like, { session });
+
+                        // Remove dislike if exists
+                        await dislikes.deleteOne({ 
+                            userId: userId, 
+                            movieId: movieId 
+                        }, { session });
+
+                        await movies.updateOne(
+                            { _id: new ObjectId(movieId) },
+                            {
+                                $addToSet: { likesBy: userId },
+                                $pull: { dislikesBy: userId },
+                                $inc: { 
+                                    likesCount: 1,
+                                    dislikesCount: -1
+                                }
+                            },
+                            { session }
+                        );
+                        action = 'liked';
+                    }
+                });
+
+                // Get final counts
+                [likeCount, dislikeCount] = await Promise.all([
+                    likes.countDocuments({ movieId: movieId }),
+                    dislikes.countDocuments({ movieId: movieId })
+                ]);
+
+                res.json({
+                    success: true,
+                    message: `Movie ${action} successfully`,
+                    data: {
+                        movieId: movieId,
+                        userId: userId,
+                        action: action,
+                        likes: likeCount,
+                        dislikes: dislikeCount,
+                        hasLiked: action === 'liked'
+                    }
+                });
+
+            } finally {
+                await session.endSession();
+            }
+
+        } catch (err) {
+            console.error("Error toggling like:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 
@@ -153,6 +268,125 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
         } catch (err) {
             console.error("Error fetching likes count:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Check if current user has liked a specific movie
+    app.get("/api/movies/:movieId/like/status", authenticate, async (req, res) => {
+        try {
+            const { movieId } = req.params;
+            const userId = req.user._id.toString();
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Invalid movie ID format" 
+                });
+            }
+
+            const hasLiked = await likes.findOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    movieId: movieId,
+                    userId: userId,
+                    hasLiked: !!hasLiked
+                }
+            });
+
+        } catch (err) {
+            console.error("Error checking like status:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Undo like (remove like)
+    app.delete("/api/movies/:movieId/like", authenticate, async (req, res) => {
+        try {
+            const { movieId } = req.params;
+            const userId = req.user._id.toString();
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Invalid movie ID format" 
+                });
+            }
+
+            // Check if movie exists
+            if (!(await movieExists(movieId))) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: "Movie not found" 
+                });
+            }
+
+            // Use transaction for data consistency
+            const session = client.startSession();
+            
+            try {
+                let likeRemoved = false;
+
+                await session.withTransaction(async () => {
+                    // Delete the like entry
+                    const result = await likes.deleteOne({ 
+                        movieId: movieId, 
+                        userId: userId 
+                    }, { session });
+
+                    if (result.deletedCount === 1) {
+                        likeRemoved = true;
+                        
+                        // Update the movie document
+                        await movies.updateOne(
+                            { _id: new ObjectId(movieId) },
+                            {
+                                $pull: { likesBy: userId },
+                                $inc: { likesCount: -1 }
+                            },
+                            { session }
+                        );
+                    }
+                });
+
+                if (likeRemoved) {
+                    const likeCount = await likes.countDocuments({ movieId: movieId });
+                    
+                    res.json({ 
+                        success: true, 
+                        message: "Like removed successfully",
+                        data: {
+                            movieId: movieId,
+                            userId: userId,
+                            likes: likeCount
+                        }
+                    });
+                } else {
+                    res.status(404).json({ 
+                        success: false, 
+                        message: "No like found to remove" 
+                    });
+                }
+
+            } finally {
+                await session.endSession();
+            }
+
+        } catch (err) {
+            console.error("Error removing like:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 
@@ -231,234 +465,6 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
         } catch (err) {
             console.error("Error fetching liked users:", err);
-            res.status(500).json({ 
-                success: false, 
-                message: "Internal server error" 
-            });
-        }
-    });
-
-    // Undo like (remove like)
-    app.delete("/api/movies/:movieId/like", authenticate, async (req, res) => {
-        try {
-            const { movieId } = req.params;
-            const userId = req.user._id.toString(); // Get userId from authenticated user
-
-            // Validate movieId
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Invalid movie ID format" 
-                });
-            }
-
-            // Check if movie exists
-            if (!(await movieExists(movieId))) {
-                return res.status(404).json({ 
-                    success: false, 
-                    message: "Movie not found" 
-                });
-            }
-
-            // Use transaction for data consistency
-            const session = client.startSession();
-            
-            try {
-                let likeRemoved = false;
-
-                await session.withTransaction(async () => {
-                    // Delete the like entry
-                    const result = await likes.deleteOne({ 
-                        movieId: movieId, 
-                        userId: userId 
-                    }, { session });
-
-                    if (result.deletedCount === 1) {
-                        likeRemoved = true;
-                        
-                        // Update the movie document
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $pull: { likesBy: userId },
-                                $inc: { likesCount: -1 }
-                            },
-                            { session }
-                        );
-                    }
-                });
-
-                if (likeRemoved) {
-                    const likeCount = await likes.countDocuments({ movieId: movieId });
-                    
-                    res.json({ 
-                        success: true, 
-                        message: "Like removed successfully",
-                        data: {
-                            movieId: movieId,
-                            userId: userId,
-                            likes: likeCount
-                        }
-                    });
-                } else {
-                    res.status(404).json({ 
-                        success: false, 
-                        message: "No like found to remove" 
-                    });
-                }
-
-            } finally {
-                await session.endSession();
-            }
-
-        } catch (err) {
-            console.error("Error removing like:", err);
-            res.status(500).json({ 
-                success: false, 
-                message: "Internal server error" 
-            });
-        }
-    });
-
-    // Check if current user has liked a specific movie
-    app.get("/api/movies/:movieId/like/status", authenticate, async (req, res) => {
-        try {
-            const { movieId } = req.params;
-            const userId = req.user._id.toString();
-
-            // Validate movieId
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Invalid movie ID format" 
-                });
-            }
-
-            const hasLiked = await likes.findOne({ 
-                userId: userId, 
-                movieId: movieId 
-            });
-
-            res.json({
-                success: true,
-                data: {
-                    movieId: movieId,
-                    userId: userId,
-                    hasLiked: !!hasLiked
-                }
-            });
-
-        } catch (err) {
-            console.error("Error checking like status:", err);
-            res.status(500).json({ 
-                success: false, 
-                message: "Internal server error" 
-            });
-        }
-    });
-
-    // Toggle like (like if not liked, unlike if already liked)
-    app.post("/api/movies/:movieId/like/toggle", authenticate, async (req, res) => {
-        try {
-            const { movieId } = req.params;
-            const userId = req.user._id.toString();
-
-            // Validate movieId
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Invalid movie ID format" 
-                });
-            }
-
-            // Check if movie exists
-            if (!(await movieExists(movieId))) {
-                return res.status(404).json({ 
-                    success: false, 
-                    message: "Movie not found" 
-                });
-            }
-
-            const existingLike = await likes.findOne({ 
-                userId: userId, 
-                movieId: movieId 
-            });
-
-            const session = client.startSession();
-            let action = '';
-            let likeCount = 0;
-
-            try {
-                await session.withTransaction(async () => {
-                    if (existingLike) {
-                        // Remove like
-                        await likes.deleteOne({ 
-                            movieId: movieId, 
-                            userId: userId 
-                        }, { session });
-                        
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $pull: { likesBy: userId },
-                                $inc: { likesCount: -1 }
-                            },
-                            { session }
-                        );
-                        action = 'unliked';
-                    } else {
-                        // Add like
-                        const like = {
-                            _id: new ObjectId(),
-                            userId: userId,
-                            movieId: movieId,
-                            createdAt: new Date()
-                        };
-
-                        await likes.insertOne(like, { session });
-
-                        // Remove dislike if exists
-                        await dislikes.deleteOne({ 
-                            userId: userId, 
-                            movieId: movieId 
-                        }, { session });
-
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $addToSet: { likesBy: userId },
-                                $pull: { dislikesBy: userId },
-                                $inc: { 
-                                    likesCount: 1,
-                                    dislikesCount: -1
-                                }
-                            },
-                            { session }
-                        );
-                        action = 'liked';
-                    }
-                });
-
-                likeCount = await likes.countDocuments({ movieId: movieId });
-
-                res.json({
-                    success: true,
-                    message: `Movie ${action} successfully`,
-                    data: {
-                        movieId: movieId,
-                        userId: userId,
-                        action: action,
-                        likes: likeCount,
-                        hasLiked: action === 'liked'
-                    }
-                });
-
-            } finally {
-                await session.endSession();
-            }
-
-        } catch (err) {
-            console.error("Error toggling like:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 

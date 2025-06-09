@@ -2,7 +2,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     const database = client.db("sample_mflix");
     const movies = database.collection("movies");
     const dislikes = database.collection("dislikes");
-    const likes = database.collection("likes"); // Assuming you have a likes collection
+    const likes = database.collection("likes");
 
     // Helper function to validate ObjectId
     const isValidObjectId = (id) => {
@@ -23,7 +23,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     app.post("/api/movies/:movieId/dislike", authenticate, async (req, res) => {
         try {
             const { movieId } = req.params;
-            const userId = req.user._id.toString(); // Get userId from authenticated user
+            const userId = req.user._id.toString();
 
             // Validate movieId
             if (!isValidObjectId(movieId)) {
@@ -69,7 +69,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
                     await dislikes.insertOne(dislike, { session });
 
-                    // Remove like if exists (assuming you have a likes collection)
+                    // Remove like if exists
                     await likes.deleteOne({ 
                         userId: userId, 
                         movieId: movieId 
@@ -83,7 +83,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
                             $pull: { likesBy: userId },
                             $inc: { 
                                 dislikesCount: 1,
-                                likesCount: -1 // Decrease likes count if user previously liked
+                                likesCount: -1
                             }
                         },
                         { session }
@@ -153,6 +153,125 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
         } catch (err) {
             console.error("Error fetching dislikes count:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Check if current user has disliked a specific movie
+    app.get("/api/movies/:movieId/dislike/status", authenticate, async (req, res) => {
+        try {
+            const { movieId } = req.params;
+            const userId = req.user._id.toString();
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Invalid movie ID format" 
+                });
+            }
+
+            const hasDisliked = await dislikes.findOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    movieId: movieId,
+                    userId: userId,
+                    hasDisliked: !!hasDisliked
+                }
+            });
+
+        } catch (err) {
+            console.error("Error checking dislike status:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Undo dislike (remove dislike)
+    app.delete("/api/movies/:movieId/dislike", authenticate, async (req, res) => {
+        try {
+            const { movieId } = req.params;
+            const userId = req.user._id.toString();
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Invalid movie ID format" 
+                });
+            }
+
+            // Check if movie exists
+            if (!(await movieExists(movieId))) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: "Movie not found" 
+                });
+            }
+
+            // Use transaction for data consistency
+            const session = client.startSession();
+            
+            try {
+                let dislikeRemoved = false;
+
+                await session.withTransaction(async () => {
+                    // Delete the dislike entry
+                    const result = await dislikes.deleteOne({ 
+                        movieId: movieId, 
+                        userId: userId 
+                    }, { session });
+
+                    if (result.deletedCount === 1) {
+                        dislikeRemoved = true;
+                        
+                        // Update the movie document
+                        await movies.updateOne(
+                            { _id: new ObjectId(movieId) },
+                            {
+                                $pull: { dislikesBy: userId },
+                                $inc: { dislikesCount: -1 }
+                            },
+                            { session }
+                        );
+                    }
+                });
+
+                if (dislikeRemoved) {
+                    const dislikeCount = await dislikes.countDocuments({ movieId: movieId });
+                    
+                    res.json({ 
+                        success: true, 
+                        message: "Dislike removed successfully",
+                        data: {
+                            movieId: movieId,
+                            userId: userId,
+                            dislikes: dislikeCount
+                        }
+                    });
+                } else {
+                    res.status(404).json({ 
+                        success: false, 
+                        message: "No dislike found to remove" 
+                    });
+                }
+
+            } finally {
+                await session.endSession();
+            }
+
+        } catch (err) {
+            console.error("Error removing dislike:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 
@@ -238,11 +357,11 @@ module.exports = (client, app, authenticate, ObjectId) => {
         }
     });
 
-    // Undo dislike (remove dislike)
-    app.delete("/api/movies/:movieId/dislike", authenticate, async (req, res) => {
+    // Toggle dislike (dislike if not disliked, undislike if already disliked)
+    app.post("/api/movies/:movieId/dislike/toggle", authenticate, async (req, res) => {
         try {
             const { movieId } = req.params;
-            const userId = req.user._id.toString(); // Get userId from authenticated user
+            const userId = req.user._id.toString();
 
             // Validate movieId
             if (!isValidObjectId(movieId)) {
@@ -260,23 +379,25 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 });
             }
 
-            // Use transaction for data consistency
+            const existingDislike = await dislikes.findOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
+
             const session = client.startSession();
-            
+            let action = '';
+            let likeCount = 0;
+            let dislikeCount = 0;
+
             try {
-                let dislikeRemoved = false;
-
                 await session.withTransaction(async () => {
-                    // Delete the dislike entry
-                    const result = await dislikes.deleteOne({ 
-                        movieId: movieId, 
-                        userId: userId 
-                    }, { session });
-
-                    if (result.deletedCount === 1) {
-                        dislikeRemoved = true;
+                    if (existingDislike) {
+                        // Remove dislike
+                        await dislikes.deleteOne({ 
+                            movieId: movieId, 
+                            userId: userId 
+                        }, { session });
                         
-                        // Update the movie document
                         await movies.updateOne(
                             { _id: new ObjectId(movieId) },
                             {
@@ -285,71 +406,65 @@ module.exports = (client, app, authenticate, ObjectId) => {
                             },
                             { session }
                         );
+                        action = 'undisliked';
+                    } else {
+                        // Add dislike
+                        const dislike = {
+                            _id: new ObjectId(),
+                            userId: userId,
+                            movieId: movieId,
+                            createdAt: new Date()
+                        };
+
+                        await dislikes.insertOne(dislike, { session });
+
+                        // Remove like if exists
+                        await likes.deleteOne({ 
+                            userId: userId, 
+                            movieId: movieId 
+                        }, { session });
+
+                        await movies.updateOne(
+                            { _id: new ObjectId(movieId) },
+                            {
+                                $addToSet: { dislikesBy: userId },
+                                $pull: { likesBy: userId },
+                                $inc: { 
+                                    dislikesCount: 1,
+                                    likesCount: -1
+                                }
+                            },
+                            { session }
+                        );
+                        action = 'disliked';
                     }
                 });
 
-                if (dislikeRemoved) {
-                    const dislikeCount = await dislikes.countDocuments({ movieId: movieId });
-                    
-                    res.json({ 
-                        success: true, 
-                        message: "Dislike removed successfully",
-                        data: {
-                            movieId: movieId,
-                            userId: userId,
-                            dislikes: dislikeCount
-                        }
-                    });
-                } else {
-                    res.status(404).json({ 
-                        success: false, 
-                        message: "No dislike found to remove" 
-                    });
-                }
+                // Get final counts
+                [dislikeCount, likeCount] = await Promise.all([
+                    dislikes.countDocuments({ movieId: movieId }),
+                    likes.countDocuments({ movieId: movieId })
+                ]);
+
+                res.json({
+                    success: true,
+                    message: `Movie ${action} successfully`,
+                    data: {
+                        movieId: movieId,
+                        userId: userId,
+                        action: action,
+                        likes: likeCount,
+                        dislikes: dislikeCount,
+                        hasDisliked: action === 'disliked'
+                    }
+                });
 
             } finally {
                 await session.endSession();
             }
 
         } catch (err) {
-            console.error("Error removing dislike:", err);
-            res.status(500).json({ 
-                success: false, 
-                message: "Internal server error" 
-            });
-        }
-    });
-
-    // Check if current user has disliked a specific movie
-    app.get("/api/movies/:movieId/dislike/status", authenticate, async (req, res) => {
-        try {
-            const { movieId } = req.params;
-            const userId = req.user._id.toString();
-
-            // Validate movieId
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Invalid movie ID format" 
-                });
-            }
-
-            const hasDisliked = await dislikes.findOne({ 
-                userId: userId, 
-                movieId: movieId 
-            });
-
-            res.json({
-                success: true,
-                data: {
-                    movieId: movieId,
-                    userId: userId,
-                    hasDisliked: !!hasDisliked
-                }
-            });
-
-        } catch (err) {
-            console.error("Error checking dislike status:", err);
+            console.error("Error toggling dislike:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 
