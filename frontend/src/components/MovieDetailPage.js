@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import { FaPlay, FaThumbsUp, FaThumbsDown } from "react-icons/fa";
@@ -22,6 +22,19 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
   const [users, setUsers] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection effect
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // SEO Component for Movie Details
   const MovieSEO = ({ movie }) => {
@@ -118,6 +131,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         <title>{title}</title>
         <meta name="description" content={description} />
         <meta name="keywords" content={keywords} />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <link rel="canonical" href={canonicalUrl} />
         
         {/* Open Graph / Facebook */}
@@ -202,6 +216,23 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       <link rel="canonical" href="https://flixxit-five.vercel.app/movies" />
     </Helmet>
   );
+
+  // Updated comment fetching function
+  const fetchComments = async (movieId) => {
+    try {
+      const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
+      if (response.data.success) {
+        const commentsData = response.data.data.comments || [];
+        setComments(commentsData);
+      } else {
+        console.error('Failed to fetch comments:', response.data.message);
+        setComments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      setComments([]);
+    }
+  };
 
   // Fetch movie details, recommended movies, comments, and users
   useEffect(() => {
@@ -306,17 +337,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     };
 
-    const fetchComments = async (movieId) => {
-      try {
-        const response = await axios.get(`https://flixxit-h9fa.onrender.com/api/movies/${movieId}/comments`);
-        const commentsData = response.data.comments || response.data || [];
-        setComments(commentsData);
-      } catch (error) {
-        console.error('Error fetching comments:', error);
-        setComments([]);
-      }
-    };
-
     const fetchUsers = async () => {
       try {
         const response = await axios.get("https://flixxit-h9fa.onrender.com/api/users");
@@ -350,7 +370,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         setComments(updatedComments);
       }
     }
-  }, [users]);
+  }, [comments, users]);
 
   const handleWatchClick = () => {
     setShowPlayer(true);
@@ -371,7 +391,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
- const handleLikeClick = async () => {
+  // Fixed like handler using toggle endpoint
+  const handleLikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to like the movie.');
       return;
@@ -413,6 +434,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
   };
 
+  // Fixed dislike handler using toggle endpoint
   const handleDislikeClick = async () => {
     if (!user) {
       setAlertMessage('Please log in to dislike the movie.');
@@ -455,6 +477,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     }
   };
 
+  // Fixed comment submission with new API structure
   const handleCommentSubmit = async () => {
     if (!user) {
       setAlertMessage('Please log in to post a comment.');
@@ -466,7 +489,6 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       return;
     }
 
-    // Remove the duplicate comment check since users should be able to comment multiple times
     const words = commentText.trim().split(/\s+/);
     const maxWords = 300;
     const trimmedCommentText = words.slice(0, maxWords).join(' ');
@@ -486,14 +508,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const newComment = {
-        ...response.data,
-        username: response.data.userName || user.username || user.name || 'Anonymous'
-      };
-      
-      setComments(prevComments => [newComment, ...prevComments]);
-      setCommentText('');
-      setAlertMessage('Comment posted successfully.');
+      if (response.data.success) {
+        const newComment = response.data.data;
+        
+        setComments(prevComments => [newComment, ...prevComments]);
+        setCommentText('');
+        setAlertMessage('Comment posted successfully.');
+      } else {
+        setAlertMessage(response.data.message || 'Failed to post comment.');
+      }
     } catch (err) {
       console.error('Error posting comment:', err);
       if (err.response?.status === 401) {
@@ -505,6 +528,278 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
       }
     }
   };
+
+  // Mobile-optimized pagination component
+  const MobilePagination = ({ currentPage, totalPages, onPageChange }) => {
+    const getVisiblePages = () => {
+      if (totalPages <= 5) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      
+      if (isMobile) {
+        // Show fewer pages on mobile
+        const pages = [];
+        if (currentPage > 1) pages.push(currentPage - 1);
+        pages.push(currentPage);
+        if (currentPage < totalPages) pages.push(currentPage + 1);
+        return pages;
+      }
+      
+      // Desktop logic
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, start + 4);
+      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    };
+
+    return (
+      <div className="d-flex justify-content-center align-items-center mt-3">
+        <div className="pagination-controls">
+          {currentPage > 1 && (
+            <button
+              className="btn btn-sm me-1"
+              onClick={() => onPageChange(currentPage - 1)}
+              style={{
+                backgroundColor: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--primary-text)',
+                padding: isMobile ? '6px 10px' : '4px 8px'
+              }}
+            >
+              ‹
+            </button>
+          )}
+          
+          {getVisiblePages().map(page => (
+            <button
+              key={page}
+              className={`btn btn-sm me-1 ${page === currentPage ? 'active' : ''}`}
+              onClick={() => onPageChange(page)}
+              style={{
+                backgroundColor: page === currentPage ? 'var(--accent-color)' : 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                color: page === currentPage ? '#fff' : 'var(--primary-text)',
+                padding: isMobile ? '6px 10px' : '4px 8px',
+                minWidth: isMobile ? '36px' : '32px'
+              }}
+            >
+              {page}
+            </button>
+          ))}
+          
+          {currentPage < totalPages && (
+            <button
+              className="btn btn-sm"
+              onClick={() => onPageChange(currentPage + 1)}
+              style={{
+                backgroundColor: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--primary-text)',
+                padding: isMobile ? '6px 10px' : '4px 8px'
+              }}
+            >
+              ›
+            </button>
+          )}
+        </div>
+        
+        {!isMobile && (
+          <small className="text-muted ms-3">
+            Page {currentPage} of {totalPages}
+          </small>
+        )}
+      </div>
+    );
+  };
+
+  // Mobile-optimized comments component
+  const CommentsWithPagination = ({ comments }) => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const commentsPerPage = isMobile ? 3 : 5; // Show fewer comments on mobile
+    
+    const totalPages = Math.ceil(comments.length / commentsPerPage);
+    const startIndex = (currentPage - 1) * commentsPerPage;
+    const endIndex = startIndex + commentsPerPage;
+    const currentComments = comments.slice(startIndex, endIndex);
+
+    const handlePageChange = (page) => {
+      setCurrentPage(page);
+      // Scroll to comments section on mobile
+      if (isMobile) {
+        document.querySelector('.comments-section')?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    };
+
+    return (
+      <div className="comments-list">
+        {comments.length > 0 ? (
+          <>
+            {currentComments.map((comment) => (
+              <div 
+                key={comment._id} 
+                className="card comment-card mb-2" 
+                style={{ 
+                  backgroundColor: 'var(--card-bg)', 
+                  border: '1px solid var(--border-color)',
+                  borderRadius: isMobile ? '6px' : '8px'
+                }}
+              >
+                <div className={`card-body ${isMobile ? 'p-2' : 'p-3'}`}>
+                  <div className="comment-header d-flex justify-content-between align-items-start mb-2">
+                    <div className="comment-username fw-bold small" style={{ color: 'var(--accent-color)' }}>
+                      <i className="fas fa-user-circle me-1"></i>
+                      {comment.username || comment.userName || 'Anonymous'}
+                    </div>
+                    <small className={`comment-date text-muted ${isMobile ? 'fs-mobile-xs' : ''}`} style={{ fontSize: '0.75rem' }}>
+                      {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : 'Unknown date'}
+                    </small>
+                  </div>
+                  <div className="comment-text">
+                    <p className={`mb-0 ${isMobile ? 'fs-mobile-sm' : 'small'}`} 
+                       style={{ lineHeight: '1.5', color: 'var(--primary-text)', wordWrap: 'break-word' }}>
+                      {comment.text}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {totalPages > 1 && (
+              <MobilePagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
+        ) : (
+          <div className="no-comments text-center py-4" style={{ color: 'var(--secondary-text)' }}>
+            <i className="fas fa-comments fa-2x mb-3 opacity-50"></i>
+            <h6>No comments yet</h6>
+            <p className="small mb-0">Be the first to share your thoughts about this movie!</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Mobile-optimized movie actions
+  const MovieActions = () => (
+    <div className="movie-actions">
+      <button 
+        className={`btn btn-primary ${isMobile ? 'btn-lg w-100 mb-3' : 'btn-lg px-4 py-3 me-3 mb-3'}`}
+        onClick={handleWatchClick}
+        disabled={!movie.videoUrl}
+        style={{
+          background: movie.videoUrl ? 'var(--accent-color)' : '#6c757d',
+          border: 'none',
+          borderRadius: '12px',
+          fontSize: isMobile ? '1rem' : '1.1rem',
+          fontWeight: '600',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <FaPlay className="me-2" />
+        {movie.videoUrl ? 'Watch Trailer' : 'No Trailer Available'}
+      </button>
+      
+      <div className={`like-dislike-container ${isMobile ? 'd-flex flex-column gap-2' : 'd-flex gap-3'} mt-3`}>
+        <button
+          className={`btn btn-outline-success ${isMobile ? 'btn-lg w-100' : 'btn-lg px-4 py-2'} ${likeStatus === 1 ? 'active' : ''}`}
+          onClick={handleLikeClick}
+          disabled={!user}
+          style={{
+            borderRadius: '12px',
+            fontWeight: '600',
+            backgroundColor: likeStatus === 1 ? '#28a745' : 'transparent',
+            borderColor: '#28a745',
+            color: likeStatus === 1 ? '#fff' : '#28a745'
+          }}
+        >
+          <FaThumbsUp className="me-2" />
+          Like ({movie.likes || 0})
+        </button>
+        
+        <button
+          className={`btn btn-outline-danger ${isMobile ? 'btn-lg w-100' : 'btn-lg px-4 py-2'} ${likeStatus === -1 ? 'active' : ''}`}
+          onClick={handleDislikeClick}
+          disabled={!user}
+          style={{
+            borderRadius: '12px',
+            fontWeight: '600',
+            backgroundColor: likeStatus === -1 ? '#dc3545' : 'transparent',
+            borderColor: '#dc3545',
+            color: likeStatus === -1 ? '#fff' : '#dc3545'
+          }}
+        >
+          <FaThumbsDown className="me-2" />
+          Dislike ({movie.dislikes || 0})
+        </button>
+      </div>
+    </div>
+  );
+
+  // Mobile-optimized comment form
+  const CommentForm = () => {
+    const wordCount = commentText.trim().split(/\s+/).filter(word => word.length > 0).length;
+    
+    return (
+      <>
+        {user && (
+          <div 
+            className={`comment-form ${isMobile ? 'mb-2 p-2' : 'mb-3 p-3'} rounded`}
+            style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}
+          >
+            <div className="form-group mb-2">
+              <textarea
+                className="form-control comment-textarea"
+                rows={isMobile ? "2" : "3"}
+                placeholder="Share your thoughts about this movie..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                maxLength={2000}
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: isMobile ? '6px' : '8px',
+                  color: 'var(--primary-text)',
+                  fontSize: isMobile ? '0.95rem' : '0.9rem',
+                  padding: isMobile ? '10px' : '12px'
+                }}
+              />
+              <div className="comment-word-count mt-1 small text-muted">
+                {wordCount}/300 words
+              </div>
+            </div>
+            <button
+              className={`btn ${isMobile ? 'btn-sm w-100' : 'btn-sm px-3'} py-1`}
+              onClick={handleCommentSubmit}
+              disabled={!commentText.trim() || wordCount > 300}
+              style={{
+                backgroundColor: 'var(--accent-color)',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: '500',
+                color: '#fff',
+                fontSize: '0.85rem'
+              }}
+            >
+              Post Comment
+            </button>
+          </div>
+        )}
+
+        {!user && (
+          <div className={`alert alert-info ${isMobile ? 'mb-2 py-2' : 'mb-3 py-2'} small`} 
+               style={{ borderRadius: isMobile ? '6px' : '8px' }}>
+            <Link to="/login" className="text-decoration-none fw-bold">Log in</Link> to post a comment.
+          </div>
+        )}
+      </>
+    );
+  };
+
   // Handle loading and error states
   if (error) {
     return (
@@ -533,158 +828,15 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
     );
   }
 
-  // Comments Pagination Component
-  const CommentsWithPagination = ({ comments }) => {
-    const [currentPage, setCurrentPage] = useState(1);
-    const commentsPerPage = 5;
-    
-    const totalPages = Math.ceil(comments.length / commentsPerPage);
-    const startIndex = (currentPage - 1) * commentsPerPage;
-    const endIndex = startIndex + commentsPerPage;
-    const currentComments = comments.slice(startIndex, endIndex);
-
-    const handlePageChange = (page) => {
-      setCurrentPage(page);
-    };
-
-    const renderPagination = () => {
-      if (totalPages <= 1) return null;
-
-      const pages = [];
-      const maxVisiblePages = 5;
-      
-      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
-      if (endPage - startPage < maxVisiblePages - 1) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
-      }
-
-      // Previous button
-      if (currentPage > 1) {
-        pages.push(
-          <button
-            key="prev"
-            className="btn btn-sm me-1"
-            onClick={() => handlePageChange(currentPage - 1)}
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--primary-text)',
-              padding: '4px 8px'
-            }}
-          >
-            ‹
-          </button>
-        );
-      }
-
-      // Page numbers
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(
-          <button
-            key={i}
-            className={`btn btn-sm me-1 ${i === currentPage ? 'active' : ''}`}
-            onClick={() => handlePageChange(i)}
-            style={{
-              backgroundColor: i === currentPage ? 'var(--accent-color)' : 'var(--card-bg)',
-              border: '1px solid var(--border-color)',
-              color: i === currentPage ? '#fff' : 'var(--primary-text)',
-              padding: '4px 8px',
-              minWidth: '32px'
-            }}
-          >
-            {i}
-          </button>
-        );
-      }
-
-      // Next button
-      if (currentPage < totalPages) {
-        pages.push(
-          <button
-            key="next"
-            className="btn btn-sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--primary-text)',
-              padding: '4px 8px'
-            }}
-          >
-            ›
-          </button>
-        );
-      }
-
-      return (
-        <div className="d-flex justify-content-center align-items-center mt-3">
-          <div className="pagination-controls">
-            {pages}
-          </div>
-          <small className="text-muted ms-3">
-            Page {currentPage} of {totalPages}
-          </small>
-        </div>
-      );
-    };
-
-    return (
-      <div className="comments-list">
-        {comments.length > 0 ? (
-          <>
-            {currentComments.map((comment) => (
-              <div 
-                key={comment._id} 
-                className="card comment-card mb-2" 
-                style={{ 
-                  backgroundColor: 'var(--card-bg)', 
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px'
-                }}
-              >
-                <div className="card-body p-3">
-                  <div className="comment-header d-flex justify-content-between align-items-center mb-2">
-                    <div className="comment-username fw-bold small" style={{ color: 'var(--accent-color)' }}>
-                      <i className="fas fa-user-circle me-1"></i>
-                      {comment.username || comment.userName || 'Anonymous'}
-                    </div>
-                    <small className="comment-date text-muted" style={{ fontSize: '0.75rem' }}>
-                      {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : 'Unknown date'}
-                    </small>
-                  </div>
-                  <div className="comment-text">
-                    <p className="mb-0 small" style={{ lineHeight: '1.5', color: 'var(--primary-text)' }}>
-                      {comment.text}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {renderPagination()}
-          </>
-        ) : (
-          <div className="no-comments text-center py-4" style={{ color: 'var(--secondary-text)' }}>
-            <i className="fas fa-comments fa-2x mb-3 opacity-50"></i>
-            <h6>No comments yet</h6>
-            <p className="small mb-0">Be the first to share your thoughts about this movie!</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const wordCount = commentText.trim().split(/\s+/).filter(word => word.length > 0).length;
-
   return (
     <>
       {/* SEO Meta Tags */}
       <MovieSEO movie={movie} />
       
-      <div className="container movie-detail-container py-4">
+      <div className={`container movie-detail-container ${isMobile ? 'py-2' : 'py-4'}`}>
+        {/* Alert message */}
         {alertMessage && (
-          <div className="alert alert-warning alert-custom alert-dismissible fade show mb-4" role="alert">
+          <div className={`alert alert-warning alert-custom alert-dismissible fade show ${isMobile ? 'mb-2' : 'mb-4'}`} role="alert">
             {alertMessage}
             <button
               type="button"
@@ -695,25 +847,32 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           </div>
         )}
         
+        {/* Video player modal */}
         {showPlayer && (
           <div className="modal d-flex justify-content-center align-items-center video-modal position-fixed top-0 start-0 w-100 h-100" 
                style={{ display: "block", zIndex: 1055, backgroundColor: 'rgba(0,0,0,0.8)' }}>
-            <div className="modal-dialog modal-xl">
+            <div className={`modal-dialog ${isMobile ? 'modal-fullscreen-sm-down' : 'modal-xl'}`}>
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">{movie.title} - Trailer</h5>
                   <button type="button" className="btn-close" onClick={handleClosePlayer}></button>
                 </div>
                 <div className="modal-body p-0">
-                  <ReactPlayer url={movie.videoUrl} playing controls width="100%" height="500px" />
+                  <ReactPlayer 
+                    url={movie.videoUrl} 
+                    playing 
+                    controls 
+                    width="100%" 
+                    height={isMobile ? "300px" : "500px"} 
+                  />
                 </div>
               </div>
             </div>
           </div>
         )}
         
-        {/* Breadcrumb Navigation */}
-        <nav aria-label="breadcrumb" className="mb-4">
+        {/* Breadcrumb - hide on very small screens */}
+        <nav aria-label="breadcrumb" className={`${isMobile ? 'mb-2 d-none d-sm-block' : 'mb-4'}`}>
           <ol className="breadcrumb">
             <li className="breadcrumb-item">
               <Link to="/" className="text-decoration-none">Home</Link>
@@ -727,19 +886,19 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           </ol>
         </nav>
         
-        {/* Main Movie Details Section */}
-        <div className="row g-4 mb-5">
-          <div className="col-lg-5 col-md-6">
-            <div className="movie-poster-container position-sticky" style={{ top: '20px' }}>
+        {/* Main movie details section */}
+        <div className={`row g-4 ${isMobile ? 'mb-3' : 'mb-5'}`}>
+          <div className={isMobile ? "col-12" : "col-lg-5 col-md-6"}>
+            <div className="movie-poster-container">
               <img
                 src={movie.imageUrl || movie.image}
                 alt={`${movie.title} movie poster`}
                 className="img-fluid movie-poster w-100"
                 style={{
-                  minHeight: '600px',
-                  maxHeight: '800px',
+                  minHeight: isMobile ? '350px' : '600px',
+                  maxHeight: isMobile ? '400px' : '800px',
                   objectFit: 'cover',
-                  borderRadius: '16px',
+                  borderRadius: isMobile ? '8px' : '16px',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                   border: '1px solid rgba(255,255,255,0.1)'
                 }}
@@ -756,20 +915,22 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
             </div>
           </div>
           
-          <div className="col-lg-7 col-md-6">
+          <div className={isMobile ? "col-12" : "col-lg-7 col-md-6"}>
             <div className="movie-info">
-              <h1 className="movie-title display-4 fw-bold mb-3" style={{ color: 'var(--primary-text)', lineHeight: '1.2' }}>
+              <h1 className={`movie-title ${isMobile ? 'display-6' : 'display-4'} fw-bold mb-3`} 
+                  style={{ color: 'var(--primary-text)', lineHeight: '1.2' }}>
                 {movie.title}
               </h1>
               
               <div className="movie-rating-badge mb-3">
-                <span className="badge bg-warning text-dark fs-6 px-3 py-2">
+                <span className={`badge bg-warning text-dark ${isMobile ? 'fs-6' : 'fs-5'} px-3 py-2`}>
                   <i className="fas fa-star me-1"></i>
                   {movie.rating}/10
                 </span>
               </div>
               
-              <p className="movie-description fs-5 mb-4" style={{ color: 'var(--secondary-text)', lineHeight: '1.6' }}>
+              <p className={`movie-description ${isMobile ? 'fs-6' : 'fs-5'} mb-4`} 
+                 style={{ color: 'var(--secondary-text)', lineHeight: '1.6' }}>
                 {movie.description}
               </p>
               
@@ -777,7 +938,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                 <div className="row g-3">
                   <div className="col-sm-6">
                     <div 
-                      className="meta-item p-3 rounded" 
+                      className={`meta-item ${isMobile ? 'p-2' : 'p-3'} rounded`}
                       style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}
                     >
                       <strong style={{ color: 'var(--accent-color)' }}>Genre:</strong>
@@ -787,7 +948,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                   
                   <div className="col-sm-6">
                     <div 
-                      className="meta-item p-3 rounded" 
+                      className={`meta-item ${isMobile ? 'p-2' : 'p-3'} rounded`}
                       style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}
                     >
                       <strong style={{ color: 'var(--accent-color)' }}>Release Year:</strong>
@@ -797,7 +958,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                   {movie.director && (
                     <div className="col-sm-6">
                       <div 
-                        className="meta-item p-3 rounded" 
+                        className={`meta-item ${isMobile ? 'p-2' : 'p-3'} rounded`}
                         style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}
                       >
                         <strong style={{ color: 'var(--accent-color)' }}>Director:</strong>
@@ -808,7 +969,7 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                   {movie.cast && (
                     <div className="col-12">
                       <div 
-                        className="meta-item p-3 rounded" 
+                        className={`meta-item ${isMobile ? 'p-2' : 'p-3'} rounded`}
                         style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}
                       >
                         <strong style={{ color: 'var(--accent-color)' }}>Cast:</strong>
@@ -819,121 +980,21 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                 </div>
               </div>
 
-              <div className="movie-actions">
-                <button 
-                  className="btn btn-primary btn-lg px-4 py-3 me-3 mb-3" 
-                  onClick={handleWatchClick}
-                  disabled={!movie.videoUrl}
-                  style={{
-                    background: movie.videoUrl ? 'var(--accent-color)' : '#6c757d',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '1.1rem',
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <FaPlay className="me-2" />
-                  {movie.videoUrl ? 'Watch Trailer' : 'No Trailer Available'}
-                </button>
-                
-                <div className="like-dislike-container d-flex gap-3 mt-3">
-                  <button
-                    className={`btn btn-outline-success btn-lg px-4 py-2 ${likeStatus === 1 ? 'active' : ''}`}
-                    onClick={handleLikeClick}
-                    disabled={!user}
-                    style={{
-                      borderRadius: '12px',
-                      fontWeight: '600',
-                      backgroundColor: likeStatus === 1 ? '#28a745' : 'transparent',
-                      borderColor: '#28a745',
-                      color: likeStatus === 1 ? '#fff' : '#28a745'
-                    }}
-                  >
-                    <FaThumbsUp className="me-2" />
-                    Like ({movie.likes || 0})
-                  </button>
-                  
-                  <button
-                    className={`btn btn-outline-danger btn-lg px-4 py-2 ${likeStatus === -1 ? 'active' : ''}`}
-                    onClick={handleDislikeClick}
-                    disabled={!user}
-                    style={{
-                      borderRadius: '12px',
-                      fontWeight: '600',
-                      backgroundColor: likeStatus === -1 ? '#dc3545' : 'transparent',
-                      borderColor: '#dc3545',
-                      color: likeStatus === -1 ? '#fff' : '#dc3545'
-                    }}
-                  >
-                    <FaThumbsDown className="me-2" />
-                    Dislike ({movie.dislikes || 0})
-                  </button>
-                </div>
-              </div>
+              <MovieActions />
             </div>
           </div>
         </div>
 
         {/* Comments Section */}
-        <div className="comments-section mb-5">
+        <div className={`comments-section ${isMobile ? 'mb-3' : 'mb-5'}`}>
           <div className="row">
             <div className="col-12">
-              <h3 className="comments-title h4 mb-3" style={{ color: 'var(--primary-text)' }}>
+              <h3 className={`comments-title ${isMobile ? 'h5' : 'h4'} mb-3`} style={{ color: 'var(--primary-text)' }}>
                 <i className="fas fa-comments me-2"></i>
                 Comments ({comments.length})
               </h3>
               
-              {user && (
-                <div 
-                  className="comment-form mb-3 p-3 rounded" 
-                  style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}
-                >
-                  <div className="form-group mb-2">
-                    <textarea
-                      className="form-control comment-textarea"
-                      rows="3"
-                      placeholder="Share your thoughts about this movie..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      maxLength={2000}
-                      style={{
-                        backgroundColor: 'var(--input-bg)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        color: 'var(--primary-text)',
-                        fontSize: '0.9rem',
-                        padding: '12px'
-                      }}
-                    />
-                    <div className="comment-word-count mt-1 small text-muted">
-                      {wordCount}/300 words
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-sm px-3 py-1"
-                    onClick={handleCommentSubmit}
-                    disabled={!commentText.trim() || wordCount > 300}
-                    style={{
-                      backgroundColor: 'var(--accent-color)',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: '500',
-                      color: '#fff',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    Post Comment
-                  </button>
-                </div>
-              )}
-
-              {!user && (
-                <div className="alert alert-info mb-3 py-2 small" style={{ borderRadius: '8px' }}>
-                  <Link to="/login" className="text-decoration-none fw-bold">Log in</Link> to post a comment.
-                </div>
-              )}
-
+              <CommentForm />
               <CommentsWithPagination comments={comments} />
             </div>
           </div>
@@ -944,19 +1005,19 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
           <div className="recommended-section">
             <div className="row">
               <div className="col-12">
-                <h3 className="recommended-title h4 mb-3" style={{ color: 'var(--primary-text)' }}>
+                <h3 className={`recommended-title ${isMobile ? 'h5' : 'h4'} mb-3`} style={{ color: 'var(--primary-text)' }}>
                   <i className="fas fa-film me-2"></i>
                   More {movie.genres} Movies
                 </h3>
                 <div className="row g-3">
                   {recommendedMovies.map((recMovie) => (
-                    <div key={recMovie._id} className="col-6 col-md-4 col-lg-3">
+                    <div key={recMovie._id} className={isMobile ? "col-6" : "col-6 col-md-4 col-lg-3"}>
                       <div 
                         className="recommended-movie-card h-100 position-relative overflow-hidden"
                         style={{
                           backgroundColor: 'var(--card-bg)',
                           border: '1px solid var(--border-color)',
-                          borderRadius: '12px',
+                          borderRadius: isMobile ? '8px' : '12px',
                           transition: 'all 0.3s ease'
                         }}
                       >
@@ -972,9 +1033,9 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
                               className="recommended-movie-img w-100"
                               loading="lazy"
                               style={{
-                                height: '250px',
+                                height: isMobile ? '200px' : '250px',
                                 objectFit: 'cover',
-                                borderRadius: '12px 12px 0 0'
+                                borderRadius: isMobile ? '8px 8px 0 0' : '12px 12px 0 0'
                               }}
                               onError={(e) => {
                                 if (e.target.src !== recMovie.image && recMovie.image) {
@@ -989,30 +1050,31 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
 
                             {recMovie.rating && (
                               <div className="position-absolute top-0 end-0 m-2 badge bg-warning text-dark"
-                                   style={{ fontSize: '0.7rem', padding: '4px 8px' }}>
+                                   style={{ fontSize: isMobile ? '0.6rem' : '0.7rem', padding: '4px 8px' }}>
                                 <i className="fas fa-star me-1"></i>
                                 {parseFloat(recMovie.rating).toFixed(1)}
                               </div>
                             )}
                           </div>
 
-                          <div className="card-body p-2">
+                          <div className={`card-body ${isMobile ? 'p-2' : 'p-2'}`}>
                             <h6 
                               className="recommended-movie-title mb-1 fw-bold"
                               style={{
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                fontSize: '0.9rem',
+                                fontSize: isMobile ? '0.8rem' : '0.9rem',
                                 color: 'var(--primary-text)'
                               }}
                             >
                               {recMovie.title}
                             </h6>
-                            <div className="recommended-movie-meta d-flex align-items-center text-muted small">
+                            <div className={`recommended-movie-meta d-flex align-items-center text-muted ${isMobile ? 'flex-column' : ''}`} 
+                                 style={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }}>
                               <i className="fas fa-calendar me-1" style={{ fontSize: '0.7rem' }}></i>
                               <span>{recMovie.year || recMovie.releaseYear}</span>
-                              {recMovie.genres && (
+                              {recMovie.genres && !isMobile && (
                                 <>
                                   <span className="mx-1">•</span>
                                   <span className="d-none d-sm-inline" style={{ fontSize: '0.75rem' }}>
