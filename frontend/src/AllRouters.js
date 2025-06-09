@@ -21,7 +21,7 @@ import { Helmet } from 'react-helmet-async';
 
 // SEO Route Wrapper Component
 const SEORoute = ({ title, description, children, canonicalPath = "" }) => {
-  const baseUrl = "https://flixxit-five.vercel.app";
+  const baseUrl = "https://flixxit.quirkwebstudios.co.ke"; 
   const fullUrl = `${baseUrl}${canonicalPath}`;
   
   return (
