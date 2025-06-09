@@ -55,9 +55,6 @@ module.exports = (client, app, ObjectId) => {
     }
 });
 
-
-
-
     //GET DISLIKES COUNT
 
     app.get("/api/movies/:id/dislikes", async (req, res) => {
@@ -94,4 +91,20 @@ module.exports = (client, app, ObjectId) => {
             res.status(500).json({ message: err.message });
         }
     });
+
+    // CHECK DISLIKE STATUS
+app.get("/api/movies/:id/dislikes/:userId/status", async (req, res) => {
+    try {
+        const { id, userId } = req.params;
+        const database = client.db("sample_mflix");
+        const dislikes = database.collection("dislikes");
+
+        const existingDislike = await dislikes.findOne({ movieId: id, userId });
+        res.json({ hasDisliked: !!existingDislike });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 }
+

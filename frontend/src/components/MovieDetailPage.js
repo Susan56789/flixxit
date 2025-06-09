@@ -267,11 +267,11 @@ if (user) {
       // Check like status from API
       const [likeStatusResponse, dislikeStatusResponse] = await Promise.all([
         axios.get(
-          `https://flixxit-h9fa.onrender.com/api/movies/${id}/like/status`,
+          `https://flixxit-h9fa.onrender.com/api/movies/${id}/likes/${user.id}/status`,
           { headers: { Authorization: `Bearer ${token}` } }
         ).catch(() => ({ data: { data: { hasLiked: false } } })),
         axios.get(
-          `https://flixxit-h9fa.onrender.com/api/movies/${id}/dislike/status`,
+          `https://flixxit-h9fa.onrender.com/api/movies/${id}/dislike/${user.id}/status`,
           { headers: { Authorization: `Bearer ${token}` } }
         ).catch(() => ({ data: { data: { hasDisliked: false } } }))
       ]);
