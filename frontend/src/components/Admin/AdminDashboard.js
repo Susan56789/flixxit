@@ -14,15 +14,27 @@ const AdminDashboard = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [movieToDelete, setMovieToDelete] = useState(null);
   const [imageErrors, setImageErrors] = useState({});
+  
+  // Updated state for subscribers collection
   const [subscriptionStats, setSubscriptionStats] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [revenueStats, setRevenueStats] = useState(null);
-  const [expiringUsers, setExpiringUsers] = useState([]);
+  const [subscribers, setSubscribers] = useState([]);
+  const [expiringSubscribers, setExpiringSubscribers] = useState([]);
+  const [selectedSubscribers, setSelectedSubscribers] = useState([]);
+  
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [selectedMovies, setSelectedMovies] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
   
-  // Pagination state
+  // Pagination state for subscribers
+  const [subscriberPage, setSubscriberPage] = useState(1);
+  const [subscribersPerPage] = useState(10);
+  const [subscriberSearchTerm, setSubscriberSearchTerm] = useState('');
+  const [subscriberStatusFilter, setSubscriberStatusFilter] = useState('all');
+  const [subscriberPlanFilter, setSubscriberPlanFilter] = useState('all');
+  
+  // Pagination state for movies
   const [currentPage, setCurrentPage] = useState(1);
   const [moviesPerPage] = useState(20);
   
@@ -55,9 +67,7 @@ const AdminDashboard = () => {
       return;
     }
     
-    // If no admin token, try to get one or use a dummy token for now
     if (!adminToken) {
-      // For now, set a placeholder token since your admin system doesn't use JWT
       localStorage.setItem('adminToken', 'admin-placeholder-token');
     }
   }, [navigate]);
@@ -68,13 +78,18 @@ const AdminDashboard = () => {
     fetchUserStats();
     fetchSubscriptionStats();
     fetchRevenueStats();
-    fetchExpiringUsers();
+    fetchSubscribers();
+    fetchExpiringSubscribers();
   }, []);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedGenre, sortBy]);
+
+  useEffect(() => {
+    setSubscriberPage(1);
+  }, [subscriberSearchTerm, subscriberStatusFilter, subscriberPlanFilter]);
 
   const fetchMovies = async () => {
     setLoading(true);
@@ -91,28 +106,22 @@ const AdminDashboard = () => {
 
   const fetchUserStats = async () => {
     try {
-      // Get user statistics from subscription stats since direct user access is restricted
       const subscriptionResponse = await axios.get(`${API_BASE_URL}/api/subscription-stats`);
       const data = subscriptionResponse.data;
       
-      // Calculate stats from subscription data
       const totalUsers = data.totalUsers || 0;
       const subscriptionBreakdown = data.subscriptionBreakdown || [];
       const premiumStat = subscriptionBreakdown.find(stat => stat._id === 'Premium');
       const premiumUsers = premiumStat?.count || 0;
       
-      // Estimate active users (users with any subscription activity)
-      const activeUsers = premiumUsers; // This is a conservative estimate
-      
       setUserStats({
         totalUsers: totalUsers,
-        activeUsers: activeUsers,
-        newUsersThisMonth: 0, // Would need additional endpoint for this
+        activeUsers: premiumUsers,
+        newUsersThisMonth: 0,
         premiumUsers: premiumUsers
       });
     } catch (error) {
       console.error('Error fetching user stats:', error);
-      // Fallback data
       setUserStats({
         totalUsers: 0,
         activeUsers: 0,
@@ -124,13 +133,11 @@ const AdminDashboard = () => {
 
   const fetchSubscriptionStats = async () => {
     try {
-      console.log('Fetching subscription stats...');
+      
       const response = await axios.get(`${API_BASE_URL}/api/subscription-stats`);
       const data = response.data;
       
-      console.log('Subscription stats response:', data);
       
-      // Use the new planBreakdown and subscriptionPlanBreakdown from backend
       const planBreakdown = data.planBreakdown || { free: 0, premium: 0 };
       const subscriptionPlanBreakdown = data.subscriptionPlanBreakdown || {
         monthly: 0,
@@ -149,13 +156,10 @@ const AdminDashboard = () => {
         estimatedMonthlyRevenue: parseFloat(data.estimatedMonthlyRevenue) || 0
       };
       
-      console.log('Transformed subscription stats:', statsData);
+      
       setSubscriptionStats(statsData);
     } catch (error) {
       console.error('Error fetching subscription stats:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      
-      // Fallback data
       setSubscriptionStats({
         totalSubscriptions: 0,
         activeSubscriptions: 0,
@@ -178,37 +182,173 @@ const AdminDashboard = () => {
 
   const fetchRevenueStats = async () => {
     try {
-      // Since there's no dedicated revenue stats endpoint, calculate from subscription stats
-      const response = await axios.get(`${API_BASE_URL}/api/subscription-stats`);
-      const data = response.data;
+      // Get actual subscribers data to calculate real revenue
+      const subscribersResponse = await axios.get(`${API_BASE_URL}/api/subscribers`, {
+        params: { limit: 1000 } // Get more subscribers for accurate calculation
+      });
+      
+      const allSubscribers = subscribersResponse.data.success ? subscribersResponse.data.subscribers : [];
+      
+      // Calculate current month revenue (subscriptions that started this month)
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      
+      const thisMonthSubscribers = allSubscribers.filter(subscriber => {
+        if (!subscriber.startDate) return false;
+        const startDate = new Date(subscriber.startDate);
+        return startDate.getMonth() === currentMonth && 
+               startDate.getFullYear() === currentYear &&
+               subscriber.status === 'active';
+      });
+      
+      const monthlyRevenue = thisMonthSubscribers.reduce((total, subscriber) => {
+        return total + (subscriber.cost || 0);
+      }, 0);
+      
+      // Calculate total revenue from all active subscriptions
+      const totalRevenue = allSubscribers
+        .filter(subscriber => subscriber.status === 'active')
+        .reduce((total, subscriber) => {
+          return total + (subscriber.cost || 0);
+        }, 0);
+      
+      // Calculate average revenue per subscriber
+      const activeSubscribers = allSubscribers.filter(subscriber => subscriber.status === 'active');
+      const averageRevenuePerUser = activeSubscribers.length > 0 ? 
+        totalRevenue / activeSubscribers.length : 0;
+      
+      // Calculate monthly recurring revenue (MRR) - convert all subscriptions to monthly equivalent
+      const monthlyRecurringRevenue = allSubscribers
+        .filter(subscriber => subscriber.status === 'active')
+        .reduce((total, subscriber) => {
+          const cost = subscriber.cost || 0;
+          const plan = subscriber.subscriptionType;
+          
+          // Convert to monthly equivalent
+          switch (plan) {
+            case 'monthly': return total + cost;
+            case 'quarterly': return total + (cost / 3);
+            case 'semiAnnually': return total + (cost / 6);
+            case 'yearly': return total + (cost / 12);
+            default: return total + cost;
+          }
+        }, 0);
+      
+      
       
       setRevenueStats({
-        monthlyRevenue: data.estimatedMonthlyRevenue || 0,
-        totalRevenue: (data.estimatedMonthlyRevenue || 0) * 12, // Estimate
-        averageRevenuePerUser: data.totalUsers > 0 ? (data.estimatedMonthlyRevenue || 0) / data.totalUsers : 0,
-        revenueGrowth: 0 // Would need historical data
+        monthlyRevenue: monthlyRevenue, // Actual revenue from new subscriptions this month
+        totalRevenue: totalRevenue, // Total revenue from all active subscriptions
+        monthlyRecurringRevenue: monthlyRecurringRevenue, // MRR
+        averageRevenuePerUser: averageRevenuePerUser,
+        revenueGrowth: 0, // Would need historical data to calculate
+        newSubscribersThisMonth: thisMonthSubscribers.length
       });
     } catch (error) {
       console.error('Error fetching revenue stats:', error);
-      // Fallback data
       setRevenueStats({
         monthlyRevenue: 0,
         totalRevenue: 0,
+        monthlyRecurringRevenue: 0,
         averageRevenuePerUser: 0,
-        revenueGrowth: 0
+        revenueGrowth: 0,
+        newSubscribersThisMonth: 0
       });
     } finally {
       setStatsLoading(false);
     }
   };
 
-  const fetchExpiringUsers = async () => {
+  // NEW: Fetch all subscribers from subscribers collection
+  const fetchSubscribers = async (page = 1, limit = 50) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/subscribers`, {
+        params: { 
+          page: page, 
+          limit: limit,
+          status: subscriberStatusFilter !== 'all' ? subscriberStatusFilter : undefined
+        }
+      })
+      
+      if (response.data.success) {
+        setSubscribers(response.data.subscribers || []);
+      } else {
+        console.error('Failed to fetch subscribers:', response.data.message);
+        setSubscribers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching subscribers:', error);
+      setSubscribers([]);
+    }
+  };
+
+  // NEW: Fetch expiring subscribers
+  const fetchExpiringSubscribers = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/users-expiring-soon?days=7`);
-      setExpiringUsers(response.data.users || []);
+      setExpiringSubscribers(response.data.users || []);
     } catch (error) {
-      console.error('Error fetching expiring users:', error);
-      setExpiringUsers([]);
+      console.error('Error fetching expiring subscribers:', error);
+      setExpiringSubscribers([]);
+    }
+  };
+
+  // NEW: Cancel subscription function
+  const handleCancelSubscription = async (userId, reason = 'Admin cancelled') => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/cancel-subscription`, {
+        userId: userId,
+        reason: reason
+      });
+      setMessage({ type: 'success', text: 'Subscription cancelled successfully!' });
+      fetchSubscribers();
+      fetchSubscriptionStats();
+      fetchUserStats();
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      setMessage({ type: 'error', text: 'Failed to cancel subscription' });
+    }
+  };
+
+  // NEW: Reactivate subscription function
+  const handleReactivateSubscription = async (userId, subscriptionType = 'monthly') => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/reactivate-subscription`, {
+        userId: userId,
+        subscriptionType: subscriptionType
+      });
+      setMessage({ type: 'success', text: 'Subscription reactivated successfully!' });
+      fetchSubscribers();
+      fetchSubscriptionStats();
+      fetchUserStats();
+    } catch (error) {
+      console.error('Error reactivating subscription:', error);
+      setMessage({ type: 'error', text: 'Failed to reactivate subscription' });
+    }
+  };
+
+  // NEW: Bulk cancel subscriptions
+  const handleBulkCancelSubscriptions = async () => {
+    if (selectedSubscribers.length === 0) return;
+    
+    try {
+      await Promise.all(selectedSubscribers.map(subscriberId => {
+        const subscriber = subscribers.find(s => s._id === subscriberId);
+        return axios.post(`${API_BASE_URL}/api/cancel-subscription`, {
+          userId: subscriber.userId,
+          reason: 'Bulk admin cancellation'
+        });
+      }));
+      
+      setMessage({ type: 'success', text: `${selectedSubscribers.length} subscriptions cancelled successfully!` });
+      setSelectedSubscribers([]);
+      fetchSubscribers();
+      fetchSubscriptionStats();
+      fetchUserStats();
+    } catch (error) {
+      console.error('Error bulk cancelling subscriptions:', error);
+      setMessage({ type: 'error', text: 'Failed to cancel selected subscriptions' });
     }
   };
 
@@ -360,11 +500,27 @@ const AdminDashboard = () => {
     );
   };
 
+  const handleSelectSubscriber = (subscriberId) => {
+    setSelectedSubscribers(prev => 
+      prev.includes(subscriberId) 
+        ? prev.filter(id => id !== subscriberId)
+        : [...prev, subscriberId]
+    );
+  };
+
   const handleSelectAll = () => {
     setSelectedMovies(
       selectedMovies.length === currentMovies.length 
         ? [] 
         : currentMovies.map(movie => movie._id)
+    );
+  };
+
+  const handleSelectAllSubscribers = () => {
+    setSelectedSubscribers(
+      selectedSubscribers.length === currentSubscribers.length 
+        ? [] 
+        : currentSubscribers.map(subscriber => subscriber._id)
     );
   };
 
@@ -390,6 +546,7 @@ const AdminDashboard = () => {
       setMessage({ type: 'success', text: 'Expired subscriptions cleaned up successfully!' });
       fetchSubscriptionStats();
       fetchUserStats();
+      fetchSubscribers();
     } catch (error) {
       console.error('Error cleaning up subscriptions:', error);
       setMessage({ type: 'error', text: 'Failed to cleanup expired subscriptions' });
@@ -420,16 +577,36 @@ const AdminDashboard = () => {
       }
     });
 
-  // Pagination calculations
+  // Filter subscribers
+  const filteredSubscribers = subscribers
+    .filter(subscriber => {
+      const matchesSearch = !subscriberSearchTerm || 
+        subscriber.userEmail.toLowerCase().includes(subscriberSearchTerm.toLowerCase()) ||
+        subscriber.username.toLowerCase().includes(subscriberSearchTerm.toLowerCase());
+      
+      const matchesStatus = subscriberStatusFilter === 'all' || subscriber.status === subscriberStatusFilter;
+      const matchesPlan = subscriberPlanFilter === 'all' || subscriber.subscriptionType === subscriberPlanFilter;
+      
+      return matchesSearch && matchesStatus && matchesPlan;
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // Pagination calculations for movies
   const indexOfLastMovie = currentPage * moviesPerPage;
   const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
   const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
   const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
 
+  // Pagination calculations for subscribers
+  const indexOfLastSubscriber = subscriberPage * subscribersPerPage;
+  const indexOfFirstSubscriber = indexOfLastSubscriber - subscribersPerPage;
+  const currentSubscribers = filteredSubscribers.slice(indexOfFirstSubscriber, indexOfLastSubscriber);
+  const totalSubscriberPages = Math.ceil(filteredSubscribers.length / subscribersPerPage);
+
   // Pagination component
-  const Pagination = () => {
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     const pageNumbers = [];
-    const showPages = 5; // Number of page buttons to show
+    const showPages = 5;
     
     let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
     let endPage = Math.min(totalPages, startPage + showPages - 1);
@@ -443,12 +620,12 @@ const AdminDashboard = () => {
     }
 
     return (
-      <nav aria-label="Movie pagination">
+      <nav aria-label="Pagination">
         <ul className="pagination justify-content-center">
           <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
             <button 
               className="page-link bg-secondary text-white border-secondary"
-              onClick={() => setCurrentPage(1)}
+              onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
             >
               <i className="fas fa-angle-double-left"></i>
@@ -457,7 +634,7 @@ const AdminDashboard = () => {
           <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
             <button 
               className="page-link bg-secondary text-white border-secondary"
-              onClick={() => setCurrentPage(currentPage - 1)}
+              onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
               <i className="fas fa-angle-left"></i>
@@ -468,7 +645,7 @@ const AdminDashboard = () => {
             <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
               <button 
                 className={`page-link ${currentPage === number ? 'bg-danger border-danger' : 'bg-secondary border-secondary'} text-white`}
-                onClick={() => setCurrentPage(number)}
+                onClick={() => onPageChange(number)}
               >
                 {number}
               </button>
@@ -478,7 +655,7 @@ const AdminDashboard = () => {
           <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
             <button 
               className="page-link bg-secondary text-white border-secondary"
-              onClick={() => setCurrentPage(currentPage + 1)}
+              onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
               <i className="fas fa-angle-right"></i>
@@ -487,7 +664,7 @@ const AdminDashboard = () => {
           <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
             <button 
               className="page-link bg-secondary text-white border-secondary"
-              onClick={() => setCurrentPage(totalPages)}
+              onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
             >
               <i className="fas fa-angle-double-right"></i>
@@ -503,6 +680,50 @@ const AdminDashboard = () => {
   };
 
   const movieGenres = [...new Set(movies.map(movie => movie.genres || movie.genre).filter(Boolean))];
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount || 0);
+  };
+
+  const getDaysRemaining = (expirationDate) => {
+    if (!expirationDate) return 0;
+    const now = new Date();
+    const expiry = new Date(expirationDate);
+    const diffTime = expiry - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'active': return 'bg-success';
+      case 'expired': return 'bg-danger';
+      case 'cancelled': return 'bg-secondary';
+      default: return 'bg-warning';
+    }
+  };
+
+  const getPlanBadgeClass = (plan) => {
+    switch (plan) {
+      case 'monthly': return 'bg-primary';
+      case 'quarterly': return 'bg-info';
+      case 'semiAnnually': return 'bg-warning text-dark';
+      case 'yearly': return 'bg-success';
+      default: return 'bg-secondary';
+    }
+  };
 
   return (
     <div className="min-vh-100 bg-black text-white">
@@ -572,12 +793,12 @@ const AdminDashboard = () => {
               <div className="card bg-dark text-white border-danger">
                 <div className="card-body">
                   <h5 className="card-title">
-                    <i className="fas fa-crown me-2"></i>Premium Users
+                    <i className="fas fa-crown me-2"></i>Active Subscribers
                   </h5>
                   <h2 className="mb-0 text-danger">
-                    {subscriptionStats?.planBreakdown?.premium || 0}
+                    {subscribers.filter(s => s.status === 'active').length}
                   </h2>
-                  <small className="text-muted">Active subscriptions</small>
+                  <small className="text-muted">Premium subscriptions</small>
                 </div>
               </div>
             </div>
@@ -585,12 +806,12 @@ const AdminDashboard = () => {
               <div className="card bg-dark text-white border-danger">
                 <div className="card-body">
                   <h5 className="card-title">
-                    <i className="fas fa-dollar-sign me-2"></i>Monthly Revenue
+                    <i className="fas fa-dollar-sign me-2"></i>This Month Revenue
                   </h5>
                   <h2 className="mb-0 text-danger">
-                    ${revenueStats?.monthlyRevenue?.toLocaleString() || 0}
+                    {formatCurrency(revenueStats?.monthlyRevenue)}
                   </h2>
-                  <small className="text-muted">Current month</small>
+                  <small className="text-muted">{revenueStats?.newSubscribersThisMonth || 0} new subs</small>
                 </div>
               </div>
             </div>
@@ -611,7 +832,7 @@ const AdminDashboard = () => {
                       <div>
                         <strong>Expiring Soon</strong>
                         <br />
-                        <small className="text-muted">{expiringUsers.length} users expire within 7 days</small>
+                        <small className="text-muted">{expiringSubscribers.length} subscriptions expire within 7 days</small>
                       </div>
                       <button 
                         className="btn btn-warning btn-sm" 
@@ -664,6 +885,16 @@ const AdminDashboard = () => {
             >
               <i className="fas fa-cog me-2"></i>
               Manage Movies ({filteredMovies.length})
+            </button>
+          </li>
+          <li className="nav-item">
+            <button 
+              className={`nav-link ${activeTab === 'subscribers' ? 'active bg-danger text-white' : 'text-white'}`}
+              onClick={() => setActiveTab('subscribers')}
+              style={{ border: 'none', backgroundColor: activeTab === 'subscribers' ? '#dc3545' : 'transparent' }}
+            >
+              <i className="fas fa-crown me-2"></i>
+              Subscribers ({filteredSubscribers.length})
             </button>
           </li>
           <li className="nav-item">
@@ -916,7 +1147,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Pagination Info and Page Size */}
+                {/* Pagination Info */}
                 <div className="row mb-3">
                   <div className="col-md-8">
                     <p className="text-muted mb-0">
@@ -1038,7 +1269,242 @@ const AdminDashboard = () => {
                     {/* Pagination */}
                     {totalPages > 1 && (
                       <div className="mt-4">
-                        <Pagination />
+                        <Pagination 
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* NEW: Subscribers Management Tab */}
+          {activeTab === 'subscribers' && (
+            <div className="card bg-dark text-white border-danger">
+              <div className="card-body">
+                <h3 className="mb-4">
+                  <i className="fas fa-crown text-danger me-2"></i>
+                  Subscribers Management
+                </h3>
+
+                {/* Subscriber Filters */}
+                <div className="row mb-4">
+                  <div className="col-md-3 mb-2">
+                    <div className="input-group">
+                      <span className="input-group-text bg-secondary border-secondary">
+                        <i className="fas fa-search text-white"></i>
+                      </span>
+                      <input
+                        type="text"
+                        className="form-control bg-secondary text-white border-secondary"
+                        placeholder="Search by email or username..."
+                        value={subscriberSearchTerm}
+                        onChange={(e) => setSubscriberSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-3 mb-2">
+                    <select
+                      className="form-select bg-secondary text-white border-secondary"
+                      value={subscriberStatusFilter}
+                      onChange={(e) => setSubscriberStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="active">Active</option>
+                      <option value="expired">Expired</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div className="col-md-3 mb-2">
+                    <select
+                      className="form-select bg-secondary text-white border-secondary"
+                      value={subscriberPlanFilter}
+                      onChange={(e) => setSubscriberPlanFilter(e.target.value)}
+                    >
+                      <option value="all">All Plans</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="semiAnnually">Semi-Annually</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  <div className="col-md-3 mb-2">
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => setShowBulkActions(!showBulkActions)}
+                      >
+                        <i className="fas fa-tasks me-1"></i>
+                        Bulk Actions
+                      </button>
+                      {selectedSubscribers.length > 0 && (
+                        <button 
+                          className="btn btn-danger btn-sm" 
+                          onClick={handleBulkCancelSubscriptions}
+                        >
+                          <i className="fas fa-times me-1"></i>
+                          Cancel ({selectedSubscribers.length})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pagination Info */}
+                <div className="row mb-3">
+                  <div className="col-md-8">
+                    <p className="text-muted mb-0">
+                      Showing {indexOfFirstSubscriber + 1}-{Math.min(indexOfLastSubscriber, filteredSubscribers.length)} of {filteredSubscribers.length} subscribers
+                      {subscriberSearchTerm && ` (filtered from ${subscribers.length} total)`}
+                    </p>
+                  </div>
+                  <div className="col-md-4 text-end">
+                    <small className="text-muted">
+                      Page {subscriberPage} of {totalSubscriberPages}
+                    </small>
+                  </div>
+                </div>
+
+                {/* Bulk Actions for Subscribers */}
+                {showBulkActions && (
+                  <div className="alert alert-info">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="selectAllSubscribers"
+                        checked={selectedSubscribers.length === currentSubscribers.length && currentSubscribers.length > 0}
+                        onChange={handleSelectAllSubscribers}
+                      />
+                      <label className="form-check-label" htmlFor="selectAllSubscribers">
+                        Select All on this page ({currentSubscribers.length} subscribers)
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Subscribers Table */}
+                {filteredSubscribers.length === 0 ? (
+                  <div className="text-center py-5">
+                    <i className="fas fa-crown fa-3x text-muted mb-3"></i>
+                    <h4 className="text-muted">No subscribers found</h4>
+                    <p className="text-muted">Try adjusting your search or filters</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="table-responsive">
+                      <table className="table table-dark table-striped">
+                        <thead>
+                          <tr>
+                            {showBulkActions && (
+                              <th style={{ width: '50px' }}>
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  checked={selectedSubscribers.length === currentSubscribers.length && currentSubscribers.length > 0}
+                                  onChange={handleSelectAllSubscribers}
+                                />
+                              </th>
+                            )}
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Cost</th>
+                            <th>Start Date</th>
+                            <th>Expires</th>
+                            <th>Days Left</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentSubscribers.map(subscriber => {
+                            const daysLeft = getDaysRemaining(subscriber.expirationDate);
+                            return (
+                              <tr key={subscriber._id}>
+                                {showBulkActions && (
+                                  <td>
+                                    <input
+                                      className="form-check-input"
+                                      type="checkbox"
+                                      checked={selectedSubscribers.includes(subscriber._id)}
+                                      onChange={() => handleSelectSubscriber(subscriber._id)}
+                                    />
+                                  </td>
+                                )}
+                                <td>
+                                  <div>
+                                    <strong>{subscriber.username}</strong>
+                                    <br />
+                                    <small className="text-muted">{subscriber.userEmail}</small>
+                                  </div>
+                                </td>
+                                <td>
+                                  <span className={`badge ${getPlanBadgeClass(subscriber.subscriptionType)}`}>
+                                    {subscriber.subscriptionType}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={`badge ${getStatusBadgeClass(subscriber.status)}`}>
+                                    {subscriber.status}
+                                  </span>
+                                </td>
+                                <td>{formatCurrency(subscriber.cost)}</td>
+                                <td>{formatDate(subscriber.startDate)}</td>
+                                <td>{formatDate(subscriber.expirationDate)}</td>
+                                <td>
+                                  <span className={`badge ${daysLeft <= 7 ? 'bg-warning text-dark' : daysLeft <= 0 ? 'bg-danger' : 'bg-success'}`}>
+                                    {daysLeft <= 0 ? 'Expired' : `${daysLeft} days`}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="btn-group btn-group-sm">
+                                    {subscriber.status === 'active' ? (
+                                      <button
+                                        className="btn btn-outline-danger btn-sm"
+                                        onClick={() => handleCancelSubscription(subscriber.userId)}
+                                        title="Cancel Subscription"
+                                      >
+                                        <i className="fas fa-times"></i>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        className="btn btn-outline-success btn-sm"
+                                        onClick={() => handleReactivateSubscription(subscriber.userId, 'monthly')}
+                                        title="Reactivate Subscription"
+                                      >
+                                        <i className="fas fa-check"></i>
+                                      </button>
+                                    )}
+                                    <button
+                                      className="btn btn-outline-info btn-sm"
+                                      onClick={() => {
+                                        
+                                      }}
+                                      title="View Details"
+                                    >
+                                      <i className="fas fa-eye"></i>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Subscribers Pagination */}
+                    {totalSubscriberPages > 1 && (
+                      <div className="mt-4">
+                        <Pagination 
+                          currentPage={subscriberPage}
+                          totalPages={totalSubscriberPages}
+                          onPageChange={setSubscriberPage}
+                        />
                       </div>
                     )}
                   </>
@@ -1104,7 +1570,7 @@ const AdminDashboard = () => {
                 <div className="card bg-secondary">
                   <div className="card-body">
                     <h5 className="card-title">Users Expiring Soon</h5>
-                    {expiringUsers.length === 0 ? (
+                    {expiringSubscribers.length === 0 ? (
                       <p className="text-muted">No users expiring within the next 7 days.</p>
                     ) : (
                       <div className="table-responsive">
@@ -1112,25 +1578,44 @@ const AdminDashboard = () => {
                           <thead>
                             <tr>
                               <th>Email</th>
+                              <th>Username</th>
                               <th>Plan</th>
                               <th>Expires</th>
                               <th>Days Left</th>
+                              <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {expiringUsers.map(user => (
+                            {expiringSubscribers.map(user => (
                               <tr key={user.id}>
                                 <td>{user.email}</td>
+                                <td>{user.username}</td>
                                 <td>
-                                  <span className="badge bg-warning">
+                                  <span className="badge bg-warning text-dark">
                                     {user.subscriptionType || 'Premium'}
                                   </span>
                                 </td>
-                                <td>{new Date(user.expirationDate).toLocaleDateString()}</td>
+                                <td>{formatDate(user.expirationDate)}</td>
                                 <td>
                                   <span className="badge bg-danger">
-                                    {user.daysRemaining}
+                                    {user.daysRemaining} days
                                   </span>
+                                </td>
+                                <td>
+                                  <button
+                                    className="btn btn-outline-warning btn-sm me-1"
+                                    onClick={sendExpirationReminders}
+                                    title="Send Reminder"
+                                  >
+                                    <i className="fas fa-envelope"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-outline-success btn-sm"
+                                    onClick={() => handleReactivateSubscription(user.id, user.subscriptionType)}
+                                    title="Extend Subscription"
+                                  >
+                                    <i className="fas fa-plus"></i>
+                                  </button>
                                 </td>
                               </tr>
                             ))}
@@ -1154,72 +1639,91 @@ const AdminDashboard = () => {
                 </h3>
                 
                 <div className="row mb-4">
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <div className="card bg-secondary">
                       <div className="card-body text-center">
                         <i className="fas fa-dollar-sign fa-2x text-success mb-2"></i>
-                        <h4>${revenueStats?.monthlyRevenue?.toLocaleString() || 0}</h4>
-                        <p className="mb-0">Monthly Revenue</p>
+                        <h4>{formatCurrency(revenueStats?.monthlyRevenue)}</h4>
+                        <p className="mb-0">This Month Revenue</p>
                         <small className="text-muted">
-                          Growth: {revenueStats?.revenueGrowth || 0}%
+                          {revenueStats?.newSubscribersThisMonth || 0} new subscriptions
                         </small>
                       </div>
                     </div>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <div className="card bg-secondary">
                       <div className="card-body text-center">
                         <i className="fas fa-chart-line fa-2x text-info mb-2"></i>
-                        <h4>${revenueStats?.totalRevenue?.toLocaleString() || 0}</h4>
-                        <p className="mb-0">Total Revenue</p>
-                        <small className="text-muted">All time</small>
+                        <h4>{formatCurrency(revenueStats?.monthlyRecurringRevenue)}</h4>
+                        <p className="mb-0">Monthly Recurring Revenue</p>
+                        <small className="text-muted">MRR from all active subs</small>
                       </div>
                     </div>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <div className="card bg-secondary">
                       <div className="card-body text-center">
-                        <i className="fas fa-user-dollar fa-2x text-warning mb-2"></i>
-                        <h4>${revenueStats?.averageRevenuePerUser?.toFixed(2) || 0}</h4>
+                        <i className="fas fa-coins fa-2x text-warning mb-2"></i>
+                        <h4>{formatCurrency(revenueStats?.totalRevenue)}</h4>
+                        <p className="mb-0">Total Active Revenue</p>
+                        <small className="text-muted">All active subscriptions</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="card bg-secondary">
+                      <div className="card-body text-center">
+                        <i className="fas fa-user-dollar fa-2x text-danger mb-2"></i>
+                        <h4>{formatCurrency(revenueStats?.averageRevenuePerUser)}</h4>
                         <p className="mb-0">Avg Revenue/User</p>
-                        <small className="text-muted">Per month</small>
+                        <small className="text-muted">Per subscription</small>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="row">
+                <div className="row mb-4">
                   <div className="col-md-6">
                     <div className="card bg-secondary">
                       <div className="card-body">
-                        <h5 className="card-title">Subscription Plans</h5>
-                        <div className="d-flex justify-content-around">
-                          <div className="text-center">
+                        <h5 className="card-title">Subscription Plans Distribution</h5>
+                        <div className="row text-center">
+                          <div className="col-6 col-md-3 mb-3">
                             <div className="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
                                  style={{ width: '60px', height: '60px' }}>
-                              <span className="fw-bold">
+                              <span className="fw-bold text-white">
                                 {subscriptionStats?.subscriptionBreakdown?.monthly || 0}
                               </span>
                             </div>
-                            <p className="mt-2 mb-0">Monthly</p>
+                            <p className="mt-2 mb-0 small">Monthly</p>
                           </div>
-                          <div className="text-center">
-                            <div className="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" 
+                          <div className="col-6 col-md-3 mb-3">
+                            <div className="bg-info rounded-circle d-inline-flex align-items-center justify-content-center" 
                                  style={{ width: '60px', height: '60px' }}>
-                              <span className="fw-bold">
+                              <span className="fw-bold text-white">
                                 {subscriptionStats?.subscriptionBreakdown?.quarterly || 0}
                               </span>
                             </div>
-                            <p className="mt-2 mb-0">Quarterly</p>
+                            <p className="mt-2 mb-0 small">Quarterly</p>
                           </div>
-                          <div className="text-center">
+                          <div className="col-6 col-md-3 mb-3">
                             <div className="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center" 
                                  style={{ width: '60px', height: '60px' }}>
                               <span className="fw-bold text-dark">
+                                {subscriptionStats?.subscriptionBreakdown?.semiAnnually || 0}
+                              </span>
+                            </div>
+                            <p className="mt-2 mb-0 small">Semi-Annual</p>
+                          </div>
+                          <div className="col-6 col-md-3 mb-3">
+                            <div className="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style={{ width: '60px', height: '60px' }}>
+                              <span className="fw-bold text-white">
                                 {subscriptionStats?.subscriptionBreakdown?.yearly || 0}
                               </span>
                             </div>
-                            <p className="mt-2 mb-0">Yearly</p>
+                            <p className="mt-2 mb-0 small">Yearly</p>
                           </div>
                         </div>
                       </div>
@@ -1228,7 +1732,7 @@ const AdminDashboard = () => {
                   <div className="col-md-6">
                     <div className="card bg-secondary">
                       <div className="card-body">
-                        <h5 className="card-title">Top Genres</h5>
+                        <h5 className="card-title">Top Movie Genres</h5>
                         {movieGenres.slice(0, 5).map((genre, index) => {
                           const count = movies.filter(m => (m.genres || m.genre) === genre).length;
                           const percentage = movies.length > 0 ? (count / movies.length) * 100 : 0;
@@ -1247,6 +1751,99 @@ const AdminDashboard = () => {
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscription Status Overview */}
+                <div className="row">
+                  <div className="col-md-12">
+                    <div className="card bg-secondary">
+                      <div className="card-body">
+                        <h5 className="card-title">Subscription Health Overview</h5>
+                        <div className="row">
+                          <div className="col-md-3">
+                            <div className="text-center p-3 border-end border-secondary">
+                              <h3 className="text-success">{subscribers.filter(s => s.status === 'active').length}</h3>
+                              <small>Active Subscriptions</small>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="text-center p-3 border-end border-secondary">
+                              <h3 className="text-warning">{expiringSubscribers.length}</h3>
+                              <small>Expiring Soon</small>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="text-center p-3 border-end border-secondary">
+                              <h3 className="text-danger">{subscribers.filter(s => s.status === 'expired').length}</h3>
+                              <small>Expired</small>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="text-center p-3">
+                              <h3 className="text-secondary">{subscribers.filter(s => s.status === 'cancelled').length}</h3>
+                              <small>Cancelled</small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="row mt-4">
+                  <div className="col-12">
+                    <div className="card bg-secondary">
+                      <div className="card-body">
+                        <h5 className="card-title">Recent Subscribers</h5>
+                        {subscribers.length === 0 ? (
+                          <p className="text-muted">No recent subscribers found.</p>
+                        ) : (
+                          <div className="table-responsive">
+                            <table className="table table-dark table-sm">
+                              <thead>
+                                <tr>
+                                  <th>User</th>
+                                  <th>Plan</th>
+                                  <th>Status</th>
+                                  <th>Joined</th>
+                                  <th>Value</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {subscribers
+                                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                  .slice(0, 10)
+                                  .map(subscriber => (
+                                    <tr key={subscriber._id}>
+                                      <td>
+                                        <div>
+                                          <strong>{subscriber.username}</strong>
+                                          <br />
+                                          <small className="text-muted">{subscriber.userEmail}</small>
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <span className={`badge ${getPlanBadgeClass(subscriber.subscriptionType)}`}>
+                                          {subscriber.subscriptionType}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <span className={`badge ${getStatusBadgeClass(subscriber.status)}`}>
+                                          {subscriber.status}
+                                        </span>
+                                      </td>
+                                      <td>{formatDate(subscriber.createdAt)}</td>
+                                      <td>{formatCurrency(subscriber.cost)}</td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
