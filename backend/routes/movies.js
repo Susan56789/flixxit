@@ -218,38 +218,66 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
         }
     });
 
-    // Interacted movies endpoint
-    app.get("/api/movies/interacted", authenticate, async (req, res) => {
+    // Get engagement stats for a movie (likes + dislikes)
+    app.get("/api/movies/:movieId/engagement", async (req, res) => {
         try {
-            const userId = req.user._id; // Extract user ID from authenticated user
-            const database = client.db("sample_mflix");
+            const { movieId } = req.params;
 
-            const likes = database.collection("likes");
-            const dislikes = database.collection("dislikes");
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ message: "Invalid movie ID format" });
+            }
 
-            // Find movies liked by the user
-            const likedMovies = await likes.find({ userId }).toArray();
+            const [likeCount, dislikeCount] = await Promise.all([
+                likes.countDocuments({ movieId }),
+                dislikes.countDocuments({ movieId })
+            ]);
 
-            // Find movies disliked by the user
-            const dislikedMovies = await dislikes.find({ userId }).toArray();
+            const totalEngagement = likeCount + dislikeCount;
+            const likeRatio = totalEngagement > 0 ? (likeCount / totalEngagement * 100).toFixed(1) : 0;
 
-            // Combine liked and disliked movies
-            const interactedMovies = [...likedMovies, ...dislikedMovies];
-
-            // Get movie IDs
-            const movieIds = interactedMovies.map((interaction) => interaction.movieId);
-
-            // Find details of interacted movies
-            const movies = database.collection("movies");
-            const interactedMoviesDetails = await movies
-                .find({ _id: { $in: movieIds.map((id) => new ObjectId(id)) } })
-                .toArray();
-
-            res.json(interactedMoviesDetails);
+            res.json({
+                success: true,
+                data: {
+                    movieId,
+                    likes: likeCount,
+                    dislikes: dislikeCount,
+                    totalEngagement,
+                    likeRatio: parseFloat(likeRatio)
+                }
+            });
         } catch (err) {
-            console.error("Error fetching interacted movies:", err);
-            res.status(500).json({ message: "Server error" });
+            console.error("Error fetching engagement stats:", err);
+            res.status(500).json({ message: err.message });
         }
     });
 
-}
+    // Check user's interaction status with a movie
+    app.get("/api/movies/:movieId/user/:userId/status", async (req, res) => {
+        try {
+            const { movieId, userId } = req.params;
+
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ message: "Invalid movie ID format" });
+            }
+
+            const [hasLiked, hasDisliked] = await Promise.all([
+                likes.findOne({ userId, movieId }),
+                dislikes.findOne({ userId, movieId })
+            ]);
+
+            res.json({
+                success: true,
+                data: {
+                    movieId,
+                    userId,
+                    hasLiked: !!hasLiked,
+                    hasDisliked: !!hasDisliked
+                }
+            });
+        } catch (err) {
+            console.error("Error checking user status:", err);
+            res.status(500).json({ message: err.message });
+        }
+    });
+};
+

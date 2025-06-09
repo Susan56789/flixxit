@@ -397,49 +397,27 @@ const handleLikeClick = async () => {
     setAlertMessage('Please log in to like the movie.');
     return;
   }
-  
-  try {
-    const token = getUserToken();
-    if (!token) {
-      setAlertMessage('Please log in to like the movie.');
-      return;
-    }
 
-    // Use toggle endpoint for simpler logic
-    const response = await axios.post(
-      `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/like/toggle`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    
-    if (response.data.success) {
-      const { action, likes, dislikes, hasLiked } = response.data.data;
-      
-      // Update movie state with new counts
-      setMovie(prevMovie => ({
-        ...prevMovie,
-        likes: likes,
-        dislikes: dislikes
+  try {
+    const result = await handleLike(movie._id); 
+    if (result) {
+      const { likes, dislikes, hasLiked } = result;
+
+      setMovie(prev => ({
+        ...prev,
+        likes,
+        dislikes,
       }));
-      
-      // Update like status
+
       setLikeStatus(hasLiked ? 1 : null);
-      setAlertMessage(`Movie ${action} successfully.`);
-    } else {
-      setAlertMessage(response.data.message || 'Error processing your request.');
+      setAlertMessage('You liked this movie!');
     }
   } catch (err) {
-    console.error('Error toggling like:', err);
-    if (err.response?.status === 401) {
-      setAlertMessage('Please log in to like the movie.');
-    } else if (err.response?.data?.message) {
-      setAlertMessage(err.response.data.message);
-    } else {
-      setAlertMessage('Error processing your request. Please try again.');
-    }
+    console.error('Error handling like:', err);
+    setAlertMessage('An error occurred while liking. Try again.');
   }
 };
-// Fixed dislike handler
+
 const handleDislikeClick = async () => {
   if (!user) {
     setAlertMessage('Please log in to dislike the movie.');
@@ -447,44 +425,22 @@ const handleDislikeClick = async () => {
   }
 
   try {
-    const token = getUserToken();
-    if (!token) {
-      setAlertMessage('Please log in to dislike the movie.');
-      return;
-    }
+    const result = await handleDislike(movie._id); 
+    if (result) {
+      const { likes, dislikes, hasDisliked } = result;
 
-    // Use toggle endpoint for consistent behavior
-    const response = await axios.post(
-      `https://flixxit-h9fa.onrender.com/api/movies/${movie._id}/dislike/toggle`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    
-    if (response.data.success) {
-      const { action, likes, dislikes, hasDisliked } = response.data.data;
-      
-      // Update movie state with new counts
-      setMovie(prevMovie => ({
-        ...prevMovie,
-        likes: likes,
-        dislikes: dislikes
+      setMovie(prev => ({
+        ...prev,
+        likes,
+        dislikes,
       }));
-      
-      // Update like status
+
       setLikeStatus(hasDisliked ? -1 : null);
-      setAlertMessage(`Movie ${action} successfully.`);
-    } else {
-      setAlertMessage(response.data.message || 'Error processing your request.');
+      setAlertMessage('You disliked this movie!');
     }
   } catch (err) {
-    console.error('Error toggling dislike:', err);
-    if (err.response?.status === 401) {
-      setAlertMessage('Please log in to dislike the movie.');
-    } else if (err.response?.data?.message) {
-      setAlertMessage(err.response.data.message);
-    } else {
-      setAlertMessage('Error processing your request. Please try again.');
-    }
+    console.error('Error handling dislike:', err);
+    setAlertMessage('An error occurred while disliking. Try again.');
   }
 };
   // Fixed comment submission with new API structure
