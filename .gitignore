@@ -1,5 +1,6 @@
-# flixxit/.gitignore
+# Node dependencies
+/backend/node_modules/
+/frontend/node_modules/
 
-# Dependencies
-/backend/node_modules
-/frontend/node_modules
+# Frontend build files
+/frontend/build/

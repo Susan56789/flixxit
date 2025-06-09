@@ -1,0 +1,12 @@
+[
+  {
+    "expiredCount": 0,
+    "expiredUsers": [],
+    "soonToExpireCount": 0,
+    "soonToExpireUsers": [],
+    "timestamp": "2025-06-09T16:01:33.079Z",
+    "checkType": "6hourly",
+    "success": true,
+    "id": "1749484893082-1gk3mib2i"
+  }
+]

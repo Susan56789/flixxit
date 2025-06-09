@@ -293,6 +293,7 @@ module.exports = (client, app, ObjectId) => {
     });
 
     // Get subscription statistics (admin endpoint)
+// Updated subscription-stats endpoint with better null/undefined handling
 app.get("/api/subscription-stats", async (req, res) => {
     try {
         const database = client.db("sample_mflix");
@@ -300,8 +301,22 @@ app.get("/api/subscription-stats", async (req, res) => {
 
         const now = new Date();
         
-        // Aggregate subscription statistics
+        // Get total user count first
+        const totalUsers = await users.countDocuments();
+        
+        // Aggregate subscription statistics with proper null handling
         const stats = await users.aggregate([
+            {
+                $project: {
+                    subscriptionStatus: { 
+                        $ifNull: ["$subscriptionStatus", "Free"] 
+                    },
+                    subscriptionType: "$subscriptionType",
+                    subscriptionActive: "$subscriptionActive",
+                    subscriptionExpirationDate: "$subscriptionExpirationDate",
+                    email: "$email"
+                }
+            },
             {
                 $group: {
                     _id: "$subscriptionStatus",
@@ -333,11 +348,11 @@ app.get("/api/subscription-stats", async (req, res) => {
             subscriptionActive: true
         });
 
-        // Revenue calculation (basic)
+        // Revenue calculation with better error handling
         const revenueByPlan = await users.aggregate([
             {
                 $match: {
-                    subscriptionType: { $exists: true },
+                    subscriptionType: { $exists: true, $ne: null },
                     subscriptionActive: true
                 }
             },
@@ -349,23 +364,78 @@ app.get("/api/subscription-stats", async (req, res) => {
             }
         ]).toArray();
 
+        // Calculate revenue using the subscription options
+        const subscriptionOptions = {
+            monthly: { cost: 10 },
+            quarterly: { cost: 25 },
+            semiAnnually: { cost: 50 },
+            yearly: { cost: 100 }
+        };
+
         const revenue = revenueByPlan.reduce((total, plan) => {
             const planCost = subscriptionOptions[plan._id]?.cost || 0;
             return total + (plan.count * planCost);
         }, 0);
 
+        // Transform stats to ensure we have both Free and Premium
+        const transformedStats = [];
+        let freeCount = 0;
+        let premiumCount = 0;
+
+        stats.forEach(stat => {
+            if (stat._id === 'Premium') {
+                premiumCount = stat.count;
+                transformedStats.push(stat);
+            } else {
+                // All non-Premium users are considered Free
+                freeCount += stat.count;
+            }
+        });
+
+        // Add Free users if not already present
+        const freeIndex = transformedStats.findIndex(stat => stat._id === 'Free');
+        if (freeIndex === -1) {
+            transformedStats.push({
+                _id: 'Free',
+                count: freeCount,
+                users: []
+            });
+        } else {
+            transformedStats[freeIndex].count = freeCount;
+        }
+
+        console.log('Subscription Stats Debug:', {
+            totalUsers,
+            statsFound: stats.length,
+            transformedStats: transformedStats.map(s => ({ status: s._id, count: s.count })),
+            revenueByPlan,
+            expiringSoon,
+            needsCleanup
+        });
+
         res.json({
-            totalUsers: await users.countDocuments(),
-            subscriptionBreakdown: stats,
+            success: true,
+            totalUsers,
+            subscriptionBreakdown: transformedStats,
             expiringSoon,
             needsCleanup,
             estimatedMonthlyRevenue: revenue,
             revenueByPlan,
-            lastUpdated: new Date()
+            lastUpdated: new Date(),
+            // Additional debug info
+            debug: {
+                originalStats: stats,
+                freeCount,
+                premiumCount
+            }
         });
     } catch (error) {
         console.error("Error fetching subscription stats:", error);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
     }
 });
 
