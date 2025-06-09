@@ -107,91 +107,150 @@ module.exports = (client, app, ObjectId) => {
     });
 
     // Enhanced subscription status endpoint
-    app.get("/api/subscription-status", async (req, res) => {
-        try {
-            const { userId } = req.query;
-            
-            if (!userId) {
-                return res.json({
-                    subscriptionStatus: {
-                        status: "Free",
-                        subscribed: false,
-                        plan: "",
-                        expirationDate: null,
-                        daysRemaining: 0
+   app.get("/api/subscription-stats", async (req, res) => {
+    try {
+        const database = client.db("sample_mflix");
+        const users = database.collection("users");
+
+        const now = new Date();
+        
+        // Get total user count first
+        const totalUsers = await users.countDocuments();
+        
+        // Aggregate subscription statistics with proper null handling
+        const stats = await users.aggregate([
+            {
+                $project: {
+                    subscriptionStatus: { 
+                        $ifNull: ["$subscriptionStatus", "Free"] 
                     },
-                    subscriptionOptions
-                });
-            }
-
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-
-            // Find user and get subscription details
-            const user = await users.findOne({ _id: new ObjectId(userId) });
-            
-            if (!user) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            let subscriptionStatus = {
-                status: "Free",
-                subscribed: false,
-                plan: "",
-                expirationDate: null,
-                daysRemaining: 0
-            };
-
-            // Check if user has subscription data
-            if (user.subscriptionExpirationDate) {
-                const isExpired = isSubscriptionExpired(user.subscriptionExpirationDate);
-                
-                if (isExpired) {
-                    // Update user to free if subscription expired
-                    await users.updateOne(
-                        { _id: new ObjectId(userId) },
-                        { 
-                            $set: { 
-                                subscriptionStatus: "Free",
-                                subscriptionActive: false
-                            }
+                    subscriptionType: "$subscriptionType",
+                    subscriptionActive: "$subscriptionActive",
+                    subscriptionExpirationDate: "$subscriptionExpirationDate",
+                    email: "$email"
+                }
+            },
+            {
+                $group: {
+                    _id: "$subscriptionStatus",
+                    count: { $sum: 1 },
+                    users: { 
+                        $push: {
+                            id: "$_id",
+                            email: "$email",
+                            subscriptionType: "$subscriptionType",
+                            expirationDate: "$subscriptionExpirationDate"
                         }
-                    );
-                    
-                    subscriptionStatus = {
-                        status: "Expired",
-                        subscribed: false,
-                        plan: user.subscriptionType || "",
-                        expirationDate: user.subscriptionExpirationDate,
-                        daysRemaining: 0,
-                        expiredOn: user.subscriptionExpirationDate
-                    };
-                } else {
-                    // Calculate days remaining
-                    const now = new Date();
-                    const expirationDate = new Date(user.subscriptionExpirationDate);
-                    const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
-                    
-                    subscriptionStatus = {
-                        status: "Premium",
-                        subscribed: true,
-                        plan: user.subscriptionType || "",
-                        expirationDate: user.subscriptionExpirationDate,
-                        daysRemaining: Math.max(0, daysRemaining),
-                        startDate: user.subscriptionStartDate
-                    };
+                    }
                 }
             }
+        ]).toArray();
 
-            res.json({ 
-                subscriptionStatus, 
-                subscriptionOptions 
+        // Count expiring soon (within 7 days)
+        const expiringSoon = await users.countDocuments({
+            subscriptionExpirationDate: {
+                $gte: now,
+                $lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+            },
+            subscriptionActive: true
+        });
+
+        // Count expired but still marked as active (needs cleanup)
+        const needsCleanup = await users.countDocuments({
+            subscriptionExpirationDate: { $lt: now },
+            subscriptionActive: true
+        });
+
+        // Revenue calculation with better error handling
+        const revenueByPlan = await users.aggregate([
+            {
+                $match: {
+                    subscriptionType: { $exists: true, $ne: null },
+                    subscriptionActive: true
+                }
+            },
+            {
+                $group: {
+                    _id: "$subscriptionType",
+                    count: { $sum: 1 }
+                }
+            }
+        ]).toArray();
+
+        // Calculate revenue using the subscription options
+        const subscriptionOptions = {
+            monthly: { cost: 10 },
+            quarterly: { cost: 25 },
+            semiAnnually: { cost: 50 },
+            yearly: { cost: 100 }
+        };
+
+        const revenue = revenueByPlan.reduce((total, plan) => {
+            const planCost = subscriptionOptions[plan._id]?.cost || 0;
+            return total + (plan.count * planCost);
+        }, 0);
+
+        // Transform stats to ensure we have both Free and Premium
+        const transformedStats = [];
+        let freeCount = 0;
+        let premiumCount = 0;
+
+        stats.forEach(stat => {
+            if (stat._id === 'Premium') {
+                premiumCount = stat.count;
+                transformedStats.push(stat);
+            } else {
+                // All non-Premium users are considered Free
+                freeCount += stat.count;
+            }
+        });
+
+        // Add Free users if not already present
+        const freeIndex = transformedStats.findIndex(stat => stat._id === 'Free');
+        if (freeIndex === -1) {
+            transformedStats.push({
+                _id: 'Free',
+                count: freeCount,
+                users: []
             });
-        } catch (err) {
-            console.error("Error fetching subscription status:", err);
-            res.status(500).json({ message: "Server error" });
+        } else {
+            transformedStats[freeIndex].count = freeCount;
         }
-    });
+
+        console.log('Subscription Stats Debug:', {
+            totalUsers,
+            statsFound: stats.length,
+            transformedStats: transformedStats.map(s => ({ status: s._id, count: s.count })),
+            revenueByPlan,
+            expiringSoon,
+            needsCleanup
+        });
+
+        res.json({
+            success: true,
+            totalUsers,
+            subscriptionBreakdown: transformedStats,
+            expiringSoon,
+            needsCleanup,
+            estimatedMonthlyRevenue: revenue,
+            revenueByPlan,
+            lastUpdated: new Date(),
+            // Additional debug info
+            debug: {
+                originalStats: stats,
+                freeCount,
+                premiumCount
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching subscription stats:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+});
 
     // New endpoint to check and update expired subscriptions (can be called by a cron job)
     app.post("/api/check-expired-subscriptions", async (req, res) => {
@@ -293,7 +352,6 @@ module.exports = (client, app, ObjectId) => {
     });
 
     // Get subscription statistics (admin endpoint)
-// Updated subscription-stats endpoint with better null/undefined handling
 app.get("/api/subscription-stats", async (req, res) => {
     try {
         const database = client.db("sample_mflix");

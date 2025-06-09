@@ -130,31 +130,23 @@ const AdminDashboard = () => {
       
       console.log('Subscription stats response:', data);
       
-      // Transform the data to match expected format
-      const subscriptionBreakdown = data.subscriptionBreakdown || [];
-      const premiumStat = subscriptionBreakdown.find(stat => stat._id === 'Premium');
-      const freeStat = subscriptionBreakdown.find(stat => stat._id === 'Free');
-      
-      // Transform revenue by plan data
-      const revenueByPlan = data.revenueByPlan || [];
-      const planCounts = {
-        monthly: revenueByPlan.find(plan => plan._id === 'monthly')?.count || 0,
-        quarterly: revenueByPlan.find(plan => plan._id === 'quarterly')?.count || 0,
-        semiAnnually: revenueByPlan.find(plan => plan._id === 'semiAnnually')?.count || 0,
-        yearly: revenueByPlan.find(plan => plan._id === 'yearly')?.count || 0
+      // Use the new planBreakdown and subscriptionPlanBreakdown from backend
+      const planBreakdown = data.planBreakdown || { free: 0, premium: 0 };
+      const subscriptionPlanBreakdown = data.subscriptionPlanBreakdown || {
+        monthly: 0,
+        quarterly: 0,
+        semiAnnually: 0,
+        yearly: 0
       };
       
       const statsData = {
-        totalSubscriptions: premiumStat?.count || 0,
-        activeSubscriptions: premiumStat?.count || 0,
+        totalSubscriptions: planBreakdown.premium || 0,
+        activeSubscriptions: planBreakdown.premium || 0,
         expiringSoon: data.expiringSoon || 0,
         expiredSubscriptions: data.needsCleanup || 0,
-        subscriptionBreakdown: planCounts,
-        planBreakdown: {
-          free: freeStat?.count || 0,
-          premium: premiumStat?.count || 0
-        },
-        estimatedMonthlyRevenue: data.estimatedMonthlyRevenue || 0
+        subscriptionBreakdown: subscriptionPlanBreakdown,
+        planBreakdown: planBreakdown,
+        estimatedMonthlyRevenue: parseFloat(data.estimatedMonthlyRevenue) || 0
       };
       
       console.log('Transformed subscription stats:', statsData);
