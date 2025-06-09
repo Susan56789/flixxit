@@ -1,35 +1,42 @@
 module.exports = (client, app, ObjectId) => {
     // Likes
     app.post("/api/like", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
-            const likes = database.collection("likes");
-            const { userId, movieId } = req.body;
+    try {
+        const { userId, movieId } = req.body;
 
-            // Check if the user has already liked the movie
-            const existingLike = await likes.findOne({ userId, movieId });
-            if (existingLike) {
-                return res
-                    .status(400)
-                    .json({ message: "You have already liked this movie" });
-            }
-
-            // Create a new like
-            const like = { userId, movieId };
-            await likes.insertOne(like);
-
-            // Update the movie document
-            const result = await movies.updateOne(
-                { _id: new ObjectId(movieId) },
-                { $addToSet: { likesBy: userId } }
-            );
-
-            res.json({ message: "Movie liked" });
-        } catch (err) {
-            res.status(500).json({ message: err.message });
+        // Basic input validation
+        if (!userId || !movieId) {
+            return res.status(400).json({ message: "userId and movieId are required." });
         }
-    });
+
+        const database = client.db("sample_mflix");
+        const movies = database.collection("movies");
+        const likes = database.collection("likes");
+
+        // Check if the user has already liked the movie
+        const existingLike = await likes.findOne({ userId, movieId });
+        if (existingLike) {
+            return res
+                .status(400)
+                .json({ message: "You have already liked this movie" });
+        }
+
+        // Create a new like
+        const like = { userId, movieId };
+        await likes.insertOne(like);
+
+        // Update the movie document
+        await movies.updateOne(
+            { _id: new ObjectId(movieId) },
+            { $addToSet: { likesBy: userId } }
+        );
+
+        res.json({ message: "Movie liked", likes: await likes.countDocuments({ movieId }) });
+    } catch (err) {
+        console.error("Error in /api/like:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
 
     //GET LIKES COUNT
 

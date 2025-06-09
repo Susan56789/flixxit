@@ -313,65 +313,82 @@ function App() {
     }
   }, [apiCall, showNotification]);
 
-  const handleLike = useCallback(async (movieId) => {
-    if (!movieId) {
-      showNotification("Invalid movie ID", 'error');
+ const handleLike = useCallback(async (movieId, userId) => {
+  if (!movieId || !userId) {
+    showNotification("Invalid movie or user ID", 'error');
+    return { success: false };
+  }
+
+  try {
+    const response = await fetch(
+      `https://flixxit-h9fa.onrender.com/api/like`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ movieId, userId })
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      showNotification("Movie liked!", 'success');
+      return { success: true, data };
+    } else {
+      showNotification(data.message || "Failed to like movie", 'error');
       return { success: false };
     }
+  } catch (error) {
+    console.error("Like error:", error);
+    showNotification("Failed to like movie. Please try again.", 'error');
+    return { success: false };
+  }
+}, [showNotification]);
 
-    try {
-      const response = await apiCall(
-        `https://flixxit-h9fa.onrender.com/api/movies/${movieId}/like`,
-        { method: "POST" }
-      );
 
-      const data = await response.json();
 
-      if (response.ok) {
-        showNotification("Movie liked!", 'success');
-        return { success: true, data };
-      } else {
-        showNotification(data.message || "Failed to like movie", 'error');
-        return { success: false };
+
+ const handleDislike = useCallback(async (movieId, userId) => {
+  if (!movieId || !userId) {
+    showNotification("Missing movie or user ID", 'error');
+    return { success: false };
+  }
+
+  try {
+    const response = await apiCall(
+      `https://flixxit-h9fa.onrender.com/api/dislike`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ movieId, userId }),
       }
-    } catch (error) {
-      if (error.message !== "Unauthorized") {
-        console.error("Like error:", error);
-        showNotification("Failed to like movie. Please try again.", 'error');
-      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      showNotification("Movie disliked", 'success');
+      return {
+        success: true,
+        likes: data.likes,
+        dislikes: data.dislikes,
+        hasDisliked: data.hasDisliked ?? true,
+      };
+    } else {
+      showNotification(data.message || "Failed to dislike movie", 'error');
       return { success: false };
     }
-  }, [apiCall, showNotification]);
+  } catch (error) {
+    console.error("Dislike error:", error);
+    showNotification("Failed to dislike movie. Please try again.", 'error');
+    return { success: false };
+  }
+}, [apiCall, showNotification]);
 
-  const handleDislike = useCallback(async (movieId) => {
-    if (!movieId) {
-      showNotification("Invalid movie ID", 'error');
-      return { success: false };
-    }
-
-    try {
-      const response = await apiCall(
-        `https://flixxit-h9fa.onrender.com/api/movies/${movieId}/dislike`,
-        { method: "POST" }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showNotification("Movie disliked", 'success');
-        return { success: true, data };
-      } else {
-        showNotification(data.message || "Failed to dislike movie", 'error');
-        return { success: false };
-      }
-    } catch (error) {
-      if (error.message !== "Unauthorized") {
-        console.error("Dislike error:", error);
-        showNotification("Failed to dislike movie. Please try again.", 'error');
-      }
-      return { success: false };
-    }
-  }, [apiCall, showNotification]);
 
   return (
     <HelmetProvider>

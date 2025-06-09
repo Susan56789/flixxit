@@ -338,13 +338,25 @@ if (user) {
     };
 
     const fetchUsers = async () => {
-      try {
-        const response = await axios.get("https://flixxit-h9fa.onrender.com/api/users");
-        setUsers(response.data);
-      } catch (err) {
-        console.error("Error fetching users:", err);
-      }
-    };
+  try {
+    const token = getUserToken(); 
+
+    if (!token) {
+      console.warn("No token found — user might not be logged in.");
+      return;
+    }
+
+    const response = await axios.get("https://flixxit-h9fa.onrender.com/api/users", {
+      headers: {
+        Authorization: `Bearer ${token}`, 
+      },
+    });
+
+    setUsers(response.data);
+  } catch (err) {
+    console.error("Error fetching users:", err.response?.data || err.message);
+  }
+};
 
     fetchUsers();
     fetchMovieDetail();
@@ -391,17 +403,17 @@ if (user) {
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
-  // Fixed like handler
-const handleLikeClick = async () => {
+ const handleLikeClick = async () => {
   if (!user) {
     setAlertMessage('Please log in to like the movie.');
     return;
   }
 
   try {
-    const result = await handleLike(movie._id); 
-    if (result) {
-      const { likes, dislikes, hasLiked } = result;
+    const result = await handleLike(movie._id, user._id);
+
+    if (result.success) {
+      const { likes, dislikes, hasLiked } = result.data;
 
       setMovie(prev => ({
         ...prev,
@@ -409,14 +421,17 @@ const handleLikeClick = async () => {
         dislikes,
       }));
 
-      setLikeStatus(hasLiked ? 1 : null);
+      setLikeStatus(hasLiked ? 1 : null); // 1 = liked, null = no reaction
       setAlertMessage('You liked this movie!');
+    } else {
+      setAlertMessage('Failed to like this movie.');
     }
   } catch (err) {
     console.error('Error handling like:', err);
     setAlertMessage('An error occurred while liking. Try again.');
   }
 };
+
 
 const handleDislikeClick = async () => {
   if (!user) {
@@ -425,8 +440,8 @@ const handleDislikeClick = async () => {
   }
 
   try {
-    const result = await handleDislike(movie._id); 
-    if (result) {
+    const result = await handleDislike(movie._id, user._id);
+    if (result.success) {
       const { likes, dislikes, hasDisliked } = result;
 
       setMovie(prev => ({
@@ -443,6 +458,8 @@ const handleDislikeClick = async () => {
     setAlertMessage('An error occurred while disliking. Try again.');
   }
 };
+
+
   // Fixed comment submission with new API structure
   const handleCommentSubmit = async () => {
     if (!user) {

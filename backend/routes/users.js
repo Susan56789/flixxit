@@ -188,50 +188,18 @@ module.exports = (client, app, authenticate, bcrypt, jwt) => {
         }
     });
     // Update user profile (protected endpoint)
-    app.put("/api/user", authenticate, async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-            
-            const { username, email } = req.body;
-            const userId = req.user._id;
-            
-            // Check if email is being changed and if it's already taken
-            if (email && email !== req.user.email) {
-                const existingEmail = await users.findOne({ email, _id: { $ne: userId } });
-                if (existingEmail) {
-                    return res.status(400).json({ message: "Email already exists" });
-                }
-            }
-            
-            // Check if username is being changed and if it's already taken
-            if (username && username !== req.user.username) {
-                const existingUsername = await users.findOne({ username, _id: { $ne: userId } });
-                if (existingUsername) {
-                    return res.status(400).json({ message: "Username already exists" });
-                }
-            }
-            
-            // Update user
-            const updateData = {};
-            if (username) updateData.username = username;
-            if (email) updateData.email = email;
-            
-            const result = await users.findOneAndUpdate(
-                { _id: userId },
-                { $set: updateData },
-                { returnDocument: 'after' }
-            );
-            
-            if (!result) {
-                return res.status(404).json({ message: "User not found" });
-            }
-            
-            const { password, ...userWithoutPassword } = result;
-            res.json({ user: userWithoutPassword, message: "Profile updated successfully" });
-        } catch (err) {
-            console.error("Error updating user:", err);
-            res.status(500).json({ message: err.message || "Error updating profile" });
-        }
+    const fetchUsers = async () => {
+  try {
+    const token = localStorage.getItem("token"); // or from context/auth state
+    const response = await axios.get("https://flixxit-h9fa.onrender.com/api/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
+    setUsers(response.data);
+  } catch (err) {
+    console.error("Error fetching users:", err.response?.data || err.message);
+  }
+};
+
 };

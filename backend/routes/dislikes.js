@@ -2,38 +2,59 @@ module.exports = (client, app, ObjectId) => {
 
     // Dislikes
     app.post("/api/dislike", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
-            const dislikes = database.collection("dislikes");
-            const { userId, movieId } = req.body;
+    try {
+        const { userId, movieId } = req.body;
 
-            // Check if the user has already disliked the movie
-            const existingDislike = await dislikes.findOne({ userId, movieId });
-            if (existingDislike) {
-                return res
-                    .status(400)
-                    .json({ message: "You have already disliked this movie" });
-            }
-
-            // Create a new dislike
-            const dislike = { userId, movieId };
-            await dislikes.insertOne(dislike);
-
-            // Update the movie document
-            const result = await movies.updateOne(
-                { _id: new ObjectId(movieId) },
-                {
-                    $addToSet: { dislikesBy: userId },
-                    $pull: { likesBy: userId },
-                }
-            );
-
-            res.json({ message: "Movie disliked" });
-        } catch (err) {
-            res.status(500).json({ message: err.message });
+        // Input validation
+        if (!userId || !movieId) {
+            return res.status(400).json({ message: "userId and movieId are required." });
         }
-    });
+
+        const database = client.db("sample_mflix");
+        const movies = database.collection("movies");
+        const dislikes = database.collection("dislikes");
+        const likes = database.collection("likes");
+
+        // Check if already disliked
+        const existingDislike = await dislikes.findOne({ userId, movieId });
+        if (existingDislike) {
+            return res.status(400).json({ message: "You have already disliked this movie" });
+        }
+
+        // Remove any existing like from the same user
+        await likes.deleteOne({ userId, movieId });
+
+        // Add dislike entry
+        await dislikes.insertOne({ userId, movieId });
+
+        // Update the movie document
+        await movies.updateOne(
+            { _id: new ObjectId(movieId) },
+            {
+                $addToSet: { dislikesBy: userId },
+                $pull: { likesBy: userId }
+            }
+        );
+
+        // Count current dislikes and likes
+        const [dislikeCount, likeCount] = await Promise.all([
+            dislikes.countDocuments({ movieId }),
+            likes.countDocuments({ movieId })
+        ]);
+
+        res.json({
+            message: "Movie disliked",
+            likes: likeCount,
+            dislikes: dislikeCount,
+            hasDisliked: true
+        });
+
+    } catch (err) {
+        console.error("Dislike error:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 
 
 
