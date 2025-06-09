@@ -24,6 +24,8 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
   const [users, setUsers] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
 
+  
+
   // Mobile detection effect
   useEffect(() => {
     const checkMobile = () => {
@@ -263,15 +265,20 @@ const MovieDetailPage = ({ handleLike, handleDislike }) => {
 if (user) {
   try {
     const token = getUserToken();
+    const userId = user.id || user._id || user.userId; 
+    if (!userId) {
+      console.warn("User ID not found in user object:", user);
+      return;
+    }
     if (token) {
       // Check like status from API
       const [likeStatusResponse, dislikeStatusResponse] = await Promise.all([
         axios.get(
-          `https://flixxit-h9fa.onrender.com/api/movies/${id}/likes/${user.id}/status`,
+          `https://flixxit-h9fa.onrender.com/api/movies/${id}/likes/${userId}/status`,
           { headers: { Authorization: `Bearer ${token}` } }
         ).catch(() => ({ data: { data: { hasLiked: false } } })),
         axios.get(
-          `https://flixxit-h9fa.onrender.com/api/movies/${id}/dislike/${user.id}/status`,
+          `https://flixxit-h9fa.onrender.com/api/movies/${id}/dislike/${userId}/status`,
           { headers: { Authorization: `Bearer ${token}` } }
         ).catch(() => ({ data: { data: { hasDisliked: false } } }))
       ]);
