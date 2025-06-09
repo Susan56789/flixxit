@@ -15,8 +15,12 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
     // Helper function to check if movie exists
     const movieExists = async (movieId) => {
-        const movie = await movies.findOne({ _id: new ObjectId(movieId) });
-        return !!movie;
+        try {
+            const movie = await movies.findOne({ _id: new ObjectId(movieId) });
+            return !!movie;
+        } catch (error) {
+            return false;
+        }
     };
 
     // Dislike a movie
@@ -54,68 +58,155 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 });
             }
 
-            // Use transaction for data consistency
-            const session = client.startSession();
-            
-            try {
-                await session.withTransaction(async () => {
-                    // Create a new dislike
-                    const dislike = {
-                        _id: new ObjectId(),
-                        userId: userId,
-                        movieId: movieId,
-                        createdAt: new Date()
-                    };
+            // Remove like if exists
+            await likes.deleteOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
 
-                    await dislikes.insertOne(dislike, { session });
+            // Create a new dislike
+            const dislike = {
+                _id: new ObjectId(),
+                userId: userId,
+                movieId: movieId,
+                createdAt: new Date()
+            };
 
-                    // Remove like if exists
-                    await likes.deleteOne({ 
-                        userId: userId, 
-                        movieId: movieId 
-                    }, { session });
+            await dislikes.insertOne(dislike);
 
-                    // Update the movie document (optional: for denormalized counts)
-                    await movies.updateOne(
-                        { _id: new ObjectId(movieId) },
-                        {
-                            $addToSet: { dislikesBy: userId },
-                            $pull: { likesBy: userId },
-                            $inc: { 
-                                dislikesCount: 1,
-                                likesCount: -1
-                            }
-                        },
-                        { session }
-                    );
-                });
+            // Update the movie document
+            await movies.updateOne(
+                { _id: new ObjectId(movieId) },
+                {
+                    $addToSet: { dislikesBy: userId },
+                    $pull: { likesBy: userId }
+                }
+            );
 
-                // Get updated counts
-                const [dislikeCount, likeCount] = await Promise.all([
-                    dislikes.countDocuments({ movieId: movieId }),
-                    likes.countDocuments({ movieId: movieId })
-                ]);
+            // Get updated counts
+            const [dislikeCount, likeCount] = await Promise.all([
+                dislikes.countDocuments({ movieId: movieId }),
+                likes.countDocuments({ movieId: movieId })
+            ]);
 
-                res.status(201).json({ 
-                    success: true,
-                    message: "Movie disliked successfully",
-                    data: {
-                        movieId: movieId,
-                        userId: userId,
-                        dislikes: dislikeCount,
-                        likes: likeCount
-                    }
-                });
-
-            } finally {
-                await session.endSession();
-            }
+            res.status(201).json({ 
+                success: true,
+                message: "Movie disliked successfully",
+                data: {
+                    movieId: movieId,
+                    userId: userId,
+                    dislikes: dislikeCount,
+                    likes: likeCount
+                }
+            });
 
         } catch (err) {
             console.error("Error disliking movie:", err);
             res.status(500).json({ 
                 success: false, 
-                message: "Internal server error" 
+                message: "Internal server error",
+                error: process.env.NODE_ENV === 'development' ? err.message : undefined
+            });
+        }
+    });
+
+    // Toggle dislike (dislike if not disliked, undislike if already disliked)
+    app.post("/api/movies/:movieId/dislike/toggle", authenticate, async (req, res) => {
+        try {
+            const { movieId } = req.params;
+            const userId = req.user._id.toString();
+
+            // Validate movieId
+            if (!isValidObjectId(movieId)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Invalid movie ID format" 
+                });
+            }
+
+            // Check if movie exists
+            if (!(await movieExists(movieId))) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: "Movie not found" 
+                });
+            }
+
+            const existingDislike = await dislikes.findOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
+
+            let action = '';
+            let likeCount = 0;
+            let dislikeCount = 0;
+
+            if (existingDislike) {
+                // Remove dislike
+                await dislikes.deleteOne({ 
+                    movieId: movieId, 
+                    userId: userId 
+                });
+                
+                await movies.updateOne(
+                    { _id: new ObjectId(movieId) },
+                    {
+                        $pull: { dislikesBy: userId }
+                    }
+                );
+                action = 'undisliked';
+            } else {
+                // Remove like if exists
+                await likes.deleteOne({ 
+                    userId: userId, 
+                    movieId: movieId 
+                });
+
+                // Add dislike
+                const dislike = {
+                    _id: new ObjectId(),
+                    userId: userId,
+                    movieId: movieId,
+                    createdAt: new Date()
+                };
+
+                await dislikes.insertOne(dislike);
+
+                await movies.updateOne(
+                    { _id: new ObjectId(movieId) },
+                    {
+                        $addToSet: { dislikesBy: userId },
+                        $pull: { likesBy: userId }
+                    }
+                );
+                action = 'disliked';
+            }
+
+            // Get final counts
+            [dislikeCount, likeCount] = await Promise.all([
+                dislikes.countDocuments({ movieId: movieId }),
+                likes.countDocuments({ movieId: movieId })
+            ]);
+
+            res.json({
+                success: true,
+                message: `Movie ${action} successfully`,
+                data: {
+                    movieId: movieId,
+                    userId: userId,
+                    action: action,
+                    likes: likeCount,
+                    dislikes: dislikeCount,
+                    hasDisliked: action === 'disliked'
+                }
+            });
+
+        } catch (err) {
+            console.error("Error toggling dislike:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error",
+                error: process.env.NODE_ENV === 'development' ? err.message : undefined
             });
         }
     });
@@ -197,7 +288,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
         }
     });
 
-    // Undo dislike (remove dislike)
+    // Remove dislike
     app.delete("/api/movies/:movieId/dislike", authenticate, async (req, res) => {
         try {
             const { movieId } = req.params;
@@ -219,55 +310,37 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 });
             }
 
-            // Use transaction for data consistency
-            const session = client.startSession();
-            
-            try {
-                let dislikeRemoved = false;
+            // Delete the dislike entry
+            const result = await dislikes.deleteOne({ 
+                movieId: movieId, 
+                userId: userId 
+            });
 
-                await session.withTransaction(async () => {
-                    // Delete the dislike entry
-                    const result = await dislikes.deleteOne({ 
-                        movieId: movieId, 
-                        userId: userId 
-                    }, { session });
+            if (result.deletedCount === 1) {
+                // Update the movie document
+                await movies.updateOne(
+                    { _id: new ObjectId(movieId) },
+                    {
+                        $pull: { dislikesBy: userId }
+                    }
+                );
 
-                    if (result.deletedCount === 1) {
-                        dislikeRemoved = true;
-                        
-                        // Update the movie document
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $pull: { dislikesBy: userId },
-                                $inc: { dislikesCount: -1 }
-                            },
-                            { session }
-                        );
+                const dislikeCount = await dislikes.countDocuments({ movieId: movieId });
+                
+                res.json({ 
+                    success: true, 
+                    message: "Dislike removed successfully",
+                    data: {
+                        movieId: movieId,
+                        userId: userId,
+                        dislikes: dislikeCount
                     }
                 });
-
-                if (dislikeRemoved) {
-                    const dislikeCount = await dislikes.countDocuments({ movieId: movieId });
-                    
-                    res.json({ 
-                        success: true, 
-                        message: "Dislike removed successfully",
-                        data: {
-                            movieId: movieId,
-                            userId: userId,
-                            dislikes: dislikeCount
-                        }
-                    });
-                } else {
-                    res.status(404).json({ 
-                        success: false, 
-                        message: "No dislike found to remove" 
-                    });
-                }
-
-            } finally {
-                await session.endSession();
+            } else {
+                res.status(404).json({ 
+                    success: false, 
+                    message: "No dislike found to remove" 
+                });
             }
 
         } catch (err) {
@@ -280,7 +353,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     });
 
     // Get users who disliked a movie (with pagination)
-    app.get("/api/movies/:movieId/dislikes/users", authenticate, async (req, res) => {
+    app.get("/api/movies/:movieId/dislikes/users", async (req, res) => {
         try {
             const { movieId } = req.params;
             const { page = 1, limit = 10 } = req.query;
@@ -304,34 +377,14 @@ module.exports = (client, app, authenticate, ObjectId) => {
             const skip = (parseInt(page) - 1) * parseInt(limit);
             const limitNum = parseInt(limit);
 
-            // Aggregate to get user details who disliked the movie
-            const pipeline = [
-                { $match: { movieId: movieId } },
-                {
-                    $lookup: {
-                        from: "users",
-                        localField: "userId",
-                        foreignField: "_id",
-                        as: "userDetails"
-                    }
-                },
-                {
-                    $unwind: "$userDetails"
-                },
-                {
-                    $project: {
-                        userId: 1,
-                        userName: "$userDetails.name",
-                        userEmail: "$userDetails.email",
-                        createdAt: 1
-                    }
-                },
-                { $sort: { createdAt: -1 } },
-                { $skip: skip },
-                { $limit: limitNum }
-            ];
+            // Get dislikes with user details
+            const dislikedUsers = await dislikes
+                .find({ movieId: movieId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum)
+                .toArray();
 
-            const dislikedUsers = await dislikes.aggregate(pipeline).toArray();
             const totalDislikes = await dislikes.countDocuments({ movieId: movieId });
 
             res.json({
@@ -357,114 +410,53 @@ module.exports = (client, app, authenticate, ObjectId) => {
         }
     });
 
-    // Toggle dislike (dislike if not disliked, undislike if already disliked)
-    app.post("/api/movies/:movieId/dislike/toggle", authenticate, async (req, res) => {
+    // Get user's disliked movies
+    app.get("/api/users/disliked-movies", authenticate, async (req, res) => {
         try {
-            const { movieId } = req.params;
             const userId = req.user._id.toString();
+            const { page = 1, limit = 10 } = req.query;
 
-            // Validate movieId
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Invalid movie ID format" 
-                });
-            }
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const limitNum = parseInt(limit);
 
-            // Check if movie exists
-            if (!(await movieExists(movieId))) {
-                return res.status(404).json({ 
-                    success: false, 
-                    message: "Movie not found" 
-                });
-            }
+            const dislikedMovies = await dislikes
+                .find({ userId: userId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum)
+                .toArray();
 
-            const existingDislike = await dislikes.findOne({ 
-                userId: userId, 
-                movieId: movieId 
+            const totalDislikedMovies = await dislikes.countDocuments({ userId: userId });
+
+            // Get movie details for each disliked movie
+            const movieIds = dislikedMovies.map(dislike => new ObjectId(dislike.movieId));
+            const movieDetails = await movies.find({ _id: { $in: movieIds } }).toArray();
+
+            // Map movie details to dislikes
+            const dislikedMoviesWithDetails = dislikedMovies.map(dislike => {
+                const movie = movieDetails.find(m => m._id.toString() === dislike.movieId);
+                return {
+                    ...dislike,
+                    movie: movie || null
+                };
             });
 
-            const session = client.startSession();
-            let action = '';
-            let likeCount = 0;
-            let dislikeCount = 0;
-
-            try {
-                await session.withTransaction(async () => {
-                    if (existingDislike) {
-                        // Remove dislike
-                        await dislikes.deleteOne({ 
-                            movieId: movieId, 
-                            userId: userId 
-                        }, { session });
-                        
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $pull: { dislikesBy: userId },
-                                $inc: { dislikesCount: -1 }
-                            },
-                            { session }
-                        );
-                        action = 'undisliked';
-                    } else {
-                        // Add dislike
-                        const dislike = {
-                            _id: new ObjectId(),
-                            userId: userId,
-                            movieId: movieId,
-                            createdAt: new Date()
-                        };
-
-                        await dislikes.insertOne(dislike, { session });
-
-                        // Remove like if exists
-                        await likes.deleteOne({ 
-                            userId: userId, 
-                            movieId: movieId 
-                        }, { session });
-
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $addToSet: { dislikesBy: userId },
-                                $pull: { likesBy: userId },
-                                $inc: { 
-                                    dislikesCount: 1,
-                                    likesCount: -1
-                                }
-                            },
-                            { session }
-                        );
-                        action = 'disliked';
+            res.json({
+                success: true,
+                data: {
+                    userId: userId,
+                    dislikedMovies: dislikedMoviesWithDetails,
+                    pagination: {
+                        page: parseInt(page),
+                        limit: limitNum,
+                        total: totalDislikedMovies,
+                        totalPages: Math.ceil(totalDislikedMovies / limitNum)
                     }
-                });
-
-                // Get final counts
-                [dislikeCount, likeCount] = await Promise.all([
-                    dislikes.countDocuments({ movieId: movieId }),
-                    likes.countDocuments({ movieId: movieId })
-                ]);
-
-                res.json({
-                    success: true,
-                    message: `Movie ${action} successfully`,
-                    data: {
-                        movieId: movieId,
-                        userId: userId,
-                        action: action,
-                        likes: likeCount,
-                        dislikes: dislikeCount,
-                        hasDisliked: action === 'disliked'
-                    }
-                });
-
-            } finally {
-                await session.endSession();
-            }
+                }
+            });
 
         } catch (err) {
-            console.error("Error toggling dislike:", err);
+            console.error("Error fetching user's disliked movies:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 
@@ -510,12 +502,82 @@ module.exports = (client, app, authenticate, ObjectId) => {
                     dislikes: dislikeCount,
                     totalEngagement: totalEngagement,
                     likeRatio: parseFloat(likeRatio),
-                    dislikeRatio: parseFloat(dislikeRatio)
+                    dislikeRatio: parseFloat(dislikeRatio),
+                    engagement: {
+                        high: totalEngagement > 100,
+                        medium: totalEngagement > 20 && totalEngagement <= 100,
+                        low: totalEngagement <= 20
+                    }
                 }
             });
 
         } catch (err) {
             console.error("Error fetching engagement stats:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Bulk operations - Get engagement stats for multiple movies
+    app.post("/api/movies/bulk/engagement", async (req, res) => {
+        try {
+            const { movieIds } = req.body;
+
+            if (!Array.isArray(movieIds) || movieIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "movieIds must be a non-empty array"
+                });
+            }
+
+            // Validate all movieIds
+            const invalidIds = movieIds.filter(id => !isValidObjectId(id));
+            if (invalidIds.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid movie ID format",
+                    invalidIds: invalidIds
+                });
+            }
+
+            // Get engagement stats for all movies
+            const engagementStats = await Promise.all(
+                movieIds.map(async (movieId) => {
+                    const [dislikeCount, likeCount] = await Promise.all([
+                        dislikes.countDocuments({ movieId: movieId }),
+                        likes.countDocuments({ movieId: movieId })
+                    ]);
+
+                    const totalEngagement = likeCount + dislikeCount;
+                    const likeRatio = totalEngagement > 0 ? (likeCount / totalEngagement * 100).toFixed(1) : 0;
+                    const dislikeRatio = totalEngagement > 0 ? (dislikeCount / totalEngagement * 100).toFixed(1) : 0;
+
+                    return {
+                        movieId: movieId,
+                        likes: likeCount,
+                        dislikes: dislikeCount,
+                        totalEngagement: totalEngagement,
+                        likeRatio: parseFloat(likeRatio),
+                        dislikeRatio: parseFloat(dislikeRatio)
+                    };
+                })
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    engagementStats: engagementStats,
+                    summary: {
+                        totalMovies: movieIds.length,
+                        averageEngagement: engagementStats.reduce((sum, stat) => sum + stat.totalEngagement, 0) / movieIds.length
+                    }
+                }
+            });
+
+        } catch (err) {
+            console.error("Error fetching bulk engagement stats:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 

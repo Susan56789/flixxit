@@ -15,8 +15,12 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
     // Helper function to check if movie exists
     const movieExists = async (movieId) => {
-        const movie = await movies.findOne({ _id: new ObjectId(movieId) });
-        return !!movie;
+        try {
+            const movie = await movies.findOne({ _id: new ObjectId(movieId) });
+            return !!movie;
+        } catch (error) {
+            return false;
+        }
     };
 
     // Like a movie
@@ -54,68 +58,54 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 });
             }
 
-            // Use transaction for data consistency
-            const session = client.startSession();
-            
-            try {
-                await session.withTransaction(async () => {
-                    // Create a new like
-                    const like = {
-                        _id: new ObjectId(),
-                        userId: userId,
-                        movieId: movieId,
-                        createdAt: new Date()
-                    };
+            // Remove dislike if exists
+            await dislikes.deleteOne({ 
+                userId: userId, 
+                movieId: movieId 
+            });
 
-                    await likes.insertOne(like, { session });
+            // Create a new like
+            const like = {
+                _id: new ObjectId(),
+                userId: userId,
+                movieId: movieId,
+                createdAt: new Date()
+            };
 
-                    // Remove dislike if exists
-                    await dislikes.deleteOne({ 
-                        userId: userId, 
-                        movieId: movieId 
-                    }, { session });
+            await likes.insertOne(like);
 
-                    // Update the movie document (optional: for denormalized counts)
-                    await movies.updateOne(
-                        { _id: new ObjectId(movieId) },
-                        {
-                            $addToSet: { likesBy: userId },
-                            $pull: { dislikesBy: userId },
-                            $inc: { 
-                                likesCount: 1,
-                                dislikesCount: -1
-                            }
-                        },
-                        { session }
-                    );
-                });
+            // Update the movie document
+            await movies.updateOne(
+                { _id: new ObjectId(movieId) },
+                {
+                    $addToSet: { likesBy: userId },
+                    $pull: { dislikesBy: userId }
+                }
+            );
 
-                // Get updated counts
-                const [likeCount, dislikeCount] = await Promise.all([
-                    likes.countDocuments({ movieId: movieId }),
-                    dislikes.countDocuments({ movieId: movieId })
-                ]);
+            // Get updated counts
+            const [likeCount, dislikeCount] = await Promise.all([
+                likes.countDocuments({ movieId: movieId }),
+                dislikes.countDocuments({ movieId: movieId })
+            ]);
 
-                res.status(201).json({ 
-                    success: true,
-                    message: "Movie liked successfully",
-                    data: {
-                        movieId: movieId,
-                        userId: userId,
-                        likes: likeCount,
-                        dislikes: dislikeCount
-                    }
-                });
-
-            } finally {
-                await session.endSession();
-            }
+            res.status(201).json({ 
+                success: true,
+                message: "Movie liked successfully",
+                data: {
+                    movieId: movieId,
+                    userId: userId,
+                    likes: likeCount,
+                    dislikes: dislikeCount
+                }
+            });
 
         } catch (err) {
             console.error("Error liking movie:", err);
             res.status(500).json({ 
                 success: false, 
-                message: "Internal server error" 
+                message: "Internal server error",
+                error: process.env.NODE_ENV === 'development' ? err.message : undefined
             });
         }
     });
@@ -147,90 +137,76 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 movieId: movieId 
             });
 
-            const session = client.startSession();
             let action = '';
             let likeCount = 0;
             let dislikeCount = 0;
 
-            try {
-                await session.withTransaction(async () => {
-                    if (existingLike) {
-                        // Remove like
-                        await likes.deleteOne({ 
-                            movieId: movieId, 
-                            userId: userId 
-                        }, { session });
-                        
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $pull: { likesBy: userId },
-                                $inc: { likesCount: -1 }
-                            },
-                            { session }
-                        );
-                        action = 'unliked';
-                    } else {
-                        // Add like
-                        const like = {
-                            _id: new ObjectId(),
-                            userId: userId,
-                            movieId: movieId,
-                            createdAt: new Date()
-                        };
-
-                        await likes.insertOne(like, { session });
-
-                        // Remove dislike if exists
-                        await dislikes.deleteOne({ 
-                            userId: userId, 
-                            movieId: movieId 
-                        }, { session });
-
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $addToSet: { likesBy: userId },
-                                $pull: { dislikesBy: userId },
-                                $inc: { 
-                                    likesCount: 1,
-                                    dislikesCount: -1
-                                }
-                            },
-                            { session }
-                        );
-                        action = 'liked';
+            if (existingLike) {
+                // Remove like
+                await likes.deleteOne({ 
+                    movieId: movieId, 
+                    userId: userId 
+                });
+                
+                await movies.updateOne(
+                    { _id: new ObjectId(movieId) },
+                    {
+                        $pull: { likesBy: userId }
                     }
+                );
+                action = 'unliked';
+            } else {
+                // Remove dislike if exists
+                await dislikes.deleteOne({ 
+                    userId: userId, 
+                    movieId: movieId 
                 });
 
-                // Get final counts
-                [likeCount, dislikeCount] = await Promise.all([
-                    likes.countDocuments({ movieId: movieId }),
-                    dislikes.countDocuments({ movieId: movieId })
-                ]);
+                // Add like
+                const like = {
+                    _id: new ObjectId(),
+                    userId: userId,
+                    movieId: movieId,
+                    createdAt: new Date()
+                };
 
-                res.json({
-                    success: true,
-                    message: `Movie ${action} successfully`,
-                    data: {
-                        movieId: movieId,
-                        userId: userId,
-                        action: action,
-                        likes: likeCount,
-                        dislikes: dislikeCount,
-                        hasLiked: action === 'liked'
+                await likes.insertOne(like);
+
+                await movies.updateOne(
+                    { _id: new ObjectId(movieId) },
+                    {
+                        $addToSet: { likesBy: userId },
+                        $pull: { dislikesBy: userId }
                     }
-                });
-
-            } finally {
-                await session.endSession();
+                );
+                action = 'liked';
             }
+
+            // Get final counts
+            [likeCount, dislikeCount] = await Promise.all([
+                likes.countDocuments({ movieId: movieId }),
+                dislikes.countDocuments({ movieId: movieId })
+            ]);
+
+            res.json({
+                success: true,
+                message: `Movie ${action} successfully`,
+                data: {
+                    movieId: movieId,
+                    userId: userId,
+                    action: action,
+                    likes: likeCount,
+                    dislikes: dislikeCount,
+                    hasLiked: action === 'liked'
+                }
+            });
 
         } catch (err) {
             console.error("Error toggling like:", err);
             res.status(500).json({ 
                 success: false, 
-                message: "Internal server error" 
+                message: "Internal server error",
+                error: process.env.NODE_ENV === 'development' ? err.message : undefined
             });
         }
     });
@@ -312,7 +288,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
         }
     });
 
-    // Undo like (remove like)
+    // Remove like
     app.delete("/api/movies/:movieId/like", authenticate, async (req, res) => {
         try {
             const { movieId } = req.params;
@@ -334,55 +310,37 @@ module.exports = (client, app, authenticate, ObjectId) => {
                 });
             }
 
-            // Use transaction for data consistency
-            const session = client.startSession();
-            
-            try {
-                let likeRemoved = false;
+            // Delete the like entry
+            const result = await likes.deleteOne({ 
+                movieId: movieId, 
+                userId: userId 
+            });
 
-                await session.withTransaction(async () => {
-                    // Delete the like entry
-                    const result = await likes.deleteOne({ 
-                        movieId: movieId, 
-                        userId: userId 
-                    }, { session });
+            if (result.deletedCount === 1) {
+                // Update the movie document
+                await movies.updateOne(
+                    { _id: new ObjectId(movieId) },
+                    {
+                        $pull: { likesBy: userId }
+                    }
+                );
 
-                    if (result.deletedCount === 1) {
-                        likeRemoved = true;
-                        
-                        // Update the movie document
-                        await movies.updateOne(
-                            { _id: new ObjectId(movieId) },
-                            {
-                                $pull: { likesBy: userId },
-                                $inc: { likesCount: -1 }
-                            },
-                            { session }
-                        );
+                const likeCount = await likes.countDocuments({ movieId: movieId });
+                
+                res.json({ 
+                    success: true, 
+                    message: "Like removed successfully",
+                    data: {
+                        movieId: movieId,
+                        userId: userId,
+                        likes: likeCount
                     }
                 });
-
-                if (likeRemoved) {
-                    const likeCount = await likes.countDocuments({ movieId: movieId });
-                    
-                    res.json({ 
-                        success: true, 
-                        message: "Like removed successfully",
-                        data: {
-                            movieId: movieId,
-                            userId: userId,
-                            likes: likeCount
-                        }
-                    });
-                } else {
-                    res.status(404).json({ 
-                        success: false, 
-                        message: "No like found to remove" 
-                    });
-                }
-
-            } finally {
-                await session.endSession();
+            } else {
+                res.status(404).json({ 
+                    success: false, 
+                    message: "No like found to remove" 
+                });
             }
 
         } catch (err) {
@@ -395,7 +353,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
     });
 
     // Get users who liked a movie (with pagination)
-    app.get("/api/movies/:movieId/likes/users", authenticate, async (req, res) => {
+    app.get("/api/movies/:movieId/likes/users", async (req, res) => {
         try {
             const { movieId } = req.params;
             const { page = 1, limit = 10 } = req.query;
@@ -419,34 +377,14 @@ module.exports = (client, app, authenticate, ObjectId) => {
             const skip = (parseInt(page) - 1) * parseInt(limit);
             const limitNum = parseInt(limit);
 
-            // Aggregate to get user details who liked the movie
-            const pipeline = [
-                { $match: { movieId: movieId } },
-                {
-                    $lookup: {
-                        from: "users",
-                        localField: "userId",
-                        foreignField: "_id",
-                        as: "userDetails"
-                    }
-                },
-                {
-                    $unwind: "$userDetails"
-                },
-                {
-                    $project: {
-                        userId: 1,
-                        userName: "$userDetails.name",
-                        userEmail: "$userDetails.email",
-                        createdAt: 1
-                    }
-                },
-                { $sort: { createdAt: -1 } },
-                { $skip: skip },
-                { $limit: limitNum }
-            ];
+            // Get likes with user details
+            const likedUsers = await likes
+                .find({ movieId: movieId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum)
+                .toArray();
 
-            const likedUsers = await likes.aggregate(pipeline).toArray();
             const totalLikes = await likes.countDocuments({ movieId: movieId });
 
             res.json({
@@ -472,7 +410,7 @@ module.exports = (client, app, authenticate, ObjectId) => {
         }
     });
 
-    // Get user's liked movies (with pagination)
+    // Get user's liked movies
     app.get("/api/users/liked-movies", authenticate, async (req, res) => {
         try {
             const userId = req.user._id.toString();
@@ -481,42 +419,33 @@ module.exports = (client, app, authenticate, ObjectId) => {
             const skip = (parseInt(page) - 1) * parseInt(limit);
             const limitNum = parseInt(limit);
 
-            // Aggregate to get movie details that user has liked
-            const pipeline = [
-                { $match: { userId: userId } },
-                {
-                    $lookup: {
-                        from: "movies",
-                        localField: "movieId",
-                        foreignField: "_id",
-                        as: "movieDetails"
-                    }
-                },
-                {
-                    $unwind: "$movieDetails"
-                },
-                {
-                    $project: {
-                        movieId: 1,
-                        movieTitle: "$movieDetails.title",
-                        moviePoster: "$movieDetails.poster",
-                        movieYear: "$movieDetails.year",
-                        likedAt: "$createdAt"
-                    }
-                },
-                { $sort: { likedAt: -1 } },
-                { $skip: skip },
-                { $limit: limitNum }
-            ];
+            const likedMovies = await likes
+                .find({ userId: userId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum)
+                .toArray();
 
-            const likedMovies = await likes.aggregate(pipeline).toArray();
             const totalLikedMovies = await likes.countDocuments({ userId: userId });
+
+            // Get movie details for each liked movie
+            const movieIds = likedMovies.map(like => new ObjectId(like.movieId));
+            const movieDetails = await movies.find({ _id: { $in: movieIds } }).toArray();
+
+            // Map movie details to likes
+            const likedMoviesWithDetails = likedMovies.map(like => {
+                const movie = movieDetails.find(m => m._id.toString() === like.movieId);
+                return {
+                    ...like,
+                    movie: movie || null
+                };
+            });
 
             res.json({
                 success: true,
                 data: {
                     userId: userId,
-                    likedMovies: likedMovies,
+                    likedMovies: likedMoviesWithDetails,
                     pagination: {
                         page: parseInt(page),
                         limit: limitNum,
@@ -528,6 +457,51 @@ module.exports = (client, app, authenticate, ObjectId) => {
 
         } catch (err) {
             console.error("Error fetching user's liked movies:", err);
+            res.status(500).json({ 
+                success: false, 
+                message: "Internal server error" 
+            });
+        }
+    });
+
+    // Get most liked movies
+    app.get("/api/movies/most-liked", async (req, res) => {
+        try {
+            const { limit = 10 } = req.query;
+            const limitNum = Math.min(parseInt(limit), 50); // Cap at 50
+
+            // Aggregate to get movie counts
+            const mostLiked = await likes.aggregate([
+                {
+                    $group: {
+                        _id: "$movieId",
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { count: -1 } },
+                { $limit: limitNum }
+            ]).toArray();
+
+            // Get movie details
+            const movieIds = mostLiked.map(item => new ObjectId(item._id));
+            const movieDetails = await movies.find({ _id: { $in: movieIds } }).toArray();
+
+            // Map counts to movie details
+            const result = mostLiked.map(item => {
+                const movie = movieDetails.find(m => m._id.toString() === item._id);
+                return {
+                    movie: movie,
+                    likes: item.count
+                };
+            });
+
+            res.json({
+                success: true,
+                data: result
+            });
+
+        } catch (err) {
+            console.error("Error fetching most liked movies:", err);
             res.status(500).json({ 
                 success: false, 
                 message: "Internal server error" 
