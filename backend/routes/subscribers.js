@@ -37,11 +37,12 @@ module.exports = (client, app, ObjectId) => {
 
     // ===== SUBSCRIPTION ENDPOINTS =====
 
-    // 1. Subscribe to a plan
+    // 1. Subscribe to a plan - STORE IN SUBSCRIBERS COLLECTION
     app.post("/api/subscribe", async (req, res) => {
         try {
             const database = client.db("sample_mflix");
             const users = database.collection("users");
+            const subscribers = database.collection("subscribers"); // NEW: Separate collection
             const { userId, subscriptionType } = req.body;
 
             console.log('Subscribe request:', { userId, subscriptionType });
@@ -61,35 +62,105 @@ module.exports = (client, app, ObjectId) => {
                 });
             }
 
+            // Verify user exists
+            const user = await users.findOne({ _id: new ObjectId(userId) });
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
             const expirationDate = calculateExpirationDate(subscriptionType);
 
-            // Update the user's subscription status
-            const result = await users.updateOne(
+            // Check if user already has an active subscription
+            const existingSubscription = await subscribers.findOne({ 
+                userId: new ObjectId(userId),
+                status: "active"
+            });
+
+            if (existingSubscription) {
+                // Extend existing subscription
+                const newExpirationDate = new Date(
+                    Math.max(new Date(existingSubscription.expirationDate), new Date()).getTime() + 
+                    (subscriptionOptions[subscriptionType].days * 24 * 60 * 60 * 1000)
+                );
+
+                const result = await subscribers.updateOne(
+                    { userId: new ObjectId(userId), status: "active" },
+                    { 
+                        $set: { 
+                            subscriptionType: subscriptionType,
+                            expirationDate: newExpirationDate,
+                            lastExtendedDate: new Date(),
+                            lastUpdated: new Date()
+                        } 
+                    }
+                );
+
+                // Update user status (minimal data in users collection)
+                await users.updateOne(
+                    { _id: new ObjectId(userId) },
+                    { 
+                        $set: { 
+                            subscriptionStatus: "Premium",
+                            hasActiveSubscription: true,
+                            lastUpdated: new Date()
+                        } 
+                    }
+                );
+
+                return res.json({ 
+                    message: "Subscription extended successfully",
+                    subscriptionType,
+                    expirationDate: newExpirationDate,
+                    cost: subscriptionOptions[subscriptionType].cost,
+                    duration: subscriptionOptions[subscriptionType].duration
+                });
+            }
+
+            // Create new subscription record in subscribers collection
+            const subscriptionRecord = {
+                userId: new ObjectId(userId),
+                userEmail: user.email,
+                username: user.username,
+                subscriptionType: subscriptionType,
+                status: "active",
+                startDate: new Date(),
+                expirationDate: expirationDate,
+                cost: subscriptionOptions[subscriptionType].cost,
+                duration: subscriptionOptions[subscriptionType].duration,
+                paymentStatus: "completed", // You can update this based on actual payment
+                createdAt: new Date(),
+                lastUpdated: new Date()
+            };
+
+            const subscriptionResult = await subscribers.insertOne(subscriptionRecord);
+
+            // Update user status (minimal data in users collection)
+            const userResult = await users.updateOne(
                 { _id: new ObjectId(userId) },
                 { 
                     $set: { 
                         subscriptionStatus: "Premium",
-                        subscriptionType: subscriptionType,
-                        subscriptionStartDate: new Date(),
-                        subscriptionExpirationDate: expirationDate,
-                        subscriptionActive: true,
+                        hasActiveSubscription: true,
+                        activeSubscriptionId: subscriptionResult.insertedId,
                         lastUpdated: new Date()
                     } 
                 }
             );
 
-            if (result.matchedCount === 0) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            console.log('Subscription successful:', { userId, subscriptionType, expirationDate });
+            console.log('Subscription successful:', { 
+                userId, 
+                subscriptionType, 
+                expirationDate,
+                subscriptionId: subscriptionResult.insertedId 
+            });
 
             res.json({ 
                 message: "Subscription successful",
                 subscriptionType,
                 expirationDate,
                 cost: subscriptionOptions[subscriptionType].cost,
-                duration: subscriptionOptions[subscriptionType].duration
+                duration: subscriptionOptions[subscriptionType].duration,
+                subscriptionId: subscriptionResult.insertedId
             });
         } catch (err) {
             console.error("Error subscribing:", err);
@@ -97,7 +168,7 @@ module.exports = (client, app, ObjectId) => {
         }
     });
 
-    // 2. Get individual user subscription status (FRONTEND NEEDS THIS!)
+    // 2. Get individual user subscription status - CHECK SUBSCRIBERS COLLECTION
     app.get("/api/subscription-status", async (req, res) => {
         try {
             const { userId } = req.query;
@@ -120,13 +191,19 @@ module.exports = (client, app, ObjectId) => {
 
             const database = client.db("sample_mflix");
             const users = database.collection("users");
+            const subscribers = database.collection("subscribers"); // Check subscribers collection
 
-            // Find user and get subscription details
+            // Find user to verify existence
             const user = await users.findOne({ _id: new ObjectId(userId) });
-            
             if (!user) {
                 return res.status(404).json({ message: "User not found" });
             }
+
+            // Find active subscription in subscribers collection
+            const subscription = await subscribers.findOne({ 
+                userId: new ObjectId(userId),
+                status: "active"
+            });
 
             let subscriptionStatus = {
                 status: "Free",
@@ -136,56 +213,60 @@ module.exports = (client, app, ObjectId) => {
                 daysRemaining: 0
             };
 
-            // Check if user has subscription data
-            if (user.subscriptionExpirationDate) {
-                const isExpired = isSubscriptionExpired(user.subscriptionExpirationDate);
+            // Check subscription data from subscribers collection
+            if (subscription && subscription.expirationDate) {
+                const isExpired = isSubscriptionExpired(subscription.expirationDate);
                 
                 if (isExpired) {
-                    // Update user to free if subscription expired
+                    // Update subscription to expired
+                    await subscribers.updateOne(
+                        { _id: subscription._id },
+                        { 
+                            $set: { 
+                                status: "expired",
+                                expiredAt: new Date(),
+                                lastUpdated: new Date()
+                            }
+                        }
+                    );
+
+                    // Update user status
                     await users.updateOne(
                         { _id: new ObjectId(userId) },
                         { 
                             $set: { 
                                 subscriptionStatus: "Free",
-                                subscriptionActive: false,
+                                hasActiveSubscription: false,
                                 lastUpdated: new Date()
-                            }
+                            },
+                            $unset: { activeSubscriptionId: "" }
                         }
                     );
                     
                     subscriptionStatus = {
                         status: "Expired",
                         subscribed: false,
-                        plan: user.subscriptionType || "",
-                        expirationDate: user.subscriptionExpirationDate,
+                        plan: subscription.subscriptionType || "",
+                        expirationDate: subscription.expirationDate,
                         daysRemaining: 0,
-                        expiredOn: user.subscriptionExpirationDate
+                        expiredOn: subscription.expirationDate
                     };
                 } else {
                     // Calculate days remaining
                     const now = new Date();
-                    const expirationDate = new Date(user.subscriptionExpirationDate);
+                    const expirationDate = new Date(subscription.expirationDate);
                     const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
                     
                     subscriptionStatus = {
                         status: "Premium",
                         subscribed: true,
-                        plan: user.subscriptionType || "",
-                        expirationDate: user.subscriptionExpirationDate,
+                        plan: subscription.subscriptionType || "",
+                        expirationDate: subscription.expirationDate,
                         daysRemaining: Math.max(0, daysRemaining),
-                        startDate: user.subscriptionStartDate
+                        startDate: subscription.startDate,
+                        subscriptionId: subscription._id
                     };
                 }
-            } else if (user.subscriptionStatus === "Premium") {
-                // User has Premium status but no expiration date (legacy data)
-                subscriptionStatus = {
-                    status: "Premium",
-                    subscribed: true,
-                    plan: user.subscriptionType || "monthly",
-                    expirationDate: null,
-                    daysRemaining: null,
-                    startDate: user.subscriptionStartDate
-                };
             }
 
             console.log('Subscription status response:', { userId, status: subscriptionStatus });
@@ -200,117 +281,67 @@ module.exports = (client, app, ObjectId) => {
         }
     });
 
-    // 3. Get subscription statistics (ADMIN DASHBOARD)
+    // 3. Get subscription statistics (ADMIN DASHBOARD) - FROM SUBSCRIBERS COLLECTION
     app.get("/api/subscription-stats", async (req, res) => {
         try {
             const database = client.db("sample_mflix");
             const users = database.collection("users");
+            const subscribers = database.collection("subscribers");
 
             const now = new Date();
             
-            // Get total user count first
+            // Get total user count
             const totalUsers = await users.countDocuments();
             
-            // Aggregate subscription statistics with proper null handling
-            const stats = await users.aggregate([
-                {
-                    $project: {
-                        subscriptionStatus: { 
-                            $ifNull: ["$subscriptionStatus", "Free"] 
-                        },
-                        subscriptionType: "$subscriptionType",
-                        subscriptionActive: "$subscriptionActive",
-                        subscriptionExpirationDate: "$subscriptionExpirationDate",
-                        email: "$email",
-                        username: "$username"
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$subscriptionStatus",
-                        count: { $sum: 1 },
-                        users: { 
-                            $push: {
-                                id: "$_id",
-                                email: "$email",
-                                username: "$username",
-                                subscriptionType: "$subscriptionType",
-                                expirationDate: "$subscriptionExpirationDate"
-                            }
-                        }
-                    }
-                }
-            ]).toArray();
+            // Get subscription statistics from subscribers collection
+            const activeSubscriptions = await subscribers.countDocuments({ status: "active" });
+            const expiredSubscriptions = await subscribers.countDocuments({ status: "expired" });
+            const freeUsers = totalUsers - activeSubscriptions;
 
             // Count expiring soon (within 7 days)
-            const expiringSoon = await users.countDocuments({
-                subscriptionExpirationDate: {
+            const expiringSoon = await subscribers.countDocuments({
+                expirationDate: {
                     $gte: now,
                     $lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
                 },
-                subscriptionActive: true
+                status: "active"
             });
 
             // Count expired but still marked as active (needs cleanup)
-            const needsCleanup = await users.countDocuments({
-                subscriptionExpirationDate: { $lt: now },
-                subscriptionActive: true
+            const needsCleanup = await subscribers.countDocuments({
+                expirationDate: { $lt: now },
+                status: "active"
             });
 
-            // Revenue calculation with proper null handling and fixed calculation
-            const revenueByPlan = await users.aggregate([
+            // Revenue calculation from subscribers collection
+            const revenueByPlan = await subscribers.aggregate([
                 {
                     $match: {
-                        subscriptionType: { $exists: true, $ne: null },
-                        subscriptionActive: true
+                        status: "active"
                     }
                 },
                 {
                     $group: {
                         _id: "$subscriptionType",
-                        count: { $sum: 1 }
+                        count: { $sum: 1 },
+                        totalRevenue: { $sum: "$cost" }
                     }
                 }
             ]).toArray();
 
-            // Calculate revenue properly - multiply count by cost
+            // Calculate total revenue
             let totalRevenue = 0;
             const revenueWithCosts = revenueByPlan.map(plan => {
-                const planCost = subscriptionOptions[plan._id]?.cost || 0;
-                const revenue = plan.count * planCost;
-                totalRevenue += revenue;
-                
+                totalRevenue += plan.totalRevenue;
                 return {
                     _id: plan._id,
                     count: plan.count,
-                    revenue: revenue.toFixed(2),
-                    costPerUser: planCost
+                    revenue: plan.totalRevenue.toFixed(2),
+                    costPerUser: subscriptionOptions[plan._id]?.cost || 0
                 };
             });
 
-            // Transform stats to ensure we have both Free and Premium
-            const transformedStats = [];
-            let freeCount = 0;
-            let premiumCount = 0;
-
-            stats.forEach(stat => {
-                if (stat._id === 'Premium') {
-                    premiumCount = stat.count;
-                    transformedStats.push(stat);
-                } else {
-                    // All non-Premium users are considered Free (including null)
-                    freeCount += stat.count;
-                }
-            });
-
-            // Add Free users summary
-            transformedStats.push({
-                _id: 'Free',
-                count: freeCount,
-                users: []
-            });
-
-            // Create plan breakdown for dashboard
+            // Create plan breakdown
             const planBreakdown = {
                 monthly: revenueByPlan.find(plan => plan._id === 'monthly')?.count || 0,
                 quarterly: revenueByPlan.find(plan => plan._id === 'quarterly')?.count || 0,
@@ -320,8 +351,8 @@ module.exports = (client, app, ObjectId) => {
 
             console.log('Subscription Stats:', {
                 totalUsers,
-                freeCount,
-                premiumCount,
+                freeUsers,
+                activeSubscriptions,
                 totalRevenue,
                 planBreakdown
             });
@@ -329,14 +360,17 @@ module.exports = (client, app, ObjectId) => {
             res.json({
                 success: true,
                 totalUsers,
-                subscriptionBreakdown: transformedStats,
+                subscriptionBreakdown: [
+                    { _id: 'Free', count: freeUsers },
+                    { _id: 'Premium', count: activeSubscriptions }
+                ],
                 expiringSoon,
                 needsCleanup,
                 estimatedMonthlyRevenue: totalRevenue,
                 revenueByPlan: revenueWithCosts,
                 planBreakdown: {
-                    free: freeCount,
-                    premium: premiumCount
+                    free: freeUsers,
+                    premium: activeSubscriptions
                 },
                 subscriptionPlanBreakdown: planBreakdown,
                 lastUpdated: new Date()
@@ -351,76 +385,20 @@ module.exports = (client, app, ObjectId) => {
         }
     });
 
-    // 4. Extend existing subscription
-    app.post("/api/extend-subscription", async (req, res) => {
-        try {
-            const { userId, subscriptionType } = req.body;
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-
-            if (!subscriptionOptions[subscriptionType]) {
-                return res.status(400).json({ 
-                    message: "Invalid subscription type",
-                    availableTypes: Object.keys(subscriptionOptions)
-                });
-            }
-
-            const user = await users.findOne({ _id: new ObjectId(userId) });
-            if (!user) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            // Calculate new expiration date
-            let newExpirationDate;
-            if (user.subscriptionExpirationDate && !isSubscriptionExpired(user.subscriptionExpirationDate)) {
-                // Extend from current expiration date if not expired
-                const currentExpiration = new Date(user.subscriptionExpirationDate);
-                const days = subscriptionOptions[subscriptionType].days;
-                newExpirationDate = new Date(currentExpiration.getTime() + (days * 24 * 60 * 60 * 1000));
-            } else {
-                // Start fresh if no subscription or expired
-                newExpirationDate = calculateExpirationDate(subscriptionType);
-            }
-
-            const result = await users.updateOne(
-                { _id: new ObjectId(userId) },
-                { 
-                    $set: { 
-                        subscriptionStatus: "Premium",
-                        subscriptionType: subscriptionType,
-                        subscriptionExpirationDate: newExpirationDate,
-                        subscriptionActive: true,
-                        lastExtendedDate: new Date(),
-                        lastUpdated: new Date()
-                    } 
-                }
-            );
-
-            res.json({ 
-                message: "Subscription extended successfully",
-                newExpirationDate,
-                subscriptionType,
-                cost: subscriptionOptions[subscriptionType].cost
-            });
-        } catch (err) {
-            console.error("Error extending subscription:", err);
-            res.status(500).json({ message: "Server error", error: err.message });
-        }
-    });
-
-    // 5. Cancel subscription
+    // 4. Cancel subscription - UPDATE SUBSCRIBERS COLLECTION
     app.post("/api/cancel-subscription", async (req, res) => {
         try {
             const { userId, reason } = req.body;
             const database = client.db("sample_mflix");
             const users = database.collection("users");
+            const subscribers = database.collection("subscribers");
 
-            const result = await users.updateOne(
-                { _id: new ObjectId(userId) },
+            // Update subscription status in subscribers collection
+            const subscriptionResult = await subscribers.updateOne(
+                { userId: new ObjectId(userId), status: "active" },
                 { 
                     $set: { 
-                        subscriptionStatus: "Free",
-                        subscriptionActive: false,
+                        status: "cancelled",
                         cancellationDate: new Date(),
                         cancellationReason: reason || "User requested",
                         lastUpdated: new Date()
@@ -428,8 +406,21 @@ module.exports = (client, app, ObjectId) => {
                 }
             );
 
-            if (result.matchedCount === 0) {
-                return res.status(404).json({ message: "User not found" });
+            // Update user status
+            const userResult = await users.updateOne(
+                { _id: new ObjectId(userId) },
+                { 
+                    $set: { 
+                        subscriptionStatus: "Free",
+                        hasActiveSubscription: false,
+                        lastUpdated: new Date()
+                    },
+                    $unset: { activeSubscriptionId: "" }
+                }
+            );
+
+            if (subscriptionResult.matchedCount === 0) {
+                return res.status(404).json({ message: "Active subscription not found" });
             }
 
             res.json({ 
@@ -442,154 +433,62 @@ module.exports = (client, app, ObjectId) => {
         }
     });
 
-    // 6. Reactivate subscription
-    app.post("/api/reactivate-subscription", async (req, res) => {
-        try {
-            const { userId, subscriptionType } = req.body;
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-
-            if (!subscriptionOptions[subscriptionType]) {
-                return res.status(400).json({ 
-                    message: "Invalid subscription type",
-                    availableTypes: Object.keys(subscriptionOptions)
-                });
-            }
-
-            const expirationDate = calculateExpirationDate(subscriptionType);
-
-            const result = await users.updateOne(
-                { _id: new ObjectId(userId) },
-                { 
-                    $set: { 
-                        subscriptionStatus: "Premium",
-                        subscriptionType: subscriptionType,
-                        subscriptionExpirationDate: expirationDate,
-                        subscriptionActive: true,
-                        reactivationDate: new Date(),
-                        lastUpdated: new Date()
-                    },
-                    $unset: {
-                        cancellationDate: "",
-                        cancellationReason: ""
-                    }
-                }
-            );
-
-            if (result.matchedCount === 0) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            res.json({ 
-                message: "Subscription reactivated successfully",
-                subscriptionType,
-                expirationDate,
-                reactivationDate: new Date()
-            });
-        } catch (error) {
-            console.error("Error reactivating subscription:", error);
-            res.status(500).json({ message: "Server error", error: error.message });
-        }
-    });
-
-    // 7. Update subscription plan
-    app.post("/api/update-subscription-plan", async (req, res) => {
-        try {
-            const { userId, newSubscriptionType } = req.body;
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-
-            if (!subscriptionOptions[newSubscriptionType]) {
-                return res.status(400).json({ 
-                    message: "Invalid subscription type",
-                    availableTypes: Object.keys(subscriptionOptions)
-                });
-            }
-
-            const user = await users.findOne({ _id: new ObjectId(userId) });
-            if (!user) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            // Calculate new expiration based on current status
-            let newExpirationDate;
-            if (user.subscriptionExpirationDate && !isSubscriptionExpired(user.subscriptionExpirationDate)) {
-                // Extend from current expiration if not expired
-                const currentExpiration = new Date(user.subscriptionExpirationDate);
-                const days = subscriptionOptions[newSubscriptionType].days;
-                newExpirationDate = new Date(currentExpiration.getTime() + (days * 24 * 60 * 60 * 1000));
-            } else {
-                // Start fresh if no subscription or expired
-                newExpirationDate = calculateExpirationDate(newSubscriptionType);
-            }
-
-            const result = await users.updateOne(
-                { _id: new ObjectId(userId) },
-                { 
-                    $set: { 
-                        subscriptionStatus: "Premium",
-                        subscriptionType: newSubscriptionType,
-                        subscriptionExpirationDate: newExpirationDate,
-                        subscriptionActive: true,
-                        planUpdatedDate: new Date(),
-                        lastUpdated: new Date()
-                    }
-                }
-            );
-
-            res.json({ 
-                message: "Subscription plan updated successfully",
-                newSubscriptionType,
-                newExpirationDate,
-                updatedDate: new Date()
-            });
-        } catch (error) {
-            console.error("Error updating subscription plan:", error);
-            res.status(500).json({ message: "Server error", error: error.message });
-        }
-    });
-
-    // ===== UTILITY ENDPOINTS =====
-
-    // 8. Check and update expired subscriptions (CRON JOB)
+    // 5. Check and update expired subscriptions (CRON JOB) - CHECK SUBSCRIBERS COLLECTION
     app.post("/api/check-expired-subscriptions", async (req, res) => {
         try {
             const database = client.db("sample_mflix");
             const users = database.collection("users");
+            const subscribers = database.collection("subscribers");
 
             const now = new Date();
             
-            // Find all users with expired subscriptions that are still marked as active
-            const expiredUsers = await users.find({
-                subscriptionExpirationDate: { $lt: now },
-                subscriptionActive: true
+            // Find all expired subscriptions that are still marked as active
+            const expiredSubscriptions = await subscribers.find({
+                expirationDate: { $lt: now },
+                status: "active"
             }).toArray();
 
             // Update expired subscriptions
-            const updateResult = await users.updateMany(
+            const updateResult = await subscribers.updateMany(
                 {
-                    subscriptionExpirationDate: { $lt: now },
-                    subscriptionActive: true
+                    expirationDate: { $lt: now },
+                    status: "active"
                 },
                 {
                     $set: {
-                        subscriptionStatus: "Free",
-                        subscriptionActive: false,
+                        status: "expired",
+                        expiredAt: new Date(),
                         lastUpdated: new Date()
                     }
                 }
             );
+
+            // Update corresponding users
+            const expiredUserIds = expiredSubscriptions.map(sub => sub.userId);
+            if (expiredUserIds.length > 0) {
+                await users.updateMany(
+                    { _id: { $in: expiredUserIds } },
+                    {
+                        $set: {
+                            subscriptionStatus: "Free",
+                            hasActiveSubscription: false,
+                            lastUpdated: new Date()
+                        },
+                        $unset: { activeSubscriptionId: "" }
+                    }
+                );
+            }
 
             console.log(`Updated ${updateResult.modifiedCount} expired subscriptions`);
 
             res.json({
                 message: "Expired subscriptions updated",
                 expiredCount: updateResult.modifiedCount,
-                expiredUsers: expiredUsers.map(user => ({
-                    id: user._id,
-                    email: user.email,
-                    username: user.username,
-                    expiredOn: user.subscriptionExpirationDate
+                expiredUsers: expiredSubscriptions.map(sub => ({
+                    id: sub.userId,
+                    email: sub.userEmail,
+                    username: sub.username,
+                    expiredOn: sub.expirationDate
                 }))
             });
         } catch (err) {
@@ -598,124 +497,72 @@ module.exports = (client, app, ObjectId) => {
         }
     });
 
-    // 9. Get users expiring soon (ADMIN)
-    app.get("/api/users-expiring-soon", async (req, res) => {
+    // 6. Get all subscribers (ADMIN) - FROM SUBSCRIBERS COLLECTION
+    app.get("/api/subscribers", async (req, res) => {
         try {
             const database = client.db("sample_mflix");
-            const users = database.collection("users");
+            const subscribers = database.collection("subscribers");
             
-            const days = parseInt(req.query.days) || 7;
-            const now = new Date();
-            const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-
-            const expiringUsers = await users.find({
-                subscriptionExpirationDate: {
-                    $gte: now,
-                    $lte: futureDate
-                },
-                subscriptionActive: true
-            }).toArray();
-
-            res.json({
-                count: expiringUsers.length,
-                users: expiringUsers.map(user => ({
-                    id: user._id,
-                    email: user.email,
-                    username: user.username,
-                    subscriptionType: user.subscriptionType,
-                    expirationDate: user.subscriptionExpirationDate,
-                    daysRemaining: Math.ceil((new Date(user.subscriptionExpirationDate) - now) / (1000 * 60 * 60 * 24))
-                }))
-            });
-        } catch (error) {
-            console.error("Error fetching expiring users:", error);
-            res.status(500).json({ message: "Server error", error: error.message });
-        }
-    });
-
-    // 10. Send reminder emails (ADMIN)
-    app.post("/api/send-expiration-reminders", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
+            const { status, page = 1, limit = 10 } = req.query;
+            const skip = (page - 1) * limit;
             
-            const days = parseInt(req.body.days) || 3;
-            const now = new Date();
-            const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-
-            const expiringUsers = await users.find({
-                subscriptionExpirationDate: {
-                    $gte: now,
-                    $lte: futureDate
-                },
-                subscriptionActive: true,
-                lastReminderSent: { $not: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } } // Not sent in last 24 hours
-            }).toArray();
-
-            // Mark users as having received reminders
-            const userIds = expiringUsers.map(user => user._id);
-            if (userIds.length > 0) {
-                await users.updateMany(
-                    { _id: { $in: userIds } },
-                    { $set: { lastReminderSent: new Date() } }
-                );
+            let query = {};
+            if (status) {
+                query.status = status;
             }
 
-            // Here you would integrate with your email service (SendGrid, Mailgun, etc.)
-            console.log(`Would send reminders to ${expiringUsers.length} users`);
+            const allSubscribers = await subscribers.find(query)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit))
+                .toArray();
+
+            const totalCount = await subscribers.countDocuments(query);
 
             res.json({
-                message: "Reminders sent successfully",
-                remindersSent: expiringUsers.length,
-                users: expiringUsers.map(user => ({
-                    email: user.email,
-                    username: user.username,
-                    daysRemaining: Math.ceil((new Date(user.subscriptionExpirationDate) - now) / (1000 * 60 * 60 * 24))
-                }))
+                success: true,
+                subscribers: allSubscribers,
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages: Math.ceil(totalCount / limit),
+                    totalCount,
+                    hasNext: skip + allSubscribers.length < totalCount,
+                    hasPrev: page > 1
+                }
             });
         } catch (error) {
-            console.error("Error sending reminders:", error);
+            console.error("Error fetching subscribers:", error);
             res.status(500).json({ message: "Server error", error: error.message });
         }
     });
 
-    // 11. Get subscription history for a user
-    app.get("/api/subscription-history/:userId", async (req, res) => {
+    // 7. Get individual subscriber details
+    app.get("/api/subscribers/:userId", async (req, res) => {
         try {
+            const database = client.db("sample_mflix");
+            const subscribers = database.collection("subscribers");
+            
             const { userId } = req.params;
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-
-            const user = await users.findOne({ _id: new ObjectId(userId) });
             
-            if (!user) {
-                return res.status(404).json({ message: "User not found" });
+            const subscriber = await subscribers.findOne({ 
+                userId: new ObjectId(userId) 
+            });
+
+            if (!subscriber) {
+                return res.status(404).json({ message: "Subscriber not found" });
             }
 
-            const history = {
-                currentStatus: user.subscriptionStatus || "Free",
-                subscriptionType: user.subscriptionType || null,
-                startDate: user.subscriptionStartDate || null,
-                expirationDate: user.subscriptionExpirationDate || null,
-                lastExtended: user.lastExtendedDate || null,
-                isActive: user.subscriptionActive || false,
-                cancellationDate: user.cancellationDate || null,
-                cancellationReason: user.cancellationReason || null,
-                reactivationDate: user.reactivationDate || null,
-                planUpdatedDate: user.planUpdatedDate || null,
-                lastUpdated: user.lastUpdated || null
-            };
-
-            res.json(history);
-        } catch (err) {
-            console.error("Error fetching subscription history:", err);
-            res.status(500).json({ message: "Server error", error: err.message });
+            res.json({
+                success: true,
+                subscriber
+            });
+        } catch (error) {
+            console.error("Error fetching subscriber:", error);
+            res.status(500).json({ message: "Server error", error: error.message });
         }
     });
 
-    // ===== GENRE ENDPOINT =====
-
-    // 12. Set preferred genre
+    // Keep the original genre endpoint (this can stay in users collection)
     app.post("/api/set-preferred-genre", async (req, res) => {
         try {
             const { userId, genre } = req.body;
@@ -751,405 +598,7 @@ module.exports = (client, app, ObjectId) => {
         }
     });
 
-    // ===== DEBUG ENDPOINTS =====
-
-    // 13. Debug endpoint to check user data structure
-    app.get("/api/debug/users-sample", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-            
-            // Get a sample of users with subscription fields
-            const sampleUsers = await users.find({}, {
-                projection: {
-                    email: 1,
-                    username: 1,
-                    subscriptionStatus: 1,
-                    subscriptionType: 1,
-                    subscriptionActive: 1,
-                    subscriptionExpirationDate: 1,
-                    subscriptionStartDate: 1,
-                    preferredGenre: 1
-                }
-            }).limit(10).toArray();
-            
-            // Count users by subscription status
-            const statusCounts = await users.aggregate([
-                {
-                    $group: {
-                        _id: { 
-                            $ifNull: ["$subscriptionStatus", "No Status Set"] 
-                        },
-                        count: { $sum: 1 }
-                    }
-                }
-            ]).toArray();
-            
-            // Count users with various subscription fields
-            const fieldCounts = {
-                totalUsers: await users.countDocuments(),
-                hasSubscriptionStatus: await users.countDocuments({ subscriptionStatus: { $exists: true } }),
-                hasSubscriptionType: await users.countDocuments({ subscriptionType: { $exists: true } }),
-                hasSubscriptionActive: await users.countDocuments({ subscriptionActive: { $exists: true } }),
-                activeSubscriptions: await users.countDocuments({ subscriptionActive: true }),
-                premiumUsers: await users.countDocuments({ subscriptionStatus: "Premium" })
-            };
-            
-            res.json({
-                success: true,
-                sampleUsers,
-                statusCounts,
-                fieldCounts,
-                message: "Debug data for subscription stats"
-            });
-        } catch (error) {
-            console.error("Debug endpoint error:", error);
-            res.status(500).json({ 
-                success: false, 
-                error: error.message 
-            });
-        }
-    });
-
-    // 14. Debug endpoint to initialize subscription status for existing users
-    app.post("/api/debug/initialize-subscription-status", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-            
-            // Update all users without subscriptionStatus to "Free"
-            const result = await users.updateMany(
-                { subscriptionStatus: { $exists: false } },
-                { 
-                    $set: { 
-                        subscriptionStatus: "Free",
-                        subscriptionActive: false,
-                        lastUpdated: new Date()
-                    } 
-                }
-            );
-            
-            // Also update users with null subscriptionStatus
-            const nullResult = await users.updateMany(
-                { subscriptionStatus: null },
-                { 
-                    $set: { 
-                        subscriptionStatus: "Free",
-                        subscriptionActive: false,
-                        lastUpdated: new Date()
-                    } 
-                }
-            );
-
-            // Fix Premium users missing subscription details
-            const premiumUsersFixed = await users.updateMany(
-                {
-                    subscriptionStatus: "Premium",
-                    $or: [
-                        { subscriptionType: { $exists: false } },
-                        { subscriptionType: null },
-                        { subscriptionActive: { $exists: false } },
-                        { subscriptionExpirationDate: { $exists: false } }
-                    ]
-                },
-                {
-                    $set: {
-                        subscriptionType: "monthly", // Default to monthly
-                        subscriptionActive: true,
-                        subscriptionStartDate: new Date(),
-                        subscriptionExpirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-                        lastUpdated: new Date()
-                    }
-                }
-            );
-            
-            res.json({
-                success: true,
-                message: "Initialized subscription status for users",
-                updatedMissingStatus: result.modifiedCount,
-                updatedNullStatus: nullResult.modifiedCount,
-                premiumUsersFixed: premiumUsersFixed.modifiedCount,
-                totalUpdated: result.modifiedCount + nullResult.modifiedCount + premiumUsersFixed.modifiedCount
-            });
-        } catch (error) {
-            console.error("Initialize subscription status error:", error);
-            res.status(500).json({ 
-                success: false, 
-                error: error.message 
-            });
-        }
-    });
-
-    // 15. Simple test endpoint
-    app.get("/api/debug/test", (req, res) => {
-        res.json({
-            success: true,
-            message: "All subscription endpoints are working",
-            timestamp: new Date(),
-            availableEndpoints: [
-                "POST /api/subscribe - Subscribe to a plan",
-                "GET /api/subscription-status - Get user subscription status",
-                "GET /api/subscription-stats - Get admin statistics",
-                "POST /api/extend-subscription - Extend subscription",
-                "POST /api/cancel-subscription - Cancel subscription", 
-                "POST /api/reactivate-subscription - Reactivate subscription",
-                "POST /api/update-subscription-plan - Update plan",
-                "POST /api/check-expired-subscriptions - Check expired (cron)",
-                "GET /api/users-expiring-soon - Users expiring soon",
-                "POST /api/send-expiration-reminders - Send reminders",
-                "GET /api/subscription-history/:userId - Get history",
-                "POST /api/set-preferred-genre - Set preferred genre",
-                "GET /api/debug/users-sample - Debug user data",
-                "POST /api/debug/initialize-subscription-status - Fix data",
-                "GET /api/debug/test - This endpoint"
-            ],
-            subscriptionOptions
-        });
-    });
-
-    // ===== ADDITIONAL UTILITY ENDPOINTS =====
-
-    // 16. Get subscription options (for frontend)
-    app.get("/api/subscription-options", (req, res) => {
-        res.json({
-            success: true,
-            subscriptionOptions,
-            message: "Available subscription plans"
-        });
-    });
-
-    // 17. Bulk update user subscriptions (ADMIN ONLY)
-    app.post("/api/admin/bulk-update-subscriptions", async (req, res) => {
-        try {
-            const { userIds, action, subscriptionType } = req.body;
-            
-            if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-                return res.status(400).json({ message: "userIds array is required" });
-            }
-
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-            
-            let updateOperation = {};
-            let message = "";
-
-            switch (action) {
-                case 'activate':
-                    if (!subscriptionType || !subscriptionOptions[subscriptionType]) {
-                        return res.status(400).json({ message: "Valid subscriptionType required for activation" });
-                    }
-                    updateOperation = {
-                        $set: {
-                            subscriptionStatus: "Premium",
-                            subscriptionType: subscriptionType,
-                            subscriptionActive: true,
-                            subscriptionStartDate: new Date(),
-                            subscriptionExpirationDate: calculateExpirationDate(subscriptionType),
-                            lastUpdated: new Date()
-                        }
-                    };
-                    message = `Activated ${subscriptionType} subscription for ${userIds.length} users`;
-                    break;
-
-                case 'deactivate':
-                    updateOperation = {
-                        $set: {
-                            subscriptionStatus: "Free",
-                            subscriptionActive: false,
-                            lastUpdated: new Date()
-                        }
-                    };
-                    message = `Deactivated subscriptions for ${userIds.length} users`;
-                    break;
-
-                case 'extend':
-                    if (!subscriptionType || !subscriptionOptions[subscriptionType]) {
-                        return res.status(400).json({ message: "Valid subscriptionType required for extension" });
-                    }
-                    // This is more complex as it needs to extend from current expiration
-                    return res.status(400).json({ message: "Bulk extend not implemented - use individual extend endpoint" });
-
-                default:
-                    return res.status(400).json({ message: "Invalid action. Use 'activate' or 'deactivate'" });
-            }
-
-            const result = await users.updateMany(
-                { _id: { $in: userIds.map(id => new ObjectId(id)) } },
-                updateOperation
-            );
-
-            res.json({
-                success: true,
-                message,
-                matchedCount: result.matchedCount,
-                modifiedCount: result.modifiedCount
-            });
-
-        } catch (error) {
-            console.error("Error in bulk update:", error);
-            res.status(500).json({ message: "Server error", error: error.message });
-        }
-    });
-
-    // 18. Get revenue report (ADMIN)
-    app.get("/api/admin/revenue-report", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-            
-            const { startDate, endDate } = req.query;
-            
-            let matchQuery = {
-                subscriptionActive: true,
-                subscriptionType: { $exists: true, $ne: null }
-            };
-
-            // Add date range if provided
-            if (startDate && endDate) {
-                matchQuery.subscriptionStartDate = {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate)
-                };
-            }
-
-            const revenueData = await users.aggregate([
-                { $match: matchQuery },
-                {
-                    $group: {
-                        _id: {
-                            subscriptionType: "$subscriptionType",
-                            month: { $dateToString: { format: "%Y-%m", date: "$subscriptionStartDate" } }
-                        },
-                        count: { $sum: 1 },
-                        users: {
-                            $push: {
-                                id: "$_id",
-                                email: "$email",
-                                username: "$username",
-                                startDate: "$subscriptionStartDate",
-                                expirationDate: "$subscriptionExpirationDate"
-                            }
-                        }
-                    }
-                },
-                {
-                    $sort: { "_id.month": -1, "_id.subscriptionType": 1 }
-                }
-            ]).toArray();
-
-            // Calculate revenue for each group
-            const revenueReport = revenueData.map(group => {
-                const planCost = subscriptionOptions[group._id.subscriptionType]?.cost || 0;
-                const revenue = group.count * planCost;
-                
-                return {
-                    month: group._id.month,
-                    subscriptionType: group._id.subscriptionType,
-                    userCount: group.count,
-                    revenue: revenue,
-                    users: group.users
-                };
-            });
-
-            // Calculate totals
-            const totalRevenue = revenueReport.reduce((sum, item) => sum + item.revenue, 0);
-            const totalUsers = revenueReport.reduce((sum, item) => sum + item.userCount, 0);
-
-            res.json({
-                success: true,
-                dateRange: { startDate, endDate },
-                totalRevenue,
-                totalUsers,
-                revenueByMonthAndPlan: revenueReport,
-                generatedAt: new Date()
-            });
-
-        } catch (error) {
-            console.error("Error generating revenue report:", error);
-            res.status(500).json({ message: "Server error", error: error.message });
-        }
-    });
-
-    // 19. Health check endpoint
-    app.get("/api/subscription-health", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const users = database.collection("users");
-            
-            const now = new Date();
-            
-            // Basic health metrics
-            const metrics = {
-                totalUsers: await users.countDocuments(),
-                activeSubscriptions: await users.countDocuments({ subscriptionActive: true }),
-                expiredSubscriptions: await users.countDocuments({
-                    subscriptionExpirationDate: { $lt: now },
-                    subscriptionActive: true
-                }),
-                usersWithoutStatus: await users.countDocuments({
-                    $or: [
-                        { subscriptionStatus: { $exists: false } },
-                        { subscriptionStatus: null }
-                    ]
-                }),
-                premiumUsers: await users.countDocuments({ subscriptionStatus: "Premium" }),
-                freeUsers: await users.countDocuments({ subscriptionStatus: "Free" })
-            };
-
-            // Health status
-            const isHealthy = metrics.expiredSubscriptions === 0 && metrics.usersWithoutStatus === 0;
-
-            res.json({
-                success: true,
-                healthy: isHealthy,
-                metrics,
-                issues: {
-                    expiredButActive: metrics.expiredSubscriptions > 0,
-                    missingStatus: metrics.usersWithoutStatus > 0
-                },
-                checkedAt: new Date()
-            });
-
-        } catch (error) {
-            console.error("Error checking subscription health:", error);
-            res.status(500).json({ 
-                success: false,
-                healthy: false,
-                error: error.message 
-            });
-        }
-    });
-
-    // 20. Webhook endpoint for payment processing 
-    app.post("/api/webhooks/payment", async (req, res) => {
-        try {
-            const { event, data } = req.body;
-            
-            console.log('Payment webhook received:', { event, data });
-
-            switch (event) {
-                case 'payment.succeeded':
-                    break;
-                    
-                case 'payment.failed':
-                    break;
-                    
-                case 'subscription.cancelled':
-                    break;
-                    
-                default:
-                    console.log('Unhandled webhook event:', event);
-            }
-
-            res.json({ received: true });
-            
-        } catch (error) {
-            console.error("Error processing payment webhook:", error);
-            res.status(500).json({ error: "Webhook processing failed" });
-        }
-    });
-
-    console.log("✅ All subscription endpoints loaded successfully!");
-    console.log("📊 Available endpoints: 20 total");
+    console.log("✅ Subscription endpoints loaded with separate subscribers collection!");
+    console.log("📊 Subscription data will be stored in 'subscribers' collection");
     console.log("🔧 Subscription options:", Object.keys(subscriptionOptions));
 };

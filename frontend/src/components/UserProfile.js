@@ -44,6 +44,10 @@ const UserProfile = () => {
   const token = getUserToken();
   const API_BASE_URL = "https://flixxit-h9fa.onrender.com";
 
+  // Updated localStorage key names to avoid conflicts
+  const SUBSCRIPTION_STORAGE_KEY = "flixxItSubscriptionData";
+  const USER_STORAGE_KEY = "flixxItUser";
+
   // Clear messages after timeout
   useEffect(() => {
     if (error) {
@@ -98,6 +102,7 @@ const UserProfile = () => {
     fetchMovies();
   }, [fetchMovies]);
 
+  // Updated fetchSubscriptionStatus function to work with subscribers collection
   const fetchSubscriptionStatus = useCallback(async () => {
     try {
       if (!user._id) return;
@@ -134,9 +139,10 @@ const UserProfile = () => {
         status: statusData.status,
         expirationDate: statusData.expirationDate,
         daysRemaining: statusData.daysRemaining || 0,
-        startDate: statusData.startDate
+        startDate: statusData.startDate,
+        subscriptionId: statusData.subscriptionId // Store subscription ID from subscribers collection
       };
-      localStorage.setItem("flixxItSubscription", JSON.stringify(subscriptionDataToStore));
+      localStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(subscriptionDataToStore));
       
       console.log('Updated subscription state:', {
         status: statusData.status,
@@ -159,9 +165,9 @@ const UserProfile = () => {
     }
   }, [user._id, token]);
 
-  // Initialize subscription status
+  // Initialize subscription status with updated localStorage key
   useEffect(() => {
-    const storedSubscriptionData = localStorage.getItem("flixxItSubscription");
+    const storedSubscriptionData = localStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
     if (storedSubscriptionData) {
       try {
         const subscriptionData = JSON.parse(storedSubscriptionData);
@@ -171,7 +177,7 @@ const UserProfile = () => {
           const isExpired = new Date() > new Date(subscriptionData.expirationDate);
           if (isExpired) {
             // Clear expired subscription from localStorage
-            localStorage.removeItem("flixxItSubscription");
+            localStorage.removeItem(SUBSCRIPTION_STORAGE_KEY);
             setSubscribed(false);
             setSubscriptionStatus("Free");
             setSelectedPlan("");
@@ -191,7 +197,7 @@ const UserProfile = () => {
         }
       } catch (error) {
         console.error("Error parsing stored subscription data:", error);
-        localStorage.removeItem("flixxItSubscription");
+        localStorage.removeItem(SUBSCRIPTION_STORAGE_KEY);
         fetchSubscriptionStatus();
       }
     } else {
@@ -219,6 +225,7 @@ const UserProfile = () => {
     fetchMustWatchMovies();
   }, [fetchMustWatchMovies]);
 
+  // Updated handleSubscribe function to work with subscribers collection
   const handleSubscribe = async (subscriptionType) => {
     if (!user._id) {
       setError("User not found. Please log in again.");
@@ -257,26 +264,23 @@ const UserProfile = () => {
         status: "Premium",
         expirationDate: response.data.expirationDate,
         daysRemaining: daysRemaining,
-        startDate: new Date().toISOString()
+        startDate: new Date().toISOString(),
+        subscriptionId: response.data.subscriptionId // Store subscription ID from response
       };
 
       setSubscriptionData(newSubscriptionData);
 
-      // Update user in both local state and localStorage
+      // Update user with minimal subscription data (new structure)
       const updatedUser = { 
         ...user, 
-        subscribed: true, 
-        plan: subscriptionType, 
-        status: "Premium",
         subscriptionStatus: "Premium",
-        subscriptionType: subscriptionType,
-        subscriptionActive: true,
-        subscriptionExpirationDate: response.data.expirationDate
+        hasActiveSubscription: true, // Boolean flag instead of detailed data
+        activeSubscriptionId: response.data.subscriptionId // Reference to subscription in subscribers collection
       };
       
       setUser(updatedUser);
-      localStorage.setItem("flixxItUser", JSON.stringify(updatedUser));
-      localStorage.setItem("flixxItSubscription", JSON.stringify(newSubscriptionData));
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+      localStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(newSubscriptionData));
       
       // Update context if available
       if (updateUser) {
@@ -293,6 +297,53 @@ const UserProfile = () => {
       setError(errorMessage);
     } finally {
       setIsSubscribing(false);
+    }
+  };
+
+  // Optional: Add a function to cancel subscription
+  const handleCancelSubscription = async (reason = "User requested") => {
+    if (!user._id) {
+      setError("User not found. Please log in again.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/cancel-subscription`, {
+        userId: user._id,
+        reason
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        timeout: 15000
+      });
+
+      // Update states
+      setSubscribed(false);
+      setSubscriptionStatus("Free");
+      setSelectedPlan("");
+      setSubscriptionData({});
+
+      // Update user with new structure
+      const updatedUser = { 
+        ...user, 
+        subscriptionStatus: "Free",
+        hasActiveSubscription: false
+      };
+      delete updatedUser.activeSubscriptionId;
+      
+      setUser(updatedUser);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+      localStorage.removeItem(SUBSCRIPTION_STORAGE_KEY);
+      
+      if (updateUser) {
+        updateUser(updatedUser);
+      }
+      
+      setSuccess("Subscription cancelled successfully.");
+      
+    } catch (error) {
+      console.error("Cancellation failed:", error);
+      const errorMessage = error.response?.data?.message || "Cancellation failed. Please try again.";
+      setError(errorMessage);
     }
   };
 
@@ -330,7 +381,7 @@ const UserProfile = () => {
 
       const updatedUser = { ...user, preferredGenre: genre };
       setUser(updatedUser);
-      localStorage.setItem("flixxItUser", JSON.stringify(updatedUser));
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
       
       // Update context if available
       if (updateUser) {
@@ -663,6 +714,21 @@ const UserProfile = () => {
                       Consider renewing to continue enjoying premium features.
                     </div>
                   )}
+
+                  {/* Cancel Subscription Button */}
+                  <div className="mt-3">
+                    <button 
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to cancel your subscription?')) {
+                          handleCancelSubscription();
+                        }
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} className="me-2" />
+                      Cancel Subscription
+                    </button>
+                  </div>
                 </div>
               ) : subscriptionStatus === "Expired" ? (
                 <div>
