@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useContext } from "react";
+import React, { useEffect, useMemo, useState, useContext, useCallback } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { getUser, getUserToken } from "../utils/helpers";
@@ -19,11 +19,12 @@ import {
   faGift,
   faCalendarAlt,
   faExclamationTriangle,
-  faClock
+  faClock,
+  faCheckCircle
 } from "@fortawesome/free-solid-svg-icons";
 
 const UserProfile = () => {
-  const { user: contextUser } = useContext(AuthContext);
+  const { user: contextUser, updateUser } = useContext(AuthContext);
   const { isDark } = useTheme();
   const [user, setUser] = useState(contextUser || {});
   const [subscribed, setSubscribed] = useState(false);
@@ -36,10 +37,27 @@ const UserProfile = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isSavingGenre, setIsSavingGenre] = useState(false);
 
   const token = getUserToken();
+  const API_BASE_URL = "https://flixxit-h9fa.onrender.com";
+
+  // Clear messages after timeout
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   // Update user from context when it changes
   useEffect(() => {
@@ -60,62 +78,39 @@ const UserProfile = () => {
     }
   }, [contextUser]);
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get("https://flixxit-h9fa.onrender.com/api/movies", {
-          timeout: 10000
-        });
-        setMovies(response.data);
-      } catch (err) {
-        console.error("Error fetching movies:", err);
-        setError("Failed to load movies. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMovies();
+  const fetchMovies = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/movies`, {
+        timeout: 15000
+      });
+      setMovies(response.data);
+    } catch (err) {
+      console.error("Error fetching movies:", err);
+      setError("Failed to load movies. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const storedSubscriptionData = localStorage.getItem("flixxItSubscription");
-    if (storedSubscriptionData) {
-      const subscriptionData = JSON.parse(storedSubscriptionData);
-      
-      // Check if stored data has expiration info
-      if (subscriptionData.expirationDate) {
-        const isExpired = new Date() > new Date(subscriptionData.expirationDate);
-        if (isExpired) {
-          // Clear expired subscription from localStorage
-          localStorage.removeItem("flixxItSubscription");
-          setSubscribed(false);
-          setSubscriptionStatus("Free");
-        } else {
-          setSubscribed(subscriptionData.subscribed);
-          setSelectedPlan(subscriptionData.plan);
-          setSubscriptionStatus(subscriptionData.status);
-          setSubscriptionData(subscriptionData);
-        }
-      } else {
-        // Old format, fetch fresh data
-        fetchSubscriptionStatus();
-      }
-    } else {
-      fetchSubscriptionStatus();
-    }
-  }, [user._id, token]);
+    fetchMovies();
+  }, [fetchMovies]);
 
-  const fetchSubscriptionStatus = async () => {
+  const fetchSubscriptionStatus = useCallback(async () => {
     try {
       if (!user._id) return;
 
-      const response = await axios.get("https://flixxit-h9fa.onrender.com/api/subscription-status", {
+      console.log('Fetching subscription status for user:', user._id);
+      
+      const response = await axios.get(`${API_BASE_URL}/api/subscription-status`, {
         params: { userId: user._id },
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        timeout: 10000
+        timeout: 15000
       });
+
+      console.log('Subscription status response:', response.data);
 
       const statusData = response?.data?.subscriptionStatus || {
         status: "Free",
@@ -125,49 +120,104 @@ const UserProfile = () => {
         daysRemaining: 0
       };
 
+      // Set all subscription states based on the response
       setSubscriptionStatus(statusData.status);
       setSubscriptionOptions(response.data.subscriptionOptions || {});
       setSubscribed(statusData.subscribed);
-      setSelectedPlan(statusData.plan);
+      setSelectedPlan(statusData.plan || "");
       setSubscriptionData(statusData);
 
       // Update localStorage with complete subscription data
-      const subscriptionData = {
+      const subscriptionDataToStore = {
         subscribed: statusData.subscribed,
-        plan: statusData.plan,
+        plan: statusData.plan || "",
         status: statusData.status,
         expirationDate: statusData.expirationDate,
-        daysRemaining: statusData.daysRemaining,
+        daysRemaining: statusData.daysRemaining || 0,
         startDate: statusData.startDate
       };
-      localStorage.setItem("flixxItSubscription", JSON.stringify(subscriptionData));
+      localStorage.setItem("flixxItSubscription", JSON.stringify(subscriptionDataToStore));
+      
+      console.log('Updated subscription state:', {
+        status: statusData.status,
+        subscribed: statusData.subscribed,
+        plan: statusData.plan,
+        daysRemaining: statusData.daysRemaining
+      });
+      
     } catch (error) {
       console.error("Failed to fetch subscription status:", error);
       // Set default free status on error
       setSubscriptionStatus("Free");
       setSubscribed(false);
-    }
-  };
-
-  useEffect(() => {
-    const fetchMustWatchMovies = async () => {
-      try {
-        const endpoint = genre
-          ? `https://flixxit-h9fa.onrender.com/api/movies/genre/${genre}`
-          : "https://flixxit-h9fa.onrender.com/api/movies";
-        
-        const response = await axios.get(endpoint, { timeout: 10000 });
-        setMustWatchMovies(response.data.slice(0, 8)); // Show more movies
-      } catch (error) {
-        console.error("Failed to fetch must-watch movies:", error);
-        setMustWatchMovies([]);
+      setSelectedPlan("");
+      setSubscriptionData({});
+      
+      if (error.response?.status !== 404) {
+        setError("Failed to load subscription status. Please refresh the page.");
       }
-    };
+    }
+  }, [user._id, token]);
+
+  // Initialize subscription status
+  useEffect(() => {
+    const storedSubscriptionData = localStorage.getItem("flixxItSubscription");
+    if (storedSubscriptionData) {
+      try {
+        const subscriptionData = JSON.parse(storedSubscriptionData);
+        
+        // Check if stored data has expiration info and is still valid
+        if (subscriptionData.expirationDate) {
+          const isExpired = new Date() > new Date(subscriptionData.expirationDate);
+          if (isExpired) {
+            // Clear expired subscription from localStorage
+            localStorage.removeItem("flixxItSubscription");
+            setSubscribed(false);
+            setSubscriptionStatus("Free");
+            setSelectedPlan("");
+            setSubscriptionData({});
+            fetchSubscriptionStatus(); // Fetch fresh data
+          } else {
+            setSubscribed(subscriptionData.subscribed || false);
+            setSelectedPlan(subscriptionData.plan || "");
+            setSubscriptionStatus(subscriptionData.status || "Free");
+            setSubscriptionData(subscriptionData);
+            // Still fetch fresh data but don't block UI
+            fetchSubscriptionStatus();
+          }
+        } else {
+          // Old format or missing expiration, fetch fresh data
+          fetchSubscriptionStatus();
+        }
+      } catch (error) {
+        console.error("Error parsing stored subscription data:", error);
+        localStorage.removeItem("flixxItSubscription");
+        fetchSubscriptionStatus();
+      }
+    } else {
+      fetchSubscriptionStatus();
+    }
+  }, [fetchSubscriptionStatus]);
+
+  const fetchMustWatchMovies = useCallback(async () => {
+    if (subscriptionStatus !== "Premium") return;
     
-    if (subscriptionStatus === "Premium") {
-      fetchMustWatchMovies();
+    try {
+      const endpoint = genre
+        ? `${API_BASE_URL}/api/movies/genre/${encodeURIComponent(genre)}`
+        : `${API_BASE_URL}/api/movies`;
+      
+      const response = await axios.get(endpoint, { timeout: 15000 });
+      setMustWatchMovies(response.data.slice(0, 8));
+    } catch (error) {
+      console.error("Failed to fetch must-watch movies:", error);
+      setMustWatchMovies([]);
     }
   }, [genre, subscriptionStatus]);
+
+  useEffect(() => {
+    fetchMustWatchMovies();
+  }, [fetchMustWatchMovies]);
 
   const handleSubscribe = async (subscriptionType) => {
     if (!user._id) {
@@ -176,15 +226,27 @@ const UserProfile = () => {
     }
 
     setIsSubscribing(true);
+    setError(null);
+    
     try {
-      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/subscribe", {
+      console.log('Subscribing user:', user._id, 'to plan:', subscriptionType);
+      
+      const response = await axios.post(`${API_BASE_URL}/api/subscribe`, {
         userId: user._id,
         subscriptionType,
       }, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        timeout: 10000
+        timeout: 15000
       });
 
+      console.log('Subscription response:', response.data);
+
+      // Calculate days remaining from the expiration date
+      const expirationDate = new Date(response.data.expirationDate);
+      const now = new Date();
+      const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+
+      // Update all subscription states
       setSubscribed(true);
       setSelectedPlan(subscriptionType);
       setSubscriptionStatus("Premium");
@@ -194,28 +256,41 @@ const UserProfile = () => {
         plan: subscriptionType,
         status: "Premium",
         expirationDate: response.data.expirationDate,
-        daysRemaining: Math.ceil((new Date(response.data.expirationDate) - new Date()) / (1000 * 60 * 60 * 24))
+        daysRemaining: daysRemaining,
+        startDate: new Date().toISOString()
       };
 
       setSubscriptionData(newSubscriptionData);
 
+      // Update user in both local state and localStorage
       const updatedUser = { 
         ...user, 
         subscribed: true, 
         plan: subscriptionType, 
-        status: "Premium" 
+        status: "Premium",
+        subscriptionStatus: "Premium",
+        subscriptionType: subscriptionType,
+        subscriptionActive: true,
+        subscriptionExpirationDate: response.data.expirationDate
       };
+      
       setUser(updatedUser);
       localStorage.setItem("flixxItUser", JSON.stringify(updatedUser));
       localStorage.setItem("flixxItSubscription", JSON.stringify(newSubscriptionData));
       
-      setError(null);
+      // Update context if available
+      if (updateUser) {
+        updateUser(updatedUser);
+      }
       
-      // Refresh subscription status to get latest data
-      setTimeout(() => fetchSubscriptionStatus(), 1000);
+      setSuccess(`Successfully subscribed to ${subscriptionType} plan! Welcome to Premium!`);
+      
+      // Refresh subscription status to get latest data from server
+      setTimeout(() => fetchSubscriptionStatus(), 2000);
     } catch (error) {
       console.error("Subscription failed:", error);
-      setError("Subscription failed. Please try again.");
+      const errorMessage = error.response?.data?.message || "Subscription failed. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsSubscribing(false);
     }
@@ -242,22 +317,31 @@ const UserProfile = () => {
     }
 
     setIsSavingGenre(true);
+    setError(null);
+    
     try {
-      const response = await axios.post("https://flixxit-h9fa.onrender.com/api/set-preferred-genre", {
+      await axios.post(`${API_BASE_URL}/api/set-preferred-genre`, {
         userId: user._id,
         genre,
       }, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        timeout: 10000
+        timeout: 15000
       });
 
       const updatedUser = { ...user, preferredGenre: genre };
       setUser(updatedUser);
       localStorage.setItem("flixxItUser", JSON.stringify(updatedUser));
-      setError(null);
+      
+      // Update context if available
+      if (updateUser) {
+        updateUser(updatedUser);
+      }
+      
+      setSuccess("Preferred genre saved successfully!");
     } catch (error) {
       console.error("Failed to set preferred genre:", error);
-      setError("Failed to save preferred genre. Please try again.");
+      const errorMessage = error.response?.data?.message || "Failed to save preferred genre. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsSavingGenre(false);
     }
@@ -265,7 +349,15 @@ const UserProfile = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return "Invalid Date";
+    }
   };
 
   const getSubscriptionStatusColor = (status) => {
@@ -282,7 +374,7 @@ const UserProfile = () => {
   const getSubscriptionIcon = (status) => {
     switch (status) {
       case "Premium":
-        return faCheck;
+        return faCheckCircle;
       case "Expired":
         return faExclamationTriangle;
       default:
@@ -316,6 +408,21 @@ const UserProfile = () => {
 
   return (
     <div className="container mt-4">
+      {/* Success Message */}
+      {success && (
+        <div className="alert alert-success alert-dismissible fade show" role="alert">
+          <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+          {success}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setSuccess(null)}
+            aria-label="Close"
+          ></button>
+        </div>
+      )}
+
+      {/* Error Message */}
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           <FontAwesomeIcon icon={faTimes} className="me-2" />
@@ -400,16 +507,20 @@ const UserProfile = () => {
                       borderColor: 'var(--border-color)',
                       color: 'var(--secondary-text)'
                     }}
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: 'Support Flixxit Creator',
-                          text: 'Help support the creator of Flixxit by buying them a coffee!',
-                          url: 'https://coff.ee/nimoh'
-                        });
-                      } else {
-                        navigator.clipboard.writeText('https://coff.ee/nimoh');
-                        // You could add a toast notification here
+                    onClick={async () => {
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: 'Support Flixxit Creator',
+                            text: 'Help support the creator of Flixxit by buying them a coffee!',
+                            url: 'https://coff.ee/nimoh'
+                          });
+                        } else {
+                          await navigator.clipboard.writeText('https://coff.ee/nimoh');
+                          setSuccess('Support link copied to clipboard!');
+                        }
+                      } catch (error) {
+                        console.error('Share failed:', error);
                       }
                     }}
                   >
@@ -515,32 +626,34 @@ const UserProfile = () => {
                     />
                     <div>
                       <h5 className="mb-1" style={{ color: 'var(--primary-text)' }}>Premium Member</h5>
-                      <p className="mb-0 text-muted">Plan: {selectedPlan}</p>
+                      <p className="mb-0 text-muted">Plan: {selectedPlan || 'Premium'}</p>
                     </div>
                   </div>
                   
                   {/* Subscription Details */}
-                  <div className="row">
-                    <div className="col-md-6">
-                      <div className="d-flex align-items-center mb-2">
-                        <FontAwesomeIcon icon={faCalendarAlt} className="me-2 text-muted" />
-                        <span style={{ color: 'var(--primary-text)' }}>
-                          <strong>Expires:</strong> {formatDate(subscriptionData.expirationDate)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="d-flex align-items-center mb-2">
-                        <FontAwesomeIcon icon={faClock} className="me-2 text-muted" />
-                        <span style={{ color: 'var(--primary-text)' }}>
-                          <strong>Days Remaining:</strong> 
-                          <span className={subscriptionData.daysRemaining <= 7 ? 'text-warning ms-1' : 'text-success ms-1'}>
-                            {subscriptionData.daysRemaining} days
+                  {subscriptionData.expirationDate && (
+                    <div className="row">
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-center mb-2">
+                          <FontAwesomeIcon icon={faCalendarAlt} className="me-2 text-muted" />
+                          <span style={{ color: 'var(--primary-text)' }}>
+                            <strong>Expires:</strong> {formatDate(subscriptionData.expirationDate)}
                           </span>
-                        </span>
+                        </div>
+                      </div>
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-center mb-2">
+                          <FontAwesomeIcon icon={faClock} className="me-2 text-muted" />
+                          <span style={{ color: 'var(--primary-text)' }}>
+                            <strong>Days Remaining:</strong> 
+                            <span className={subscriptionData.daysRemaining <= 7 ? 'text-warning ms-1' : 'text-success ms-1'}>
+                              {subscriptionData.daysRemaining || 0} days
+                            </span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Expiration Warning */}
                   {subscriptionData.daysRemaining <= 7 && subscriptionData.daysRemaining > 0 && (
@@ -561,7 +674,7 @@ const UserProfile = () => {
                     />
                     <div>
                       <h5 className="mb-1" style={{ color: 'var(--primary-text)' }}>Subscription Expired</h5>
-                      <p className="mb-0 text-muted">Previous Plan: {subscriptionData.plan}</p>
+                      <p className="mb-0 text-muted">Previous Plan: {subscriptionData.plan || 'N/A'}</p>
                     </div>
                   </div>
                   
@@ -577,27 +690,83 @@ const UserProfile = () => {
                     <FontAwesomeIcon icon={faTimes} className="text-warning me-3" size="lg" />
                     <div>
                       <h5 className="mb-1" style={{ color: 'var(--primary-text)' }}>Free Member</h5>
-                      <p className="mb-0 text-muted">Upgrade to Premium for exclusive features</p>
+                      <p className="mb-0 text-muted">Choose a plan below to unlock Premium features</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Subscription Plans */}
-              {(subscriptionStatus !== "Premium" || subscriptionData.daysRemaining <= 7) && Object.keys(subscriptionOptions).length > 0 && (
-                <div className="mt-4">
+              {/* Subscription Plans - Always show for Free members */}
+              {((subscriptionStatus === "Free" || subscriptionStatus === "Expired" || subscriptionStatus === null) || 
+                (subscriptionStatus === "Premium" && subscriptionData.daysRemaining && subscriptionData.daysRemaining <= 7)) && 
+                Object.keys(subscriptionOptions).length > 0 && (
+                <div className="mt-4 subscription-plans">
                   <h6 className="mb-3" style={{ color: 'var(--primary-text)' }}>
-                    {subscriptionStatus === "Premium" ? "Extend Subscription:" : "Available Plans:"}
+                    {subscriptionStatus === "Premium" ? "Extend Subscription:" : "Choose Your Plan:"}
                   </h6>
+                  
+                  {/* Premium Benefits Section for Free Users */}
+                  {(subscriptionStatus === "Free" || subscriptionStatus === "Expired" || subscriptionStatus === null) && (
+                    <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'var(--primary-bg)', border: '1px solid var(--border-color)' }}>
+                      <h6 className="mb-2" style={{ color: 'var(--accent-color)' }}>
+                        <FontAwesomeIcon icon={faCrown} className="me-2" />
+                        Premium Benefits:
+                      </h6>
+                      <div className="row">
+                        <div className="col-md-6">
+                          <ul className="list-unstyled mb-0" style={{ color: 'var(--primary-text)' }}>
+                            <li className="mb-1">
+                              <FontAwesomeIcon icon={faCheck} className="text-success me-2" />
+                              Personalized movie recommendations
+                            </li>
+                            <li className="mb-1">
+                              <FontAwesomeIcon icon={faCheck} className="text-success me-2" />
+                              Save preferred genres
+                            </li>
+                            <li className="mb-1">
+                              <FontAwesomeIcon icon={faCheck} className="text-success me-2" />
+                              Priority customer support
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="col-md-6">
+                          <ul className="list-unstyled mb-0" style={{ color: 'var(--primary-text)' }}>
+                            <li className="mb-1">
+                              <FontAwesomeIcon icon={faCheck} className="text-success me-2" />
+                              Ad-free experience
+                            </li>
+                            <li className="mb-1">
+                              <FontAwesomeIcon icon={faCheck} className="text-success me-2" />
+                              Early access to new features
+                            </li>
+                            <li className="mb-1">
+                              <FontAwesomeIcon icon={faCheck} className="text-success me-2" />
+                              Advanced filtering options
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="row">
                     {Object.entries(subscriptionOptions).map(([option, details]) => (
                       <div key={option} className="col-lg-3 col-md-6 mb-3">
                         <div 
-                          className="card h-100 border position-relative"
+                          className="card h-100 border position-relative subscription-plan-card"
                           style={{ 
                             backgroundColor: 'var(--primary-bg)',
                             borderColor: option === 'yearly' ? 'var(--accent-color)' : 'var(--border-color)',
-                            borderWidth: option === 'yearly' ? '2px' : '1px'
+                            borderWidth: option === 'yearly' ? '2px' : '1px',
+                            transition: 'all 0.3s ease',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-5px)';
+                            e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
                           {option === 'yearly' && (
@@ -615,39 +784,88 @@ const UserProfile = () => {
                               BEST VALUE
                             </div>
                           )}
+                          
+                          {/* Popular badge for monthly plan for free users */}
+                          {option === 'monthly' && (subscriptionStatus === "Free" || subscriptionStatus === "Expired" || subscriptionStatus === null) && (
+                            <div 
+                              className="position-absolute top-0 end-0 m-2"
+                              style={{
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: '8px',
+                                fontSize: '0.7rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              POPULAR
+                            </div>
+                          )}
+                          
                           <div className="card-body text-center">
-                            <h6 className="card-title text-capitalize" style={{ color: 'var(--primary-text)' }}>
-                              {option}
+                            <h6 className="card-title text-capitalize fw-bold" style={{ color: 'var(--primary-text)' }}>
+                              {option} Plan
                             </h6>
                             <p className="card-text">
-                              <span className="h5" style={{ color: 'var(--accent-color)' }}>
+                              <span className="h4 fw-bold" style={{ color: 'var(--accent-color)' }}>
                                 ${details.cost}
                               </span>
                               <br />
                               <small className="text-muted">{details.duration}</small>
-                              {option === 'yearly' && (
+                              
+                              {/* Price per month calculation */}
+                              {option !== 'monthly' && (
                                 <div>
-                                  <small className="text-success d-block">
-                                    Save ${(subscriptionOptions.monthly?.cost * 12) - details.cost}!
+                                  <small className="text-muted d-block">
+                                    ${(details.cost / (details.days / 30)).toFixed(2)}/month
+                                  </small>
+                                </div>
+                              )}
+                              
+                              {option === 'yearly' && subscriptionOptions.monthly && (
+                                <div>
+                                  <small className="text-success d-block fw-bold">
+                                    Save ${(subscriptionOptions.monthly.cost * 12) - details.cost}!
                                   </small>
                                 </div>
                               )}
                             </p>
+                            
                             <button 
-                              className="btn btn-danger w-100"
+                              className="btn w-100 fw-bold"
                               onClick={() => handleSubscribe(option)}
                               disabled={isSubscribing}
                               style={{ 
-                                backgroundColor: option === 'yearly' ? 'var(--accent-color)' : undefined,
+                                backgroundColor: option === 'yearly' ? 'var(--accent-color)' : 
+                                               option === 'monthly' ? '#28a745' : '#dc3545',
                                 border: 'none',
-                                fontWeight: '600'
+                                color: 'white',
+                                fontWeight: '600',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem'
                               }}
                             >
                               {isSubscribing ? (
-                                <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
-                              ) : null}
-                              {isSubscribing ? 'Processing...' : 
-                                subscriptionStatus === "Premium" ? 'Extend' : 'Subscribe'}
+                                <>
+                                  <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  {subscriptionStatus === "Premium" ? (
+                                    <>
+                                      <FontAwesomeIcon icon={faClock} className="me-2" />
+                                      Extend Plan
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FontAwesomeIcon icon={faCrown} className="me-2" />
+                                      Get {option.charAt(0).toUpperCase() + option.slice(1)}
+                                    </>
+                                  )}
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
