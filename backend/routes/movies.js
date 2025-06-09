@@ -12,6 +12,8 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
                 query = { genres: { $regex: new RegExp(genre, "i") } }; // Case-insensitive regex match
             }
 
+
+
             const moviesList = await movies
                 .aggregate([
                     { $match: query },
@@ -54,13 +56,10 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
             title: req.body.title,
             description: req.body.description,
             genre: req.body.genre,
-            genres: req.body.genres || req.body.genre, // Support both fields
             rating: req.body.rating,
             year: req.body.year,
             imageUrl: req.body.imageUrl,
             videoUrl: req.body.videoUrl,
-            createdAt: new Date(),
-            updatedAt: new Date()
         };
 
         try {
@@ -72,118 +71,6 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
         } catch (err) {
             console.error("Error inserting movie:", err);
             res.status(500).json({ message: "An error occurred while adding the movie. Please try again later." });
-        }
-    });
-
-    // UPDATE Movie endpoint
-    app.put("/api/movies/:id", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
-            
-            const movieId = req.params.id;
-            
-            // Validate ObjectId
-            if (!ObjectId.isValid(movieId)) {
-                return res.status(400).json({ message: "Invalid movie ID format" });
-            }
-
-            const updates = {
-                title: req.body.title,
-                description: req.body.description,
-                genre: req.body.genre,
-                genres: req.body.genres || req.body.genre, // Support both fields
-                rating: req.body.rating,
-                year: req.body.year,
-                imageUrl: req.body.imageUrl,
-                videoUrl: req.body.videoUrl,
-                updatedAt: new Date()
-            };
-
-            const result = await movies.updateOne(
-                { _id: new ObjectId(movieId) },
-                { $set: updates }
-            );
-
-            if (result.matchedCount === 0) {
-                return res.status(404).json({ message: "Movie not found" });
-            }
-
-            res.json({ 
-                message: "Movie updated successfully", 
-                movieId: movieId,
-                modifiedCount: result.modifiedCount 
-            });
-        } catch (err) {
-            console.error("Error updating movie:", err);
-            res.status(500).json({ 
-                message: "An error occurred while updating the movie",
-                error: err.message 
-            });
-        }
-    });
-
-    // DELETE Movie endpoint
-    app.delete("/api/movies/:id", async (req, res) => {
-        try {
-            const database = client.db("sample_mflix");
-            const movies = database.collection("movies");
-            
-            const movieId = req.params.id;
-            
-            // Validate ObjectId
-            if (!ObjectId.isValid(movieId)) {
-                return res.status(400).json({ message: "Invalid movie ID format" });
-            }
-
-            // First, check if movie exists
-            const movieToDelete = await movies.findOne({ _id: new ObjectId(movieId) });
-            if (!movieToDelete) {
-                return res.status(404).json({ message: "Movie not found" });
-            }
-
-            // Delete the movie
-            const result = await movies.deleteOne({ _id: new ObjectId(movieId) });
-
-            if (result.deletedCount === 0) {
-                return res.status(500).json({ message: "Failed to delete movie" });
-            }
-
-            // Clean up related data (likes, dislikes, watchlists)
-            try {
-                const likes = database.collection("likes");
-                const dislikes = database.collection("dislikes");
-                const watchlists = database.collection("watchlists");
-                
-                // Delete all likes for this movie
-                await likes.deleteMany({ movieId: movieId });
-                
-                // Delete all dislikes for this movie
-                await dislikes.deleteMany({ movieId: movieId });
-                
-                // Remove movie from all watchlists
-                await watchlists.updateMany(
-                    { movieId: movieId },
-                    { $pull: { movieId: movieId } }
-                );
-                
-                console.log(`Cleaned up related data for movie: ${movieId}`);
-            } catch (cleanupErr) {
-                console.error("Error cleaning up related data:", cleanupErr);
-                // Continue anyway - movie is already deleted
-            }
-
-            res.json({ 
-                message: "Movie deleted successfully",
-                movieId: movieId,
-                title: movieToDelete.title
-            });
-        } catch (err) {
-            console.error("Error deleting movie:", err);
-            res.status(500).json({ 
-                message: "An error occurred while deleting the movie",
-                error: err.message 
-            });
         }
     });
 
@@ -202,7 +89,9 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
         }
     });
 
+
     // Movie Search Endpoint
+
     app.get("/api/search", async (req, res) => {
         const query = req.query.query || "";
 
@@ -218,66 +107,42 @@ module.exports = (client, app, authenticate, createTextIndex, ObjectId) => {
         }
     });
 
-    // Get engagement stats for a movie (likes + dislikes)
-    app.get("/api/movies/:movieId/engagement", async (req, res) => {
+
+
+
+
+    // Interacted movies endpoint
+    app.get("/api/movies/interacted", authenticate, async (req, res) => {
         try {
-            const { movieId } = req.params;
+            const userId = req.user._id; // Extract user ID from authenticated user
+            const database = client.db("sample_mflix");
 
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ message: "Invalid movie ID format" });
-            }
+            const likes = database.collection("likes");
+            const dislikes = database.collection("dislikes");
 
-            const [likeCount, dislikeCount] = await Promise.all([
-                likes.countDocuments({ movieId }),
-                dislikes.countDocuments({ movieId })
-            ]);
+            // Find movies liked by the user
+            const likedMovies = await likes.find({ userId }).toArray();
 
-            const totalEngagement = likeCount + dislikeCount;
-            const likeRatio = totalEngagement > 0 ? (likeCount / totalEngagement * 100).toFixed(1) : 0;
+            // Find movies disliked by the user
+            const dislikedMovies = await dislikes.find({ userId }).toArray();
 
-            res.json({
-                success: true,
-                data: {
-                    movieId,
-                    likes: likeCount,
-                    dislikes: dislikeCount,
-                    totalEngagement,
-                    likeRatio: parseFloat(likeRatio)
-                }
-            });
+            // Combine liked and disliked movies
+            const interactedMovies = [...likedMovies, ...dislikedMovies];
+
+            // Get movie IDs
+            const movieIds = interactedMovies.map((interaction) => interaction.movieId);
+
+            // Find details of interacted movies
+            const movies = database.collection("movies");
+            const interactedMoviesDetails = await movies
+                .find({ _id: { $in: movieIds.map((id) => new ObjectId(id)) } })
+                .toArray();
+
+            res.json(interactedMoviesDetails);
         } catch (err) {
-            console.error("Error fetching engagement stats:", err);
-            res.status(500).json({ message: err.message });
+            console.error("Error fetching interacted movies:", err);
+            res.status(500).json({ message: "Server error" });
         }
     });
 
-    // Check user's interaction status with a movie
-    app.get("/api/movies/:movieId/user/:userId/status", async (req, res) => {
-        try {
-            const { movieId, userId } = req.params;
-
-            if (!isValidObjectId(movieId)) {
-                return res.status(400).json({ message: "Invalid movie ID format" });
-            }
-
-            const [hasLiked, hasDisliked] = await Promise.all([
-                likes.findOne({ userId, movieId }),
-                dislikes.findOne({ userId, movieId })
-            ]);
-
-            res.json({
-                success: true,
-                data: {
-                    movieId,
-                    userId,
-                    hasLiked: !!hasLiked,
-                    hasDisliked: !!hasDisliked
-                }
-            });
-        } catch (err) {
-            console.error("Error checking user status:", err);
-            res.status(500).json({ message: err.message });
-        }
-    });
-};
-
+}
